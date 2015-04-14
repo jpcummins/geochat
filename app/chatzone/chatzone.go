@@ -78,7 +78,6 @@ func chatzone() {
             subscriber := make(chan Event, 10)
             subscribers.PushBack(subscriber)
             ch <- Subscription{events, subscriber}
-
         case event := <-publish:
             for ch := subscribers.Front(); ch != nil; ch = ch.Next() {
                 ch.Value.(chan Event) <- event
