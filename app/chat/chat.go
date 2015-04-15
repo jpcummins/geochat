@@ -1,5 +1,15 @@
 package chat
 
+/*
+
+TODO:
+* Update routes to include geohash
+* Add redis pubsub support
+* hash the geohash for security?
+
+*/
+
+
 import (
     "time"
     "github.com/garyburd/redigo/redis"
