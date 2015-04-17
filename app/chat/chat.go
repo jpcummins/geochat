@@ -6,6 +6,8 @@ TODO:
 * Update routes to include geohash
 * hash the geohash for security?
 * middleware for user object
+* Add geolocation detection in the browser
+* Perhaps I should remove the user filter to make things more explicit
 
 */
 

@@ -87,7 +87,7 @@ func (z *Zone) Publish(event *Event) (*Event, error) {
 	return event, nil
 }
 
-func (z *Zone) SendMessage(user string, text string) (*Event, error) {
+func (z *Zone) SendMessage(user *User, text string) (*Event, error) {
 	m := &Message{User: user, Text: text}
 	return z.Publish(newEvent(m))
 }
@@ -96,7 +96,7 @@ func (z *Zone) GetArchive(maxEvents int) *Archive {
 	c := pool.Get()
 	defer c.Close()
 
-	archiveJson, err := redis.Strings(c.Do("LRANGE", "zone_"+z.Geohash, 0, maxEvents - 1))
+	archiveJson, err := redis.Strings(c.Do("LRANGE", "zone_"+z.Geohash, 0, maxEvents-1))
 	if err != nil {
 		return nil
 	}

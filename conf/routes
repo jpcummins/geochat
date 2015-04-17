@@ -6,9 +6,9 @@ module:testrunner
 
 GET     /                                       App.Index
 
-POST    /zone/message                           Zone.Message
-GET     /zone/zone                              Zone.Zone
-WS      /zone/socket                            Zone.ZoneSocket
+GET     /zone/:zone                             Zone.Zone
+POST    /zone/:zone/message                     Zone.Message
+WS      /zone/:zone/socket                      Zone.ZoneSocket
 
 # Ignore favicon requests
 GET     /favicon.ico                            404

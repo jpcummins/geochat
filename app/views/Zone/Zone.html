@@ -7,8 +7,8 @@
 <div id="thread">
   <script type="text/html" id="message_tmpl">
     <% if(event.type == 'message') { %>
-      <div class="message <%= event.data.user == '{{.user}}' ? 'you' : '' %>">
-        <h2><%= event.data.user %></h2>
+      <div class="message <%= event.data.user.name == '{{.user}}' ? 'you' : '' %>">
+        <h2><%= event.data.user.name %></h2>
         <p>
           <%= event.data.text %>
         </p>
@@ -48,7 +48,7 @@
 
 <script type="text/javascript">
   // Create a socket
-  var socket = new WebSocket('ws://' + window.location.host + '/zone/socket?user={{.user}}')
+  var socket = new WebSocket('ws://' + window.location.host + '/zone/{{.zone}}/socket?user={{.user}}')
 
   // Display a message
   var display = function(event) {
@@ -77,7 +77,7 @@
     $('#message').val('')
 
     $.ajax({
-      url: '/zone/message',
+      url: '/zone/{{.zone}}/message',
       method: 'POST',
       data: {
         text: message,
