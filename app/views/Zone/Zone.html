@@ -6,33 +6,33 @@
 
 <div id="thread">
   <script type="text/html" id="message_tmpl">
-    <% if(event.Type == 'message') { %>
-      <div class="message <%= event.User == '{{.user}}' ? 'you' : '' %>">
-        <h2><%= event.User %></h2>
+    <% if(event.type == 'message') { %>
+      <div class="message <%= event.data.user == '{{.user}}' ? 'you' : '' %>">
+        <h2><%= event.data.user %></h2>
         <p>
-          <%= event.Text %>
+          <%= event.data.text %>
         </p>
       </div>
     <% } %>
-    <% if(event.Type == 'join') { %>
+    <% if(event.type == 'join') { %>
       <div class="message notice">
         <h2></h2>
         <p>
-          <%= event.User %> joined the room
+          <%= event.data.user %> joined the room
         </p>
       </div>
     <% } %>
-    <% if(event.Type == 'leave') { %>
+    <% if(event.type == 'leave') { %>
       <div class="message notice">
         <h2></h2>
         <p>
-          <%= event.User %> left the room
+          <%= event.data.user %> left the room
         </p>
       </div>
     <% } %>
-    <% if(event.Type == 'quit') { %>
+    <% if(event.type == 'quit') { %>
       <div class="message important">
-        <h2></h2>z
+        <h2></h2>
         <p>
           You are now disconnected!
         </p>
@@ -52,7 +52,16 @@
 
   // Display a message
   var display = function(event) {
-    $('#thread').append(tmpl('message_tmpl', {event: event}));
+
+    if (event.type == "archive") {
+      for (var i = event.data.events.length - 1; i >= 0; i--) {
+        display(event.data.events[i])
+      }
+      return
+    }
+
+    var t = tmpl('message_tmpl', {event: event});
+    $('#thread').append(t);
     $('#thread').scrollTo('max')
   }
 
