@@ -29,7 +29,12 @@ func (z *Zone) run() {
 			subscriber := make(chan Event, 10)
 			z.subscribers.PushBack(subscriber)
 			ch <- Subscription{subscriber, z}
-			subscriber <- *newEvent(z.GetArchive(10))
+
+			archive := z.GetArchive(10)
+
+			if (len(archive.Events) > 0) {
+				subscriber <- *newEvent(z.GetArchive(10))
+			}
 
 		case event := <-z.publish:
 			for ch := z.subscribers.Front(); ch != nil; ch = ch.Next() {
