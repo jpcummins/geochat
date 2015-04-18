@@ -4,6 +4,7 @@ import (
 	"github.com/jpcummins/geochat/app/chat"
 	"github.com/revel/revel"
 	"golang.org/x/net/websocket"
+	"github.com/TomiHiltunen/geohash-golang"
 )
 
 type Zone struct {
@@ -13,6 +14,10 @@ type Zone struct {
 
 func init() {
 	revel.FilterAction(Zone.Message).Add(AuthorizedFilter)
+}
+
+func (c Zone) Lookup(lat float64, long float64) revel.Result {
+	return c.RenderText(geohash.EncodeWithPrecision(lat, long, 3))
 }
 
 func (c Zone) Message(zone string, user string, text string) revel.Result {
@@ -31,11 +36,12 @@ func (c Zone) Message(zone string, user string, text string) revel.Result {
 	return c.RenderJson(event)
 }
 
-func (c Zone) Zone(zone string, user string) revel.Result {
-	return c.Render(user, zone)
+func (c Zone) Zone(zone string) revel.Result {
+	box := geohash.Decode(zone)
+	return c.Render(zone, box)
 }
 
-func (c Zone) ZoneSocket(zone string, user string, ws *websocket.Conn) revel.Result {
+func (c Zone) ZoneSocket(zone string, ws *websocket.Conn) revel.Result {
 	s := chat.SubscribeToZone(zone)
 	defer s.Unsubscribe()
 

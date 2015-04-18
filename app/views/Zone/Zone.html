@@ -1,98 +1,135 @@
-{{set . "title" "Chat room"}}
-{{template "header.html" .}}
+<!DOCTYPE html>
 
-<h1>You are now chatting as {{.user}}
-  <a href="/">Leave the chat room</a></h1>
+<html>
+  <head>
+    <title>Geochat</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" type="text/css" href="/public/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/public/css/main.css">
+    <script src="/public/js/jquery-2.1.3.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/public/js/templating.js" type="text/javascript" charset="utf-8"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
+  </head>
+  <body>
 
-<div id="thread">
-  <script type="text/html" id="message_tmpl">
-    <% if(event.type == 'message') { %>
-      <div class="message <%= event.data.user.name == '{{.user}}' ? 'you' : '' %>">
-        <h2><%= event.data.user.name %></h2>
-        <p>
-          <%= event.data.text %>
-        </p>
+  <div class="container-fluid">
+    <div class="row gc-header">
+      <div class="col-md-12">
+        <h4>Location: {{.zone}}</h4>
       </div>
-    <% } %>
-    <% if(event.type == 'join') { %>
-      <div class="message notice">
-        <h2></h2>
-        <p>
-          <%= event.data.user %> joined the room
-        </p>
+    </div>
+    <div class="row gc-content">
+      <div class="col-md-8">
+        <div class="row gc-chat-window">
+          <div class="col-md-12" id="gc-message-area">
+
+
+            <script type="text/html" id="message_tmpl">
+              <div class="row gc-message">
+                <div class="col-md-1 gc-name">
+                  <%= event.data.user.name %>
+                </div>
+                <div class="col-md-11">
+                  <%= event.data.text %>
+                </div>
+              </div>
+            </script>
+
+
+          </div>
+        </div>
+        <div class="row gc-chat-textbox">
+          <div class="col-md-12">
+            <input type="text" class="form-control" placeholder="Say something…" id="message" autocomplete="off" autofocus>
+          </div>
+        </div>
       </div>
-    <% } %>
-    <% if(event.type == 'leave') { %>
-      <div class="message notice">
-        <h2></h2>
-        <p>
-          <%= event.data.user %> left the room
-        </p>
+      <div class="col-md-4 gc-sidebar">
+        <div class="row gc-map">
+          <div class="col-md-12" id="map-canvas">
+
+          </div>
+        </div>
+        <div class="row gc-users">
+          <div class="col-md-12">
+            users
+          </div>
+        </div>
       </div>
-    <% } %>
-    <% if(event.type == 'quit') { %>
-      <div class="message important">
-        <h2></h2>
-        <p>
-          You are now disconnected!
-        </p>
-      </div>
-    <% } %>
-  </script>
-</div>
+    </div>
+  </div>
 
-<div id="newMessage">
-  <input type="text" id="message" name="message" autocomplete="off" autofocus>
-  <input type="submit" value="send" id="send">
-</div>
+  <script type="text/javascript">
 
-<script type="text/javascript">
-  // Create a socket
-  var socket = new WebSocket('ws://' + window.location.host + '/zone/{{.zone}}/socket?user={{.user}}')
+    var map;
+    function initialize() {
+      var mapOptions = {
+        zoom: 6,
+        center: new google.maps.LatLng({{ .box.Center.Lat }}, {{ .box.Center.Lng }})
+      };
 
-  // Display a message
-  var display = function(event) {
+      map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
 
-    if (event.type == "archive") {
-      for (var i = event.data.events.length - 1; i >= 0; i--) {
-        display(event.data.events[i])
-      }
-      return
+      var rectangle = new google.maps.Rectangle({
+        strokeColor: '#FF0000',
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: '#FF0000',
+        fillOpacity: 0.35,
+        map: map,
+        bounds: new google.maps.LatLngBounds(
+          new google.maps.LatLng({{ .box.SouthWest.Lat }}, {{ .box.SouthWest.Lng }}),
+          new google.maps.LatLng({{ .box.NorthEast.Lat }}, {{ .box.NorthEast.Lng }}))
+      });
+
     }
 
-    var t = tmpl('message_tmpl', {event: event});
-    $('#thread').append(t);
-    $('#thread').scrollTo('max')
-  }
+    google.maps.event.addDomListener(window, 'load', initialize);
 
-  // Message received on the socket
-  socket.onmessage = function(event) {
-    if (event) {
+    var socket = new WebSocket('ws://' + window.location.host + '/zone/{{.zone}}/socket')
+
+    // Display a message
+    var display = function(event) {
+
+      if (event.type == "archive") {
+        for (var i = event.data.events.length - 1; i >= 0; i--) {
+          display(event.data.events[i])
+        }
+        return
+      }
+
+      $('#gc-message-area').append(tmpl('message_tmpl', {event: event}));
+    }
+    // Message received on the socket
+    socket.onmessage = function(event) {
       display(JSON.parse(event.data))
     }
-  }
 
-  $('#send').click(function(e) {
-    var message = $('#message').val()
-    $('#message').val('')
+    $('#message').keypress(function(e) {
+      if(e.charCode == 13 || e.keyCode == 13) {
+        e.preventDefault()
 
-    $.ajax({
-      url: '/zone/{{.zone}}/message',
-      method: 'POST',
-      data: {
-        text: message,
-        user: '{{.user}}',
-        zone: 'abc'
+        var message = $('#message').val()
+
+        $.ajax({
+          url: '/zone/{{.zone}}/message',
+          method: 'POST',
+          data: {
+            text: message,
+            user: getCookie("name")
+          }
+        });
+
+        $('#message').val('')
       }
-    });
+    })
 
-  });
-
-  $('#message').keypress(function(e) {
-    if(e.charCode == 13 || e.keyCode == 13) {
-      $('#send').click()
-      e.preventDefault()
+    function getCookie(key) {
+        var keyValue = document.cookie.match('(^|;) ?' + key + '=([^;]*)(;|$)');
+        return keyValue ? keyValue[2] : null;
     }
-  })
 
-</script>
+  </script>
+
+  </body>
+</html>

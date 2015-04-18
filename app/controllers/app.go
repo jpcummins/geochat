@@ -10,7 +10,6 @@ type App struct {
 	User *chat.User
 }
 
-func (c App) Index(user string) revel.Result {
-	c.Validation.Required(user)
-	return c.Redirect("/zone/zone?user=%s", user)
+func (c App) Index() revel.Result {
+	return c.Render()
 }

@@ -6,9 +6,13 @@ module:testrunner
 
 GET     /                                       App.Index
 
+POST    /zone/lookup                            Zone.Lookup
 GET     /zone/:zone                             Zone.Zone
 POST    /zone/:zone/message                     Zone.Message
 WS      /zone/:zone/socket                      Zone.ZoneSocket
+
+
+
 
 # Ignore favicon requests
 GET     /favicon.ico                            404

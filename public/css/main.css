@@ -1,142 +1,95 @@
-html, body {
-    background: #ddd;
-    padding: 0;
-    margin: 0;
-    font-family: Helvetica, Arial, Sans;
+html,
+body,
+.container-fluid {
+    height: 100%;
+    background-color: #efefef;
 }
 
-#home {
-    margin: 100px auto;
-    text-align: center;
+.gc-header {
+    height: 30px;
 }
 
-#signin {
-    margin: 10px auto;
-    width: 400px;
-    border: 8px solid #333;
-    padding: 20px;
-    background: #fff;
-    text-align: left;
-}
-
-#signin p {
-    margin: 5px 0;
-}
-
-#signin label {
-    font-size: 14px;
-    display: block;
-    width: 150px;
-    text-align: right;
-    float: left;
-    margin-right: 5px;
-    padding-top: 2px;
-}
-
-#signin #nick {
-    margin-left: 10px;
-    width: 200px;
-}
-
-#signin #enter {
-    display: block;
-    margin: 10px 0 0 160px;
-}
-
-#signin .error {
-    background: #c00;
-    margin: 0 0 10px 0;
-    padding: 5px;
-    text-align: center;
-    color: #fff;
-    font-size: 14px;
-}
-
-h1 {
-    background: #111;
-    margin: 0;
-    color: gold;
-    padding: 7px 14px;
-    font-size: 14px;
-    font-weight: normal;
-}
-
-h1 a {
-    position: absolute;
-    right: 1em;
-    color: lightblue;
-}
-
-#thread {
-    position: fixed;
-    top: 50px;
-    left: 14px;
-    right: 14px;
-    bottom: 100px;
-    background: white;
-    border-bottom: 3px solid #666;
-    padding: 10px;
-    overflow-y: scroll;
-}
-
-.message {
-    border-bottom: 1px solid #efefef;
-    position: relative;
-}
-
-.message h2 {
-    background: #efefef;
-    color: #000;
-    font-size: 12px;
-    font-weight: bold;
-    margin: 0;
-    padding: 5px;
+.gc-content {
     position: absolute;
     top: 0;
-    left: 0;
+    width: 100%;
+    height: 100%;
+    padding-top: 30px;
+}
+
+.gc-content > div {
+    height: 100%;
+}
+
+.gc-chat-window {
+    position: absolute;
+    top: 0;
+    left: 15px;
+    right: 15px;
+    bottom: 46px;
+}
+
+.gc-chat-window > div {
+    position: absolute;
+    left: 15px;
+    bottom: 0px;
+    right: 15px;
+    top: 0;
+    overflow: scroll;
+    border: 1px solid #ccc;
+    width: auto;
+    border-radius: 4px;
+    margin: 10px 0;
+    background-color: #fff;
+}
+
+.gc-chat-textbox {
+    position: absolute;
     bottom: 0;
-    width: 100px;
+    height: 46px;
+    left: 0;
+    right: 0;
+    padding: 0 15px;
+}
+
+.gc-message {
+    margin: 6px 0;
+}
+
+.gc-name {
+    border-right: 1px solid #ddd;
     text-align: right;
-    border-right: 1px solid #ccc;
 }
 
-.message p {
-    font-size: 12px;
-    padding: 5px;
-    margin: 0 0 0 110px;
+.gc-sidebar > div {
+    height: 50%;
+    padding: 10px 15px 13px 0px;
 }
 
-.message.you * {
-    background: #FFFFCC;
+.gc-map > div,
+.gc-users > div {
+    background-color: #fff;
+    height: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
 }
 
-.message.notice * {
-    background: #D9E7FB;
+.gc-welcome-row {
+    margin-top: 60px;
 }
 
-.message.important * {
-    background: #c00;
-    color: #fff;
+.gc-welcome {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    padding: 20px;
 }
 
-.message.notice h2 {
-    visibility: hidden;
+.gc-error {
+    color: red;
 }
 
-.message.notice p {
-    margin: 0;
-    padding-left: 115px;
-}
-
-#newMessage {
-    position: fixed;
-    left: 14px;
-    right: 14px;
-    bottom: 30px;
-    height: 60px;
-}
-
-#newMessage #message {
-    width: 70%;
-    padding: 5px;
+.gc-info {
+    font-style: italic;
+    color: #444;
 }

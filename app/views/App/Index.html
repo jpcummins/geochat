@@ -1,23 +1,100 @@
-{{set . "title" "Home"}}
-{{template "header.html" .}}
+<!DOCTYPE html>
 
-<header class="hero-unit" style="background-color:#A9F16C">
-  <div class="container">
-    <div class="row">
-      <div class="hero-text">
-        <h1>It works!</h1>
-        <p></p>
+<html>
+  <head>
+    <title>Geochat</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" type="text/css" href="/public/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/public/css/main.css">
+    <script src="/public/js/jquery-2.1.3.min.js" type="text/javascript" charset="utf-8"></script>
+  </head>
+  <body>
+
+  <div class="container-fluid">
+
+    <div class="row gc-welcome-row">
+      <div class="col-md-4"></div>
+      <div class="col-md-4 gc-welcome">
+
+
+        <div class="form-group">
+          <label for="exampleInputEmail1">Name</label>
+          <input type="name" class="form-control" id="name" placeholder="Enter your name">
+        </div>
+        <span class="gc-error"></span>
+        <span class="gc-info"></span>
+        <input type="button" class="btn btn-success pull-right disabled" id="enter" value="Enter ➞">
+
       </div>
+      <div class="col-md-4"></div>
     </div>
   </div>
-</header>
 
-<div class="container">
-  <div class="row">
-    <div class="span6">
-      {{template "flash.html" .}}
-    </div>
-  </div>
-</div>
+  <script type="text/javascript">
 
-{{template "footer.html" .}}
+  var name = ""
+
+  $('#enter').click(function (e) {
+    e.preventDefault();
+    findLocation();
+  });
+
+  $('#name').keypress(function (e) {
+    name = $("#name").val()
+    if (e.charCode == 13 || e.keyCode == 13) {
+      e.preventDefault();
+      return findLocation();
+    }
+    if (name != "") {
+      $("#enter").removeClass("disabled")
+    }
+  });
+
+  var handlePosition = function (position) {
+    $(".gc-info").text("Location found, finding chatzone...")
+
+    $.ajax({
+      url: '/zone/lookup',
+      method: 'POST',
+      data: {
+        lat: position.coords.latitude,
+        long: position.coords.longitude
+      }
+    })
+    .done(function (data) {
+      $(".gc-info").text("Chatzone found, logging in...")
+      setCookie("name", name)
+      window.location.replace("/zone/" + data);
+    })
+    .fail(function () {
+      $(".gc-info").text("")
+      $(".gc-error").text("Unable to find chatzone. Try again later.")
+    });
+  }
+
+  var handlePositionError = function (error) {
+    $("#enter").addClass("disabled");
+    $(".gc-error").text("Please enable location detection.")
+  }
+
+  var findLocation = function () {
+    $(".gc-info").text("Determining location...")
+    $("#enter").addClass("disabled");
+    navigator.geolocation.getCurrentPosition(handlePosition, handlePositionError)
+  }
+
+  function setCookie(key, value) {
+      var expires = new Date();
+      expires.setTime(expires.getTime() + (1 * 24 * 60 * 60 * 1000));
+      document.cookie = key + '=' + value + ';expires=' + expires.toUTCString();
+  }
+
+  function getCookie(key) {
+      var keyValue = document.cookie.match('(^|;) ?' + key + '=([^;]*)(;|$)');
+      return keyValue ? keyValue[2] : null;
+  }
+
+  </script>
+
+  </body>
+</html>
