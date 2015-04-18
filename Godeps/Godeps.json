@@ -46,6 +46,10 @@
 			"Rev": "41257a1839e945fce74afd070e02bab2ea2c776a"
 		},
 		{
+			"ImportPath": "github.com/soveran/redisurl",
+			"Rev": "ac42ec99510b5f21d11560d316adcc5bc41f0915"
+		},
+		{
 			"ImportPath": "golang.org/x/net/websocket",
 			"Rev": "84ba27dd5b2d8135e9da1395277f2c9333a2ffda"
 		},
