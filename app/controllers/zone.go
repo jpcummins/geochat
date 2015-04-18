@@ -9,25 +9,26 @@ import (
 
 type Zone struct {
 	*revel.Controller
-	User *chat.User
-}
-
-func init() {
-	revel.FilterAction(Zone.Message).Add(AuthorizedFilter)
 }
 
 func (c Zone) Lookup(lat float64, long float64) revel.Result {
 	return c.RenderText(geohash.EncodeWithPrecision(lat, long, 3))
 }
 
-func (c Zone) Message(zone string, user string, text string) revel.Result {
+func (c Zone) Message(zone string, text string) revel.Result {
+
+    user, err := chat.GetUser(c.Session["user"])
+    if err != nil {
+        return c.RenderError(err)
+    }
+
 	z, ok := chat.FindZone(zone)
 
 	if !ok {
 		return nil
 	}
 
-	event, err := z.SendMessage(c.User, text)
+	event, err := z.SendMessage(user, text)
 
 	if err != nil {
 		return c.RenderError(err)

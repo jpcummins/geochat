@@ -19,11 +19,11 @@
 
         <div class="form-group">
           <label for="exampleInputEmail1">Name</label>
-          <input type="name" class="form-control" id="name" placeholder="Enter your name">
+          <input type="name" class="form-control" id="name" placeholder="Enter your name" value=" {{ if .user }}{{.user.Name}}{{end}}">
         </div>
         <span class="gc-error"></span>
         <span class="gc-info"></span>
-        <input type="button" class="btn btn-success pull-right disabled" id="enter" value="Enter ➞">
+        <input type="button" class="btn btn-success pull-right" id="enter" value="Enter ➞">
 
       </div>
       <div class="col-md-4"></div>
@@ -34,12 +34,16 @@
 
   var name = ""
 
+  if ($("#name").val() == "") {
+    $("#name").addClass("disabled")
+  }
+
   $('#enter').click(function (e) {
     e.preventDefault();
     findLocation();
   });
 
-  $('#name').keypress(function (e) {
+  $('#name').keyup(function (e) {
     name = $("#name").val()
     if (e.charCode == 13 || e.keyCode == 13) {
       e.preventDefault();
@@ -61,10 +65,24 @@
         long: position.coords.longitude
       }
     })
-    .done(function (data) {
+    .done(function (zone) {
       $(".gc-info").text("Chatzone found, logging in...")
-      setCookie("name", name)
-      window.location.replace("/zone/" + data);
+
+      $.ajax({
+        url: '/auth/login',
+        method: 'POST',
+        data: {
+          name: name
+        }
+      })
+      .done(function (data) {
+        $(".gc-info").text("Logged in, loading room...")
+        window.location.replace("/zone/" + zone);        
+      })
+      .fail(function () {
+        $(".gc-info").text("")
+        $(".gc-error").text("Login failed. Try again later.")        
+      });
     })
     .fail(function () {
       $(".gc-info").text("")
@@ -81,17 +99,6 @@
     $(".gc-info").text("Determining location...")
     $("#enter").addClass("disabled");
     navigator.geolocation.getCurrentPosition(handlePosition, handlePositionError)
-  }
-
-  function setCookie(key, value) {
-      var expires = new Date();
-      expires.setTime(expires.getTime() + (1 * 24 * 60 * 60 * 1000));
-      document.cookie = key + '=' + value + ';expires=' + expires.toUTCString();
-  }
-
-  function getCookie(key) {
-      var keyValue = document.cookie.match('(^|;) ?' + key + '=([^;]*)(;|$)');
-      return keyValue ? keyValue[2] : null;
   }
 
   </script>

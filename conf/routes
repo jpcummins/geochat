@@ -6,6 +6,8 @@ module:testrunner
 
 GET     /                                       App.Index
 
+POST    /auth/login                             Auth.Login
+
 POST    /zone/lookup                            Zone.Lookup
 GET     /zone/:zone                             Zone.Zone
 POST    /zone/:zone/message                     Zone.Message

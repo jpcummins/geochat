@@ -11,5 +11,6 @@ type App struct {
 }
 
 func (c App) Index() revel.Result {
-	return c.Render()
+	user, _ := chat.GetUser(c.Session["user"])
+	return c.Render(user)
 }

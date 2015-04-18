@@ -115,19 +115,13 @@
           url: '/zone/{{.zone}}/message',
           method: 'POST',
           data: {
-            text: message,
-            user: getCookie("name")
+            text: message
           }
         });
 
         $('#message').val('')
       }
     })
-
-    function getCookie(key) {
-        var keyValue = document.cookie.match('(^|;) ?' + key + '=([^;]*)(;|$)');
-        return keyValue ? keyValue[2] : null;
-    }
 
   </script>
 
