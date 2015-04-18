@@ -87,7 +87,7 @@ func init() {
 	redisServer := os.Getenv("REDISTOGO_URL")
 
 	if redisServer == "" {
-		redisServer = ":6379"
+		redisServer = "redis://localhost:6379"
 	}
 
 	pool = createPool(redisServer)
