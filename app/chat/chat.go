@@ -12,8 +12,9 @@ TODO:
 import (
 	"container/list"
 	"github.com/garyburd/redigo/redis"
-	"time"
+	"github.com/soveran/redisurl"
 	"os"
+	"time"
 )
 
 type Subscription struct {
@@ -64,7 +65,7 @@ func createPool(server string) *redis.Pool {
 		MaxIdle:     3,
 		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", server)
+			c, err := redisurl.ConnectToURL(server)
 			if err != nil {
 				return nil, err
 			}
@@ -85,7 +86,7 @@ func init() {
 
 	redisServer := os.Getenv("REDISTOGO_URL")
 
-	if (redisServer == "") {
+	if redisServer == "" {
 		redisServer = ":6379"
 	}
 

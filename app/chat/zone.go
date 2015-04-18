@@ -32,12 +32,12 @@ func (z *Zone) run() {
 
 			archive, err := z.GetArchive(10)
 
-			if (err != nil) {
+			if err != nil {
 				println("Error querying archive for,", z.Geohash, err.Error())
 				continue
 			}
 
-			if (len(archive.Events) > 0) {
+			if len(archive.Events) > 0 {
 				subscriber <- *newEvent(archive)
 			}
 
