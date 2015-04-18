@@ -13,6 +13,7 @@ import (
 	"container/list"
 	"github.com/garyburd/redigo/redis"
 	"time"
+	"os"
 )
 
 type Subscription struct {
@@ -81,6 +82,13 @@ var (
 )
 
 func init() {
-	pool = createPool(":6379")
+
+	redisServer := os.Getenv("REDISTOGO_URL")
+
+	if (redisServer == "") {
+		redisServer = ":6379"
+	}
+
+	pool = createPool(redisServer)
 	zones = make(map[string]*Zone)
 }
