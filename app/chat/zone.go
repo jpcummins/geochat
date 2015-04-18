@@ -30,10 +30,15 @@ func (z *Zone) run() {
 			z.subscribers.PushBack(subscriber)
 			ch <- Subscription{subscriber, z}
 
-			archive := z.GetArchive(10)
+			archive, err := z.GetArchive(10)
 
-			if (archive.Events != nil && len(archive.Events) > 0) {
-				subscriber <- *newEvent(z.GetArchive(10))
+			if (err != nil) {
+				println("Error querying archive for,", z.Geohash, err.Error())
+				continue
+			}
+
+			if (len(archive.Events) > 0) {
+				subscriber <- *newEvent(archive)
 			}
 
 		case event := <-z.publish:
@@ -97,14 +102,15 @@ func (z *Zone) SendMessage(user *User, text string) (*Event, error) {
 	return z.Publish(newEvent(m))
 }
 
-func (z *Zone) GetArchive(maxEvents int) *Archive {
+func (z *Zone) GetArchive(maxEvents int) (*Archive, error) {
 	c := pool.Get()
 	defer c.Close()
 
 	archiveJson, err := redis.Strings(c.Do("LRANGE", "zone_"+z.Geohash, 0, maxEvents-1))
 	if err != nil {
-		return nil
+		println("unable to get archive:", err.Error())
+		return nil, err
 	}
 
-	return newArchive(archiveJson)
+	return newArchive(archiveJson), nil
 }
