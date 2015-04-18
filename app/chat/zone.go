@@ -38,7 +38,7 @@ func (z *Zone) run() {
 			}
 
 			if len(archive.Events) > 0 {
-				subscriber <- *newEvent(archive)
+				subscriber <- *NewEvent(archive)
 			}
 
 		case event := <-z.publish:
@@ -99,7 +99,7 @@ func (z *Zone) Publish(event *Event) (*Event, error) {
 
 func (z *Zone) SendMessage(user *User, text string) (*Event, error) {
 	m := &Message{User: user, Text: text}
-	return z.Publish(newEvent(m))
+	return z.Publish(NewEvent(m))
 }
 
 func (z *Zone) GetArchive(maxEvents int) (*Archive, error) {
@@ -113,4 +113,14 @@ func (z *Zone) GetArchive(maxEvents int) (*Archive, error) {
 	}
 
 	return newArchive(archiveJson), nil
+}
+
+func (z *Zone) Join(user *User) {
+    join := &Join{User: user}
+    z.Publish(NewEvent(join));
+}
+
+func (z *Zone) Leave(user *User) {
+    leave := &Leave{User: user}
+    z.Publish(NewEvent(leave));
 }

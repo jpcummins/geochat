@@ -43,14 +43,24 @@ func (c Zone) Zone(zone string) revel.Result {
 }
 
 func (c Zone) ZoneSocket(zone string, ws *websocket.Conn) revel.Result {
-	s := chat.SubscribeToZone(zone)
+	s, z := chat.SubscribeToZone(zone)
 	defer s.Unsubscribe()
+
+    // If this is an authenticated user, send Join event
+    user, err := chat.GetUser(c.Session["user"])
+
+    if err == nil {
+        z.Join(user)
+        defer z.Leave(user)
+    }
 
 	for {
 		select {
 		case event := <-s.New:
 			if websocket.JSON.Send(ws, &event) != nil {
 				// They disconnected.
+                leave := &chat.Leave{User: user}
+                z.Publish(chat.NewEvent(leave))
 				return nil
 			}
 		}

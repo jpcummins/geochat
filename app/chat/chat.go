@@ -48,7 +48,7 @@ func (s Subscription) Unsubscribe() {
 	s.Zone.unsubscribe <- s.New
 }
 
-func SubscribeToZone(geohash string) Subscription {
+func SubscribeToZone(geohash string) (Subscription, *Zone) {
 	zone, ok := zones[geohash]
 	if !ok {
 		zone = createZone(geohash)
@@ -57,7 +57,7 @@ func SubscribeToZone(geohash string) Subscription {
 
 	subscription := make(chan Subscription)
 	zone.subscribe <- subscription
-	return <-subscription
+	return <-subscription, zone
 }
 
 func createPool(server string) *redis.Pool {

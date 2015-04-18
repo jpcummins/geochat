@@ -9,9 +9,6 @@ type Auth struct {
 	*revel.Controller
 }
 
-func init() {
-}
-
 func (c Auth) Login(name string) revel.Result {
 	c.Session["user"] = name
 	user := &chat.User{Name: name}

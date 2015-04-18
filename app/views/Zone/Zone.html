@@ -25,14 +25,30 @@
 
 
             <script type="text/html" id="message_tmpl">
-              <div class="row gc-message">
-                <div class="col-md-1 gc-name">
-                  <%= event.data.user.name %>
+              <% if(event.type == 'message') { %>
+                <div class="row gc-message">
+                  <div class="col-md-1 gc-name">
+                    <%= event.data.user ? event.data.user.name : "(Guest)" %>
+                  </div>
+                  <div class="col-md-11">
+                    <%= $('<div/>').html(event.data.text).text() %>
+                  </div>
                 </div>
-                <div class="col-md-11">
-                  <%= event.data.text %>
+              <% } %>
+              <% if(event.type == 'join') { %>
+                <div class="row gc-message gc-joined">
+                  <div class="col-md-offset-1 col-md-11">
+                    <%= event.data.user ? event.data.user.name : "(Guest)" %> joined
+                  </div>
                 </div>
-              </div>
+              <% } %>
+              <% if(event.type == 'leave') { %>
+                <div class="row gc-message gc-left">
+                  <div class="col-md-offset-1 col-md-11">
+                    <%= event.data.user ? event.data.user.name : "(Guest)" %> left
+                  </div>
+                </div>
+              <% } %>
             </script>
 
 
@@ -98,7 +114,9 @@
         return
       }
 
-      $('#gc-message-area').append(tmpl('message_tmpl', {event: event}));
+      var messageArea = $('#gc-message-area')
+      messageArea.append(tmpl('message_tmpl', {event: event}));
+      messageArea.scrollTop(messageArea[0].scrollHeight - messageArea.height());
     }
     // Message received on the socket
     socket.onmessage = function(event) {

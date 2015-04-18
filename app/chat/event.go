@@ -46,6 +46,6 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(ae.Data, e.Data)
 }
 
-func newEvent(data EventData) *Event {
+func NewEvent(data EventData) *Event {
 	return &Event{Type: data.Type(), Data: data, Timestamp: int(time.Now().Unix())}
 }
