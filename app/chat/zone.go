@@ -32,7 +32,7 @@ func (z *Zone) run() {
 
 			archive := z.GetArchive(10)
 
-			if (len(archive.Events) > 0) {
+			if (archive.Events != nil && len(archive.Events) > 0) {
 				subscriber <- *newEvent(z.GetArchive(10))
 			}
 
