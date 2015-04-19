@@ -80,7 +80,8 @@
     function initialize() {
       var mapOptions = {
         zoom: 6,
-        center: new google.maps.LatLng({{ .box.Center.Lat }}, {{ .box.Center.Lng }})
+        center: new google.maps.LatLng({{ .box.Center.Lat }}, {{ .box.Center.Lng }}),
+        disableDefaultUI: true
       };
 
       map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
