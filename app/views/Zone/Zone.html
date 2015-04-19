@@ -17,6 +17,9 @@
     <div class="row gc-header">
       <div class="col-md-12">
         <h4>Location: {{.zone}}</h4>
+        <span class="pull-right">
+          <input type="checkbox" class="gc-notify"> Notifications
+        </span>
       </div>
     </div>
     <div class="row gc-content">
@@ -61,8 +64,8 @@
       </div>
       <div class="col-md-4 gc-sidebar">
         <div class="row gc-map">
-          <div class="col-md-12" id="map-canvas">
-
+          <div class="col-md-12">
+            <div id="map-canvas"></div>
           </div>
         </div>
         <div class="row gc-users">
@@ -120,8 +123,16 @@
       showTimes()
     }
     // Message received on the socket
-    socket.onmessage = function(event) {
-      display(JSON.parse(event.data))
+    socket.onmessage = function(event) { 
+      var eventData = JSON.parse(event.data)
+      display(eventData)
+
+      if (notify && !focused && eventData.type == "message" && eventData.data.user.name != {{.user.Name}}) {
+        var n = new Notification(eventData.data.user.name + ": " + eventData.data.text);
+        setTimeout(function() {
+          n.close();
+        }, 2 * 1000);
+      }
     }
 
     $('#message').keypress(function(e) {
@@ -142,6 +153,38 @@
       }
     })
 
+    var notify = false
+
+    $(".gc-notify").click(function (e) {
+      var enableNotifications = $(e.target).is(':checked');
+
+      if (!enableNotifications) {
+        notify = false;
+        return;
+      }
+
+      if (Notification.permission === "granted") {
+        notify = true;
+      } 
+      else if (Notification.permission !== 'denied') {
+        Notification.requestPermission(function (permission) {
+          if (permission === "granted") {
+            notify = enableNotifications;
+          }
+        });
+      }
+
+    });
+
+    var focused = true;
+    $(window).blur(function(){
+      focused = false
+    });
+    $(window).focus(function(){
+      focused = true
+    });
+
+
     function showTimes() {
       var now = moment();
       $(".gc-timestamp").each(function (i, e) {
@@ -153,8 +196,6 @@
         } else {
           div.text(time.format('h:mm a'));
         }
-
-
       });
     }
 

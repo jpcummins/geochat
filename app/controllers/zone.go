@@ -40,7 +40,9 @@ func (c Zone) Message(zone string, text string) revel.Result {
 
 func (c Zone) Zone(zone string) revel.Result {
 	box := geohash.Decode(zone)
-	return c.Render(zone, box)
+    user, _ := chat.GetUser(c.Session["user"])
+
+	return c.Render(zone, box, user)
 }
 
 func (c Zone) ZoneSocket(zone string, ws *websocket.Conn) revel.Result {
