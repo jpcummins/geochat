@@ -18,7 +18,8 @@ import (
 )
 
 type Subscription struct {
-	New  <-chan Event
+	Events chan *Event
+    User *User
 	Zone *Zone
 }
 
@@ -33,31 +34,37 @@ func createZone(geohash string) *Zone {
 	zone := &Zone{
 		Geohash:     geohash,
 		subscribers: list.New(),
-		subscribe:   make(chan (chan<- Subscription), 10),
-		unsubscribe: make(chan (<-chan Event), 10),
-		publish:     make(chan Event, 10),
+		publish:     make(chan *Event, 10),
 	}
 
 	go zone.redisSubscribe()
 	go zone.run()
-
 	return zone
 }
 
-func (s Subscription) Unsubscribe() {
-	s.Zone.unsubscribe <- s.New
+func (s *Subscription) Unsubscribe() {
+    for subscriber := s.Zone.subscribers.Front(); subscriber != nil; subscriber = subscriber.Next() {
+        s.Zone.subscribers.Remove(subscriber)
+        s.Zone.Publish(NewEvent(&Leave{User: s.User}))
+    }
 }
 
-func SubscribeToZone(geohash string) (Subscription, *Zone) {
+func SubscribeToZone(geohash string, user *User) (*Subscription, *Zone) {
 	zone, ok := zones[geohash]
 	if !ok {
 		zone = createZone(geohash)
 		zones[geohash] = zone
 	}
 
-	subscription := make(chan Subscription)
-	zone.subscribe <- subscription
-	return <-subscription, zone
+    subscription := &Subscription{
+        User: user,
+        Zone: zone,
+        Events: make(chan *Event, 10),
+    }
+
+	zone.subscribers.PushBack(subscription)
+    zone.Publish(NewEvent(&Join{User: user}))
+	return subscription, zone
 }
 
 func createPool(server string) *redis.Pool {

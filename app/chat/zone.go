@@ -11,46 +11,17 @@ type Zone struct {
 
 	subscribers *list.List
 
-	// Send a channel here to get room events back.  It will send the entire
-	// archive initially, and then new messages as they come in.
-	subscribe chan (chan<- Subscription)
-
-	// Send a channel here to unsubscribe.
-	unsubscribe chan (<-chan Event)
-
 	// Send events here to publish them.
-	publish chan Event
+	publish chan *Event
 }
 
 func (z *Zone) run() {
 	for {
 		select {
-		case ch := <-z.subscribe:
-			subscriber := make(chan Event, 10)
-			z.subscribers.PushBack(subscriber)
-			ch <- Subscription{subscriber, z}
-
-			archive, err := z.GetArchive(10)
-
-			if err != nil {
-				println("Error querying archive for,", z.Geohash, err.Error())
-				continue
-			}
-
-			if len(archive.Events) > 0 {
-				subscriber <- *NewEvent(archive)
-			}
-
 		case event := <-z.publish:
-			for ch := z.subscribers.Front(); ch != nil; ch = ch.Next() {
-				ch.Value.(chan Event) <- event
-			}
-		case unsub := <-z.unsubscribe:
-			for ch := z.subscribers.Front(); ch != nil; ch = ch.Next() {
-				if ch.Value.(chan Event) == unsub {
-					z.subscribers.Remove(ch)
-					break
-				}
+			for s := z.subscribers.Front(); s != nil; s = s.Next() {
+				subscriber := s.Value.(*Subscription)
+				subscriber.Events <- event
 			}
 		}
 	}
@@ -69,7 +40,7 @@ func (z *Zone) redisSubscribe() {
 				println("Error:" + err.Error())
 				continue
 			}
-			z.publish <- event
+			z.publish <- &event
 		}
 	}
 }
@@ -113,14 +84,4 @@ func (z *Zone) GetArchive(maxEvents int) (*Archive, error) {
 	}
 
 	return newArchive(archiveJson), nil
-}
-
-func (z *Zone) Join(user *User) {
-    join := &Join{User: user}
-    z.Publish(NewEvent(join));
-}
-
-func (z *Zone) Leave(user *User) {
-    leave := &Leave{User: user}
-    z.Publish(NewEvent(leave));
 }
