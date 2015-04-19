@@ -8,6 +8,7 @@
     <link rel="stylesheet" type="text/css" href="/public/css/main.css">
     <script src="/public/js/jquery-2.1.3.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="/public/js/templating.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/public/js/moment.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
   </head>
   <body>
@@ -25,30 +26,28 @@
 
 
             <script type="text/html" id="message_tmpl">
-              <% if(event.type == 'message') { %>
-                <div class="row gc-message">
+              <div class="row gc-message">
+                <% if(event.type == 'message') { %>
                   <div class="col-md-1 gc-name">
                     <%= event.data.user ? event.data.user.name : "(Guest)" %>
                   </div>
-                  <div class="col-md-11">
+                  <div class="col-md-10">
                     <%= $('<div/>').html(event.data.text).text() %>
                   </div>
-                </div>
-              <% } %>
-              <% if(event.type == 'join') { %>
-                <div class="row gc-message gc-joined">
-                  <div class="col-md-offset-1 col-md-11">
+                <% } %>
+                <% if(event.type == 'join') { %>
+                  <div class="col-md-offset-1 col-md-10 gc-joined">
                     <%= event.data.user ? event.data.user.name : "(Guest)" %> joined
                   </div>
-                </div>
-              <% } %>
-              <% if(event.type == 'leave') { %>
-                <div class="row gc-message gc-left">
-                  <div class="col-md-offset-1 col-md-11">
+                <% } %>
+                <% if(event.type == 'leave') { %>
+                  <div class="col-md-offset-1 col-md-10 gc-left">
                     <%= event.data.user ? event.data.user.name : "(Guest)" %> left
                   </div>
+                <% } %>
+                <div class="col-md-1 gc-timestamp" data-timestamp="<%= event.timestamp * 1000 %>">
                 </div>
-              <% } %>
+              </div>
             </script>
 
 
@@ -117,6 +116,7 @@
       var messageArea = $('#gc-message-area')
       messageArea.append(tmpl('message_tmpl', {event: event}));
       messageArea.scrollTop(messageArea[0].scrollHeight - messageArea.height());
+      showTimes()
     }
     // Message received on the socket
     socket.onmessage = function(event) {
@@ -141,6 +141,23 @@
       }
     })
 
+    function showTimes() {
+      var now = moment();
+      $(".gc-timestamp").each(function (i, e) {
+        var div = $(e)
+        var time = moment(div.data('timestamp'));
+
+        if (now.diff(time, 'days') > 1) {
+          div.text(time.fromNow());
+        } else {
+          div.text(time.format('h:mm a'));
+        }
+
+
+      });
+    }
+
+    setInterval(showTimes, 10 * 1000)
   </script>
 
   </body>
