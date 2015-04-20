@@ -107,6 +107,16 @@
 
     var socket = new WebSocket('ws://' + window.location.host + '/zone/{{.zone}}/socket')
 
+    var users = {}
+    function addUser(user) {
+
+    }
+
+    function removeUser(user) {
+
+    }
+
+
     // Display a message
     var display = function(event) {
       switch (event.type) {
@@ -115,14 +125,20 @@
             display(event.data.events[i])
           }
           break;
+        case "join":
+          addUser(event.data.user)
+        case "leave":
+          removeUser(event.data.user)
         case "message":
           var messageArea = $('#gc-message-area')
           messageArea.append(tmpl('message_tmpl', {event: event}));
           messageArea.scrollTop(messageArea[0].scrollHeight - messageArea.height());
           showTimes()
           break;
+        case "zone":
+
         default:
-          return;
+          break;
       }
     }
     // Message received on the socket

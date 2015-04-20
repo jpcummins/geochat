@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"github.com/revel/revel"
 	"github.com/jpcummins/geochat/app/chat"
+	"github.com/revel/revel"
 )
 
 type Auth struct {

@@ -9,7 +9,7 @@ type User struct {
 
 func GetUser(id string) (*User, error) {
 
-	if (id == "") {
+	if id == "" {
 		return nil, errors.New("Unauthorized")
 	}
 

@@ -13,7 +13,7 @@ type EventData interface {
 type Event struct {
 	Type      string    `json:"type"`
 	Timestamp int       `json:"timestamp"`
-	Data      EventData `json:"data"`
+	Data      EventData `json:"data,omitempty"`
 }
 
 func (e *Event) UnmarshalJSON(b []byte) error {
