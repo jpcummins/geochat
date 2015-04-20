@@ -7,7 +7,7 @@ import (
 
 type Zone struct {
 	Geohash     string          `json:"geohash"`
-	Subscribers []*Subscription `json:"subscribers,omitempty"`
+	Subscribers []*Subscription `json:"subscribers"`
 	publish     chan *Event     `json:"-"`
 }
 
@@ -16,43 +16,6 @@ func (z *Zone) Type() string {
 }
 
 var zones map[string]*Zone
-
-func FindZone(zone string) (z *Zone, ok bool) {
-	println(zone)
-	z, ok = zones[zone]
-	return
-}
-
-func SubscribeToZone(geohash string, user *User) (*Subscription, *Zone) {
-	zone, ok := zones[geohash]
-	if !ok {
-		zone = createZone(geohash)
-		zones[geohash] = zone
-	}
-
-	subscription := &Subscription{
-		User:   user,
-		Zone:   zone,
-		Events: make(chan *Event, 10),
-	}
-
-	zone.Subscribers = append(zone.Subscribers, subscription)
-	zone.Publish(NewEvent(&Join{User: user}))
-	return subscription, zone
-}
-
-func createZone(geohash string) *Zone {
-	println(geohash)
-	zone := &Zone{
-		Geohash:     geohash,
-		Subscribers: make([]*Subscription, 0),
-		publish:     make(chan *Event, 10),
-	}
-
-	go zone.redisSubscribe()
-	go zone.run()
-	return zone
-}
 
 func (z *Zone) run() {
 	for {
@@ -67,24 +30,52 @@ func (z *Zone) run() {
 	}
 }
 
-func (z *Zone) redisSubscribe() {
-	psc := redis.PubSubConn{pool.Get()}
-	defer psc.Close()
+func FindZone(geohash string) (z *Zone, ok bool) {
+	z, ok = zones[geohash]
+	return
+}
 
-	psc.Subscribe("zone_" + z.Geohash)
-	for {
-		switch v := psc.Receive().(type) {
-		case redis.Message:
-			var event Event
-			if err := json.Unmarshal(v.Data, &event); err != nil {
-				continue
-			}
-			z.publish <- &event
+func GetOrCreateZone(geohash string) (*Zone, error) {
+	zone, found := FindZone(geohash)
+
+	if !found {
+		return CreateZone(geohash)
+	}
+	return zone, nil
+}
+
+func CreateZone(geohash string) (*Zone, error) {
+	// TODO: zone validation
+	zone := &Zone{
+		Geohash:     geohash,
+		Subscribers: make([]*Subscription, 0),
+		publish:     make(chan *Event, 10),
+	}
+	zones[geohash] = zone
+
+	go zone.redisSubscribe()
+	go zone.run()
+	return zone, nil
+}
+
+func (z *Zone) Subscribe(user *User) (*Subscription, error) {
+	subscription := CreateSubscription(user, z)
+	z.Broadcast(NewEvent(&Join{Subscriber: subscription}))
+	z.Subscribers = append(z.Subscribers, subscription)
+	return subscription, nil
+}
+
+func (z *Zone) Unsubscribe(user *User) {
+	for i, subscriber := range z.Subscribers {
+		if subscriber.User == user {
+			z.Subscribers = append(z.Subscribers[:i], z.Subscribers[i+1:]...)
+			z.Broadcast(NewEvent(&Leave{Subscriber: subscriber}))
+			break
 		}
 	}
 }
 
-func (z *Zone) Publish(event *Event) (*Event, error) {
+func (z *Zone) Broadcast(event *Event) (*Event, error) {
 	c := pool.Get()
 	defer c.Close()
 
@@ -109,7 +100,7 @@ func (z *Zone) Publish(event *Event) (*Event, error) {
 
 func (z *Zone) SendMessage(user *User, text string) (*Event, error) {
 	m := &Message{User: user, Text: text}
-	return z.Publish(NewEvent(m))
+	return z.Broadcast(NewEvent(m))
 }
 
 func (z *Zone) GetArchive(maxEvents int) (*Archive, error) {
@@ -123,4 +114,21 @@ func (z *Zone) GetArchive(maxEvents int) (*Archive, error) {
 	}
 
 	return newArchive(archiveJson), nil
+}
+
+func (z *Zone) redisSubscribe() {
+	psc := redis.PubSubConn{pool.Get()}
+	defer psc.Close()
+
+	psc.Subscribe("zone_" + z.Geohash)
+	for {
+		switch v := psc.Receive().(type) {
+		case redis.Message:
+			var event Event
+			if err := json.Unmarshal(v.Data, &event); err != nil {
+				continue
+			}
+			z.publish <- &event
+		}
+	}
 }

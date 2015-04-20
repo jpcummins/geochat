@@ -40,12 +40,12 @@
                 <% } %>
                 <% if(event.type == 'join') { %>
                   <div class="col-md-offset-1 col-md-10 gc-joined">
-                    <%= event.data.user ? event.data.user.name : "(Guest)" %> joined
+                    <%= event.data.subscriber.user ? event.data.subscriber.user.name : "(Guest)" %> joined
                   </div>
                 <% } %>
                 <% if(event.type == 'leave') { %>
                   <div class="col-md-offset-1 col-md-10 gc-left">
-                    <%= event.data.user ? event.data.user.name : "(Guest)" %> left
+                    <%= event.data.subscriber.user ? event.data.subscriber.user.name : "(Guest)" %> left
                   </div>
                 <% } %>
                 <div class="col-md-1 gc-timestamp" data-timestamp="<%= event.timestamp * 1000 %>">
@@ -69,8 +69,18 @@
           </div>
         </div>
         <div class="row gc-users">
-          <div class="col-md-12">
-            users
+          <div class="col-md-12 gc-user-container">
+
+
+            <script type="text/html" id="user_tmpl">
+              <div class="gc-user" data-subscription=<%= subscriber.id %>>
+                <%= subscriber.user.name %>
+              </div>
+            </script>
+
+
+
+
           </div>
         </div>
       </div>
@@ -105,38 +115,26 @@
 
     google.maps.event.addDomListener(window, 'load', initialize);
 
-    var socket = new WebSocket('ws://' + window.location.host + '/zone/{{.zone}}/socket')
+    var socket = new WebSocket('ws://' + window.location.host + '/zone/{{.geohash}}/socket')
 
     var users = {}
-    function addUser(user) {
-
+    function addSubscriber(subscriber) {
+      $(".gc-user-container").append(tmpl('user_tmpl', {subscriber: subscriber}));
     }
 
-    function removeUser(user) {
-
+    function removeSubscriber(subscriber) {
+      $(".gc-user[data-subscription='" + subscriber.id + "']").remove()
     }
-
 
     // Display a message
-    var display = function(event) {
-      switch (event.type) {
-        case "archive":
-          for (var i = event.data.events.length - 1; i >= 0; i--) {
-            display(event.data.events[i])
-          }
-          break;
+    var display = function(eventData) {
+      switch (eventData.type) {
         case "join":
-          addUser(event.data.user)
         case "leave":
-          removeUser(event.data.user)
         case "message":
           var messageArea = $('#gc-message-area')
-          messageArea.append(tmpl('message_tmpl', {event: event}));
+          messageArea.append(tmpl('message_tmpl', {event: eventData}));
           messageArea.scrollTop(messageArea[0].scrollHeight - messageArea.height());
-          showTimes()
-          break;
-        case "zone":
-
         default:
           break;
       }
@@ -144,6 +142,30 @@
     // Message received on the socket
     socket.onmessage = function(event) {
       var eventData = JSON.parse(event.data)
+
+      switch (eventData.type) {
+        case "archive":
+          for (var i = eventData.data.events.length - 1; i >= 0; i--) {
+            display(eventData.data.events[i])
+          }
+          break;
+        case "join":
+          addSubscriber(eventData.data.subscriber)
+          break;
+        case "leave":
+          removeSubscriber(eventData.data.subscriber)
+          break;
+        case "zone":
+          for (var i = 0; i < eventData.data.subscribers.length; i++) {
+            var subscriber = eventData.data.subscribers[i];
+            addSubscriber(subscriber)
+          }
+          return
+        default:
+          break;
+      }
+
+      showTimes()
       display(eventData)
 
       if (notify && !focused && eventData.type == "message" && eventData.data.user.name != {{.user.Name}}) {
@@ -165,7 +187,7 @@
         var message = $('#message').val()
 
         $.ajax({
-          url: '/zone/{{.zone}}/message',
+          url: '/zone/{{.geohash}}/message',
           method: 'POST',
           data: {
             text: message

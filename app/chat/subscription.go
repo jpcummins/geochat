@@ -1,17 +1,22 @@
 package chat
 
+import (
+	"strconv"
+	"time"
+)
+
 type Subscription struct {
+	Id     string      `json:"id"`
 	User   *User       `json:"user"`
 	Events chan *Event `json:"-"`
 	Zone   *Zone       `json:"-"`
 }
 
-func (s *Subscription) Unsubscribe() {
-	for i, subscriber := range s.Zone.Subscribers {
-		if subscriber == s {
-			s.Zone.Subscribers = append(s.Zone.Subscribers[:i], s.Zone.Subscribers[i+1:]...)
-			s.Zone.Publish(NewEvent(&Leave{User: s.User}))
-			break
-		}
+func CreateSubscription(user *User, zone *Zone) *Subscription {
+	return &Subscription{
+		Id:     zone.Geohash + user.Id + strconv.Itoa(int(time.Now().Unix())),
+		User:   user,
+		Zone:   zone,
+		Events: make(chan *Event, 10),
 	}
 }

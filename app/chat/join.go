@@ -1,7 +1,7 @@
 package chat
 
 type Join struct {
-	User *User `json:"user"`
+	Subscriber *Subscription `json:"subscriber"`
 }
 
 func (j *Join) Type() string {
