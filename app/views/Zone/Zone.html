@@ -109,18 +109,21 @@
 
     // Display a message
     var display = function(event) {
-
-      if (event.type == "archive") {
-        for (var i = event.data.events.length - 1; i >= 0; i--) {
-          display(event.data.events[i])
-        }
-        return
+      switch (event.type) {
+        case "archive":
+          for (var i = event.data.events.length - 1; i >= 0; i--) {
+            display(event.data.events[i])
+          }
+          break;
+        case "message":
+          var messageArea = $('#gc-message-area')
+          messageArea.append(tmpl('message_tmpl', {event: event}));
+          messageArea.scrollTop(messageArea[0].scrollHeight - messageArea.height());
+          showTimes()
+          break;
+        default:
+          return;
       }
-
-      var messageArea = $('#gc-message-area')
-      messageArea.append(tmpl('message_tmpl', {event: event}));
-      messageArea.scrollTop(messageArea[0].scrollHeight - messageArea.height());
-      showTimes()
     }
     // Message received on the socket
     socket.onmessage = function(event) {
