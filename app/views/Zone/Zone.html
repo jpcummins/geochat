@@ -123,7 +123,7 @@
       showTimes()
     }
     // Message received on the socket
-    socket.onmessage = function(event) { 
+    socket.onmessage = function(event) {
       var eventData = JSON.parse(event.data)
       display(eventData)
 
@@ -133,6 +133,10 @@
           n.close();
         }, 2 * 1000);
       }
+    }
+
+    socket.onclose = function(event) {
+      console.log("disconnected")
     }
 
     $('#message').keypress(function(e) {
@@ -165,7 +169,7 @@
 
       if (Notification.permission === "granted") {
         notify = true;
-      } 
+      }
       else if (Notification.permission !== 'denied') {
         Notification.requestPermission(function (permission) {
           if (permission === "granted") {
