@@ -22,12 +22,12 @@ func (c Zone) Message(geohash string, text string) revel.Result {
 		return c.RenderError(err)
 	}
 
-	z, ok := chat.FindZone(geohash)
-	if !ok {
-		return nil
+	zone, err := chat.GetOrCreateZone(geohash)
+	if err != nil {
+		return c.RenderError(err)
 	}
 
-	event, err := z.SendMessage(user, text)
+	event, err := zone.SendMessage(user, text)
 	if err != nil {
 		return c.RenderError(err)
 	}
@@ -52,15 +52,14 @@ func (c Zone) Zone(geohash string) revel.Result {
 func (c Zone) ZoneSocket(geohash string, ws *websocket.Conn) revel.Result {
 	user, _ := chat.GetUser(c.Session["user"])
 	zone, _ := chat.GetOrCreateZone(geohash)
-	subscription, _ := zone.Subscribe(user)
-	defer zone.Unsubscribe(user)
+	subscription := zone.Subscribe(user)
 
 	// Listen for client disconnects
 	go func() {
 		var msg string
 		for {
 			if websocket.Message.Receive(ws, &msg) != nil {
-				zone.Unsubscribe(user)
+				zone.Unsubscribe(subscription)
 				return
 			}
 		}
@@ -80,7 +79,7 @@ func (c Zone) ZoneSocket(geohash string, ws *websocket.Conn) revel.Result {
 			subscription.Events <- &chat.Event{Type: "ping", Data: nil, Timestamp: int(time.Now().Unix())}
 		case event := <-subscription.Events:
 			if websocket.JSON.Send(ws, &event) != nil {
-				zone.Unsubscribe(user)
+				zone.Unsubscribe(subscription)
 				return nil
 			}
 		}

@@ -3,23 +3,62 @@ package chat
 import (
 	"encoding/json"
 	"github.com/garyburd/redigo/redis"
+	"strconv"
+	"time"
 )
 
+var zones map[string]*Zone
+
 type Zone struct {
-	Geohash     string          `json:"geohash"`
-	Subscribers []*Subscription `json:"subscribers"`
-	publish     chan *Event     `json:"-"`
+	Geohash     string             `json:"geohash"`
+	Subscribers []*Subscription    `json:"subscribers"`
+	publish     chan *Event        `json:"-"`
+	subscribe   chan *Subscription `json:"-"`
+	unsubscribe chan *Subscription `json:"-"`
+}
+
+func GetOrCreateZone(geohash string) (*Zone, error) {
+	zone, found := zones[geohash]
+
+	if !found {
+		// TODO: zone validation
+		zone := &Zone{
+			Geohash:     geohash,
+			Subscribers: make([]*Subscription, 0),
+			publish:     make(chan *Event, 10),
+			subscribe:   make(chan *Subscription, 10),
+			unsubscribe: make(chan *Subscription, 10),
+		}
+
+		zones[geohash] = zone // unsafe
+
+		go zone.redisSubscribe()
+		go zone.run()
+		return zone, nil
+	}
+	return zone, nil
 }
 
 func (z *Zone) Type() string {
 	return "zone"
 }
 
-var zones map[string]*Zone
-
 func (z *Zone) run() {
 	for {
 		select {
+		case subscription := <-z.subscribe:
+			z.SendMessage(subscription.User, "a")
+			z.Subscribers = append(z.Subscribers, subscription)
+			z.SendMessage(subscription.User, "b")
+		case subscription := <-z.unsubscribe:
+			for i, subscriber := range z.Subscribers {
+				if subscriber.Id == subscription.Id {
+					copy(z.Subscribers[i:], z.Subscribers[i+1:])
+					z.Subscribers[len(z.Subscribers)-1] = nil
+					z.Subscribers = z.Subscribers[:len(z.Subscribers)-1]
+					break
+				}
+			}
 		case event := <-z.publish:
 			for _, subscriber := range z.Subscribers {
 				if subscriber != nil {
@@ -30,49 +69,21 @@ func (z *Zone) run() {
 	}
 }
 
-func FindZone(geohash string) (z *Zone, ok bool) {
-	z, ok = zones[geohash]
-	return
-}
-
-func GetOrCreateZone(geohash string) (*Zone, error) {
-	zone, found := FindZone(geohash)
-
-	if !found {
-		return CreateZone(geohash)
+func (z *Zone) Subscribe(user *User) *Subscription {
+	subscriber := &Subscription{
+		Id:     z.Geohash + user.Id + strconv.Itoa(int(time.Now().Unix())),
+		User:   user,
+		Zone:   z,
+		Events: make(chan *Event, 10),
 	}
-	return zone, nil
+	z.subscribe <- subscriber
+	z.Broadcast(NewEvent(&Join{Subscriber: subscriber}))
+	return subscriber
 }
 
-func CreateZone(geohash string) (*Zone, error) {
-	// TODO: zone validation
-	zone := &Zone{
-		Geohash:     geohash,
-		Subscribers: make([]*Subscription, 0),
-		publish:     make(chan *Event, 10),
-	}
-	zones[geohash] = zone
-
-	go zone.redisSubscribe()
-	go zone.run()
-	return zone, nil
-}
-
-func (z *Zone) Subscribe(user *User) (*Subscription, error) {
-	subscription := CreateSubscription(user, z)
-	z.Broadcast(NewEvent(&Join{Subscriber: subscription}))
-	z.Subscribers = append(z.Subscribers, subscription)
-	return subscription, nil
-}
-
-func (z *Zone) Unsubscribe(user *User) {
-	for i, subscriber := range z.Subscribers {
-		if subscriber.User == user {
-			z.Subscribers = append(z.Subscribers[:i], z.Subscribers[i+1:]...)
-			z.Broadcast(NewEvent(&Leave{Subscriber: subscriber}))
-			break
-		}
-	}
+func (z *Zone) Unsubscribe(subscriber *Subscription) {
+	z.unsubscribe <- subscriber
+	z.Broadcast(NewEvent(&Leave{Subscriber: subscriber}))
 }
 
 func (z *Zone) Broadcast(event *Event) (*Event, error) {
