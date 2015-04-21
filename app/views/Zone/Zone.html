@@ -138,6 +138,7 @@
         default:
           break;
       }
+      showTimes()
     }
     // Message received on the socket
     socket.onmessage = function(event) {
@@ -164,8 +165,6 @@
         default:
           break;
       }
-
-      showTimes()
       display(eventData)
 
       if (notify && !focused && eventData.type == "message" && eventData.data.user.name != {{.user.Name}}) {
