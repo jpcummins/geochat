@@ -11,6 +11,7 @@ POST    /auth/login                             Auth.Login
 POST    /zone/lookup                            Zone.Lookup
 GET     /zone/:geohash                          Zone.Zone
 POST    /zone/:geohash/message                  Zone.Message
+POST    /zone/:geohash/command                  Zone.Command
 WS      /zone/:geohash/socket                   Zone.ZoneSocket
 
 

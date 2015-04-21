@@ -92,7 +92,7 @@
     var map;
     function initialize() {
       var mapOptions = {
-        zoom: 6,
+        zoom: 12,
         center: new google.maps.LatLng({{ .box.Center.Lat }}, {{ .box.Center.Lng }}),
         disableDefaultUI: true
       };
@@ -185,17 +185,32 @@
 
         var message = $('#message').val()
 
-        $.ajax({
-          url: '/zone/{{.geohash}}/message',
-          method: 'POST',
-          data: {
-            text: message
-          }
-        });
-
+        if (/\//.test(message)) {
+          sendCommand(message)
+        } else {
+          $.ajax({
+            url: '/zone/{{.geohash}}/message',
+            method: 'POST',
+            data: {
+              text: message
+            }
+          });
+        }
         $('#message').val('')
       }
     })
+
+    function sendCommand(command) {
+      command = command.replace(/\//, '').trim()
+      $.ajax({
+        url: '/zone/{{.geohash}}/command',
+        method: 'POST',
+        data: {
+          command: command,
+          geohash: {{.geohash}}
+        }
+      });
+    }
 
     var notify = false
 

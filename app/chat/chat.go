@@ -48,4 +48,10 @@ func init() {
 
 	pool = createPool(redisServer)
 	zones = make(map[string]*Zone)
+
+	registerCommand(&command{
+		name:    "addbot",
+		usage:   "addbot (number of bots) (timeout in minutes) (geohash)",
+		execute: addBot,
+	})
 }

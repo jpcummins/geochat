@@ -3,8 +3,10 @@ package chat
 import "errors"
 
 type User struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
+	Id      string `json:"id"`
+	Name    string `json:"name"`
+	Geohash string `json:"geohash"`
+	IsBot   bool   `json:"is_bot,omitempty"`
 }
 
 func GetUser(id string) (*User, error) {

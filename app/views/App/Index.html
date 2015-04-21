@@ -72,16 +72,17 @@
         url: '/auth/login',
         method: 'POST',
         data: {
-          name: name
+          name: name,
+          geohash: zone
         }
       })
       .done(function (data) {
         $(".gc-info").text("Logged in, loading room...")
-        window.location.replace("/zone/" + zone);        
+        window.location.replace("/zone/" + zone);
       })
       .fail(function () {
         $(".gc-info").text("")
-        $(".gc-error").text("Login failed. Try again later.")        
+        $(".gc-error").text("Login failed. Try again later.")
       });
     })
     .fail(function () {
