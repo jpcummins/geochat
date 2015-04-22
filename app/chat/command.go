@@ -25,3 +25,10 @@ func ExecuteCommand(command string, geohash string) (string, error) {
 	}
 	return commands[args[0]].execute(args[1:], geohash)
 }
+
+func resetRedis(args []string, from_geohash string) (string, error) {
+	c := pool.Get()
+	defer c.Close()
+	c.Do("FLUSHALL")
+	return "", nil
+}

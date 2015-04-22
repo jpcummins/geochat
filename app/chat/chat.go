@@ -54,4 +54,10 @@ func init() {
 		usage:   "addbot (number of bots) (timeout in minutes) (geohash)",
 		execute: addBot,
 	})
+
+	registerCommand(&command{
+		name:    "fuckeverything",
+		usage:   "",
+		execute: resetRedis,
+	})
 }
