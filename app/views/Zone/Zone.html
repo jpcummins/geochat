@@ -119,6 +119,10 @@
 
     var users = {}
     function addSubscriber(subscriber) {
+      if ($(".gc-user[data-subscription='" + subscriber.id + "']").length) {
+        return
+      }
+
       $(".gc-user-container").append(tmpl('user_tmpl', {subscriber: subscriber}));
     }
 

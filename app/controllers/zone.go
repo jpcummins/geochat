@@ -27,11 +27,7 @@ func (c Zone) Message(geohash string, text string) revel.Result {
 		return c.RenderError(err)
 	}
 
-	event, err := zone.SendMessage(user, text)
-	if err != nil {
-		return c.RenderError(err)
-	}
-
+	event := zone.SendMessage(user, text)
 	return c.RenderJson(event)
 }
 

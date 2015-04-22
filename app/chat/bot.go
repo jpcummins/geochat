@@ -28,15 +28,25 @@ func addBot(args []string, from_geohash string) (string, error) {
 	}
 
 	for i := 0; i < number; i++ {
-		go func() {
+		go func(num int) {
 			name := botNames[rand.Intn(len(botNames))]
 			bot := &User{Id: name, Name: name, Geohash: geohash, IsBot: true}
 			zone, _ := GetOrCreateZone(geohash)
 			subscription := zone.Subscribe(bot)
-			zone.SendMessage(bot, "Hello! My name is "+bot.Name+". I will leave the chat room in "+strconv.Itoa(timeout)+" minutes.")
-			time.Sleep(time.Duration(timeout) * time.Minute)
-			zone.unsubscribe <- subscription
-		}()
+
+			// Bot event handler
+			go func() {
+				timer := time.NewTimer(time.Duration(timeout) * time.Second)
+				for {
+					select {
+					case <-timer.C:
+						zone.Unsubscribe(subscription)
+						return
+					case <-subscription.Events:
+					}
+				}
+			}()
+		}(i)
 	}
 
 	return "ok", nil
