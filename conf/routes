@@ -14,9 +14,6 @@ POST    /zone/:zonehash/message                 Zone.Message
 POST    /zone/:zonehash/command                 Zone.Command
 WS      /zone/:zonehash/socket                  Zone.ZoneSocket
 
-
-
-
 # Ignore favicon requests
 GET     /favicon.ico                            404
 
