@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	gh "github.com/TomiHiltunen/geohash-golang"
 	"github.com/jpcummins/geochat/app/chat"
 	"github.com/revel/revel"
 	"golang.org/x/net/websocket"
@@ -19,9 +18,7 @@ func (c Zone) Subscribe(lat float64, long float64) revel.Result {
 		return c.RenderError(err)
 	}
 
-	geohash := gh.EncodeWithPrecision(lat, long, 6)
-
-	zone, err := chat.FindAvailableZone(geohash)
+	zone, err := chat.FindAvailableZone(lat, long)
 	if err != nil {
 		return c.RenderError(err)
 	}
@@ -36,13 +33,21 @@ func (c Zone) Message(subscriptionId string, text string) revel.Result {
 		return c.RenderError(err)
 	}
 
-	subscription := chat.GetSubscription(subscriptionId)
+	subscription, ok := chat.GetSubscription(subscriptionId)
+	if !ok {
+		return c.RenderError(errors.New("Invalid subscription"))
+	}
+
 	event := subscription.Zone.SendMessage(user, text)
 	return c.RenderJson(event)
 }
 
 func (c Zone) Command(subscriptionId string, command string) revel.Result {
-	subscription := chat.GetSubscription(subscriptionId)
+	subscription, ok := chat.GetSubscription(subscriptionId)
+	if !ok {
+		return c.RenderError(errors.New("Invalid subscription"))
+	}
+
 	json, err := chat.ExecuteCommand(command, subscription)
 	if err != nil {
 		return c.RenderError(err)
@@ -51,20 +56,20 @@ func (c Zone) Command(subscriptionId string, command string) revel.Result {
 }
 
 func (c Zone) Zone(subscriptionId string) revel.Result {
-	subscription := chat.GetSubscription(subscriptionId)
-	if subscription == nil || subscription.Zone == nil {
-		c.Redirect("/")
+	subscription, ok := chat.GetSubscription(subscriptionId)
+	if !ok {
+		return c.Redirect("/")
 	}
 
-	zonehash := subscription.Zone.GetZonehash()
-	box := gh.Decode(subscription.Zone.Geohash) // TODO: incorporate subhash
+	zonehash := subscription.Zone.Zonehash
+	box := subscription.Zone.GetBoundries() // TODO: incorporate subhash
 	return c.Render(zonehash, box, subscriptionId)
 }
 
 func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result {
-	subscription := chat.GetSubscription(subscriptionId)
-	if subscription == nil {
-		c.RenderError(errors.New("Invalid subscription"))
+	subscription, ok := chat.GetSubscription(subscriptionId)
+	if !ok {
+		return c.RenderError(errors.New("Invalid subscription"))
 	}
 
 	// Listen for client disconnects
@@ -79,6 +84,7 @@ func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result
 	}()
 
 	// Send zone information
+	println(subscription.Zone.Zonehash)
 	subscription.Events <- chat.NewEvent(subscription.Zone)
 
 	// Send the archive

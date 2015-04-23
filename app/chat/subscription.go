@@ -7,6 +7,7 @@ type Subscription struct {
 	Zone   *Zone       `json:"-"`
 }
 
-func GetSubscription(id string) *Subscription {
-	return subscriptions[id]
+func GetSubscription(id string) (s *Subscription, ok bool) {
+	s, ok = subscriptions[id]
+	return
 }
