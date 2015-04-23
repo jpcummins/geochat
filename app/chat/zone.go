@@ -2,22 +2,23 @@ package chat
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/garyburd/redigo/redis"
+	"math/rand"
+	"runtime"
 	"strconv"
-	"time"
 	"strings"
 	"sync/atomic"
-	"runtime"
-	"errors"
+	"time"
 )
 
 type Zone struct {
 	Geohash     string                    `json:"geohash"`
 	Subhash     int                       `json:"subhash"`
-	Parent      *Zone                     `json:"parent"`
-	Left        *Zone                     `json:"left"`
-	Right       *Zone                     `json:"right"`
-	Count       int32                     `json:"count"`
+	Parent      *Zone                     `json:"-"`
+	Left        *Zone                     `json:"-"`
+	Right       *Zone                     `json:"-"`
+	Count       int32                     `json:"-"`
 	Subscribers []*Subscription           `json:"subscribers"`
 	publish     chan *Event               `json:"-"`
 	broadcast   chan *Event               `json:"-"`
@@ -25,35 +26,24 @@ type Zone struct {
 	unsubscribe chan (chan *Subscription) `json:"-"`
 }
 
-var world = &Zone{
-	Geohash: "",
+var world = createZone("", 0, nil)
+
+func createZone(geohash string, subhash int, parent *Zone) *Zone {
+	zone := &Zone{
+		Geohash:     geohash,
+		Subhash:     subhash,
+		Parent:      parent,
+		Subscribers: make([]*Subscription, 0),
+		publish:     make(chan *Event), // unbuffered communication with web sockets
+		broadcast:   make(chan *Event), // unbuffered communication with redis
+		subscribe:   make(chan (chan *Subscription), 10),
+		unsubscribe: make(chan (chan *Subscription), 10),
+	}
+	go zone.redisSubscribe()      // subscribes to redis channel and publishes events
+	go zone.redisPublish()        // publishes broadcast events to redis channel
+	go zone.manageSubscriptions() // handles communication with zone subscribers
+	return zone
 }
-
-// func GetOrCreateZone(geohash string) *Zone {
-// 	// zone, found := zones[geohash]
-
-// 	// if !found {
-// 	// 	// TODO: zone validation
-// 	// 	zone := &Zone{
-// 	// 		Geohash:     geohash,
-// 	// 		Subhash:     '',
-// 	// 		Subscribers: make([]*Subscription, 0),
-// 	// 		publish:     make(chan *Event), // unbuffered communication with web sockets
-// 	// 		broadcast:   make(chan *Event), // unbuffered communication with redis
-// 	// 		subscribe:   make(chan (chan *Subscription), 10),
-// 	// 		unsubscribe: make(chan (chan *Subscription), 10),
-// 	// 	}
-
-// 	// 	zones[geohash] = zone // unsafe
-
-// 	// 	go zone.redisSubscribe()      // subscribes to redis channel and publishes events
-// 	// 	go zone.redisPublish()        // publishes broadcast events to redis channel
-// 	// 	go zone.manageSubscriptions() // handles communication with zone subscribers
-// 	// 	return zone
-// 	// }
-// 	// return zone
-// 	return nil
-// }
 
 func (z *Zone) Type() string {
 	return "zone"
@@ -64,44 +54,26 @@ func FindAvailableZone(geohash string) (*Zone, error) {
 }
 
 func findChatZone(root *Zone, geohash string) (*Zone, error) {
-	if (root.Left == nil && root.Right == nil) {
+	if root.Left == nil && root.Right == nil {
 		if root.Subhash < 15 {
-
-			root.Left = &Zone{
-				Geohash: root.Geohash,
-				Subhash: (root.Subhash * 2) + 1,
-				Parent: root,
-			}
-
-			root.Right = &Zone{
-				Geohash: root.Geohash,
-				Subhash: (root.Subhash * 2) + 2,
-				Parent: root,
-			}
-
+			root.Left = createZone(root.Geohash, (root.Subhash*2)+1, root)
+			root.Right = createZone(root.Geohash, (root.Subhash*2)+2, root)
 		} else {
 			geohashmap := "0123456789bcdefghjkmnprstuvwxyz"
-
-			root.Left = &Zone{
-				Geohash: root.Geohash + string(geohashmap[(root.Subhash * 2) - 30]),
-				Parent: root,
-			}
-
-			root.Right = &Zone{
-				Geohash: root.Geohash + string(geohashmap[(root.Subhash * 2) - 29]),
-				Parent: root,
-			}
+			root.Left = createZone(root.Geohash+string(geohashmap[(root.Subhash*2)-30]), 0, root)
+			root.Right = createZone(root.Geohash+string(geohashmap[(root.Subhash*2)-29]), 0, root)
 		}
 	}
 
-	if (root.Count < 30) {
+	if root.Count < maxRoomSize {
+		println(root.Geohash)
 		return root, nil
 	}
 
 	suffix := strings.TrimPrefix(geohash, root.Geohash)
 
 	// edge case - Zone for the specified geohash is full.
-	if (len(suffix) == 0) {
+	if len(suffix) == 0 {
 		return root, errors.New("Room full")
 	}
 
@@ -110,6 +82,11 @@ func findChatZone(root *Zone, geohash string) (*Zone, error) {
 	} else {
 		return findChatZone(root.Right, geohash)
 	}
+}
+
+func (z *Zone) GetZonehash() string {
+	println(z.Geohash)
+	return z.Geohash + ":" + strconv.Itoa(z.Subhash)
 }
 
 func (z *Zone) manageSubscriptions() {
@@ -125,6 +102,8 @@ func (z *Zone) manageSubscriptions() {
 				runtime.Gosched()
 			}
 
+			subscriptions[subscription.Id] = subscription // unsafe
+
 			ch <- subscription
 		case ch := <-z.unsubscribe:
 			subscription := <-ch
@@ -136,6 +115,8 @@ func (z *Zone) manageSubscriptions() {
 						atomic.AddInt32(&zone.Count, -1)
 						runtime.Gosched()
 					}
+
+					// TODO: delete subscription after some TTL
 
 					copy(z.Subscribers[i:], z.Subscribers[i+1:])
 					z.Subscribers[len(z.Subscribers)-1] = nil
@@ -156,7 +137,7 @@ func (z *Zone) manageSubscriptions() {
 
 func (z *Zone) Subscribe(user *User) *Subscription {
 	var newSubscription = &Subscription{
-		Id:     z.Geohash + user.Id + strconv.Itoa(int(time.Now().Unix())),
+		Id:     strconv.Itoa(rand.Intn(1000)) + strconv.Itoa(int(time.Now().Unix())),
 		User:   user,
 		Zone:   z,
 		Events: make(chan *Event, 10),
@@ -192,7 +173,7 @@ func (z *Zone) GetArchive(maxEvents int) (*Archive, error) {
 	c := pool.Get()
 	defer c.Close()
 
-	archiveJson, err := redis.Strings(c.Do("LRANGE", "zone_"+z.Geohash, 0, maxEvents-1))
+	archiveJson, err := redis.Strings(c.Do("LRANGE", "zone_"+z.GetZonehash(), 0, maxEvents-1))
 	if err != nil {
 		println("unable to get archive:", err.Error())
 		return nil, err
@@ -205,7 +186,7 @@ func (z *Zone) redisSubscribe() {
 	psc := redis.PubSubConn{pool.Get()}
 	defer psc.Close()
 
-	psc.Subscribe("zone_" + z.Geohash)
+	psc.Subscribe("zone_" + z.GetZonehash())
 	for {
 		switch v := psc.Receive().(type) {
 		case redis.Message:
@@ -226,8 +207,8 @@ func (z *Zone) redisPublish() {
 		select {
 		case event := <-z.broadcast:
 			eventJson, _ := json.Marshal(event)
-			c.Do("LPUSH", "zone_"+z.Geohash, eventJson)
-			c.Do("PUBLISH", "zone_"+z.Geohash, eventJson)
+			c.Do("LPUSH", "zone_"+z.GetZonehash(), eventJson)
+			c.Do("PUBLISH", "zone_"+z.GetZonehash(), eventJson)
 		}
 	}
 }

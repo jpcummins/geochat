@@ -16,7 +16,7 @@
   <div class="container-fluid">
     <div class="row gc-header">
       <div class="col-md-12">
-        <h4>Location: {{.geohash}}</h4>
+        <h4>Location: {{.zonehash}}</h4>
         <span class="pull-right">
           <input type="checkbox" class="gc-notify"> Notifications
         </span>
@@ -115,7 +115,7 @@
 
     google.maps.event.addDomListener(window, 'load', initialize);
 
-    var socket = new WebSocket('ws://' + window.location.host + '/zone/{{.geohash}}/socket')
+    var socket = new WebSocket('ws://' + window.location.host + '/s/{{.subscriptionId}}/socket')
 
     var users = {}
     function addSubscriber(subscriber) {
@@ -193,7 +193,7 @@
           sendCommand(message)
         } else {
           $.ajax({
-            url: '/zone/{{.geohash}}/message',
+            url: '/s/{{.subscriptionId}}/message',
             method: 'POST',
             data: {
               text: message
@@ -207,11 +207,10 @@
     function sendCommand(command) {
       command = command.replace(/\//, '').trim()
       $.ajax({
-        url: '/zone/{{.geohash}}/command',
+        url: '/s/{{.subscriptionId}}/command',
         method: 'POST',
         data: {
-          command: command,
-          geohash: {{.geohash}}
+          command: command
         }
       });
     }

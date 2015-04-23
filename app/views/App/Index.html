@@ -55,30 +55,31 @@
   });
 
   var handlePosition = function (position) {
-    $(".gc-info").text("Location found, finding chatzone…")
+    $(".gc-info").text("Logging in…")
 
     $.ajax({
-      url: '/zone/lookup',
+      url: '/auth/login',
       method: 'POST',
       data: {
+        name: name,
         lat: position.coords.latitude,
         long: position.coords.longitude
       }
     })
     .done(function (response) {
-      $(".gc-info").text("Chatzone found, logging in...")
+      $(".gc-info").text("Looking for chatzone…")
 
       $.ajax({
-        url: '/auth/login',
+        url: '/s/subscribe',
         method: 'POST',
         data: {
-          name: name,
-          geohash: response.geohash
+          lat: position.coords.latitude,
+          long: position.coords.longitude
         }
       })
       .done(function (data) {
-        $(".gc-info").text("Logged in, loading room...")
-        window.location.replace("/zone/" + response.zone);
+        $(".gc-info").text("Chatzone found, loading room…")
+        window.location.replace("/s/" + data.id);
       })
       .fail(function () {
         $(".gc-info").text("")
@@ -87,7 +88,7 @@
     })
     .fail(function () {
       $(".gc-info").text("")
-      $(".gc-error").text("Unable to find chatzone. Try again later.")
+      $(".gc-error").text("Login failed. Try again later.")
     });
   }
 
@@ -97,7 +98,7 @@
   }
 
   var findLocation = function () {
-    $(".gc-info").text("Determining location...")
+    $(".gc-info").text("Determining location…")
     $("#enter").addClass("disabled");
     navigator.geolocation.getCurrentPosition(handlePosition, handlePositionError)
   }

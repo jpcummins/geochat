@@ -9,8 +9,8 @@ type Auth struct {
 	*revel.Controller
 }
 
-func (c Auth) Login(name string, geohash string) revel.Result {
+func (c Auth) Login(name string, lat float64, long float64) revel.Result {
 	c.Session["user"] = name
-	user := &chat.User{Id: name, Name: name, Geohash: geohash}
+	user := &chat.User{Id: name, Name: name, Lat: lat, Long: long}
 	return c.RenderJson(user)
 }

@@ -6,3 +6,7 @@ type Subscription struct {
 	Events chan *Event `json:"-"`
 	Zone   *Zone       `json:"-"`
 }
+
+func GetSubscription(id string) *Subscription {
+	return subscriptions[id]
+}

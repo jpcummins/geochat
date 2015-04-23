@@ -26,7 +26,9 @@ func createPool(server string) *redis.Pool {
 }
 
 var (
-	pool *redis.Pool
+	pool          *redis.Pool
+	subscriptions map[string]*Subscription
+	maxRoomSize   int32
 )
 
 func init() {
@@ -37,7 +39,9 @@ func init() {
 		redisServer = "redis://localhost:6379"
 	}
 
+	maxRoomSize = 1
 	pool = createPool(redisServer)
+	subscriptions = make(map[string]*Subscription)
 
 	registerCommand(&command{
 		name:    "addbot",

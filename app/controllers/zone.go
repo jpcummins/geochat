@@ -1,87 +1,88 @@
 package controllers
 
 import (
+	"errors"
 	gh "github.com/TomiHiltunen/geohash-golang"
 	"github.com/jpcummins/geochat/app/chat"
 	"github.com/revel/revel"
 	"golang.org/x/net/websocket"
 	"time"
-	"strconv"
-	"errors"
 )
 
 type Zone struct {
 	*revel.Controller
 }
 
-func (c Zone) Lookup(lat float64, long float64) revel.Result {
-	geohash := gh.EncodeWithPrecision(lat, long, 8)
-
-	type LookupResponse struct {
-		Geohash string `json:"geohash"`
-		Zonehash string `json:"zonehash"`
-	}
-
-	zone, _ := chat.FindAvailableZone(geohash)
-	resp := &LookupResponse{geohash, zone.Geohash + ":" + strconv.Itoa(zone.Subhash)}
-	return c.RenderJson(resp)
-}
-
-func (c Zone) Message(geohash string, text string) revel.Result {
+func (c Zone) Subscribe(lat float64, long float64) revel.Result {
 	user, err := chat.GetUser(c.Session["user"])
 	if err != nil {
 		return c.RenderError(err)
 	}
 
-	// TODO: gross. This is not right.
+	geohash := gh.EncodeWithPrecision(lat, long, 6)
+
 	zone, err := chat.FindAvailableZone(geohash)
-	if (zone.Geohash != geohash) {
-		return c.RenderError(errors.New("Unable to send message"))
+	if err != nil {
+		return c.RenderError(err)
 	}
 
-	event := zone.SendMessage(user, text)
+	subscription := zone.Subscribe(user)
+	return c.RenderJson(subscription)
+}
+
+func (c Zone) Message(subscriptionId string, text string) revel.Result {
+	user, err := chat.GetUser(c.Session["user"])
+	if err != nil {
+		return c.RenderError(err)
+	}
+
+	subscription := chat.GetSubscription(subscriptionId)
+	event := subscription.Zone.SendMessage(user, text)
 	return c.RenderJson(event)
 }
 
-func (c Zone) Command(command string, geohash string) revel.Result {
-	json, err := chat.ExecuteCommand(command, geohash)
+func (c Zone) Command(subscriptionId string, command string) revel.Result {
+	subscription := chat.GetSubscription(subscriptionId)
+	json, err := chat.ExecuteCommand(command, subscription)
 	if err != nil {
 		return c.RenderError(err)
 	}
 	return c.RenderJson(json)
 }
 
-func (c Zone) Zone(geohash string) revel.Result {
-	box := gh.Decode(geohash)
-	user, _ := chat.GetUser(c.Session["user"])
-	return c.Render(geohash, box, user)
-}
-
-func (c Zone) ZoneSocket(geohash string, ws *websocket.Conn) revel.Result {
-	user, _ := chat.GetUser(c.Session["user"])
-	zone, _ := chat.FindAvailableZone(geohash)
-	if (zone.Geohash != geohash) {
-		return c.RenderError(errors.New("Unable to join room"))
+func (c Zone) Zone(subscriptionId string) revel.Result {
+	subscription := chat.GetSubscription(subscriptionId)
+	if subscription == nil || subscription.Zone == nil {
+		c.Redirect("/")
 	}
 
-	subscription := zone.Subscribe(user)
+	zonehash := subscription.Zone.GetZonehash()
+	box := gh.Decode(subscription.Zone.Geohash) // TODO: incorporate subhash
+	return c.Render(zonehash, box, subscriptionId)
+}
+
+func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result {
+	subscription := chat.GetSubscription(subscriptionId)
+	if subscription == nil {
+		c.RenderError(errors.New("Invalid subscription"))
+	}
 
 	// Listen for client disconnects
 	go func() {
 		var msg string
 		for {
 			if websocket.Message.Receive(ws, &msg) != nil {
-				zone.Unsubscribe(subscription)
+				subscription.Zone.Unsubscribe(subscription)
 				return
 			}
 		}
 	}()
 
 	// Send zone information
-	subscription.Events <- chat.NewEvent(zone)
+	subscription.Events <- chat.NewEvent(subscription.Zone)
 
 	// Send the archive
-	archive, _ := zone.GetArchive(10)
+	archive, _ := subscription.Zone.GetArchive(10)
 	subscription.Events <- chat.NewEvent(archive)
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -91,7 +92,7 @@ func (c Zone) ZoneSocket(geohash string, ws *websocket.Conn) revel.Result {
 			subscription.Events <- &chat.Event{Type: "ping", Data: nil, Timestamp: int(time.Now().Unix())}
 		case event := <-subscription.Events:
 			if websocket.JSON.Send(ws, &event) != nil {
-				zone.Unsubscribe(subscription)
+				subscription.Zone.Unsubscribe(subscription)
 				return nil
 			}
 		}
