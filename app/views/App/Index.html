@@ -65,7 +65,7 @@
         long: position.coords.longitude
       }
     })
-    .done(function (zone) {
+    .done(function (response) {
       $(".gc-info").text("Chatzone found, logging in...")
 
       $.ajax({
@@ -73,12 +73,12 @@
         method: 'POST',
         data: {
           name: name,
-          geohash: zone
+          geohash: response.geohash
         }
       })
       .done(function (data) {
         $(".gc-info").text("Logged in, loading room...")
-        window.location.replace("/zone/" + zone);
+        window.location.replace("/zone/" + response.zone);
       })
       .fail(function () {
         $(".gc-info").text("")

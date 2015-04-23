@@ -1,14 +1,5 @@
 package chat
 
-/*
-
-TODO:
-* hash the geohash for security?
-* Add geolocation detection in the browser
-* Perhaps I should remove the user filter to make things more explicit
-
-*/
-
 import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/soveran/redisurl"
@@ -47,7 +38,6 @@ func init() {
 	}
 
 	pool = createPool(redisServer)
-	zones = make(map[string]*Zone)
 
 	registerCommand(&command{
 		name:    "addbot",

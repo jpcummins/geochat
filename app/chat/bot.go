@@ -31,7 +31,7 @@ func addBot(args []string, from_geohash string) (string, error) {
 		go func(num int) {
 			name := botNames[rand.Intn(len(botNames))]
 			bot := &User{Id: name, Name: name, Geohash: geohash, IsBot: true}
-			zone, _ := GetOrCreateZone(geohash)
+			zone, _ := FindAvailableZone(geohash)
 			subscription := zone.Subscribe(bot)
 
 			// Bot event handler

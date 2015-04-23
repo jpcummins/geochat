@@ -6,6 +6,8 @@ import (
 	"github.com/revel/revel"
 	"golang.org/x/net/websocket"
 	"time"
+	"strconv"
+	"errors"
 )
 
 type Zone struct {
@@ -13,7 +15,16 @@ type Zone struct {
 }
 
 func (c Zone) Lookup(lat float64, long float64) revel.Result {
-	return c.RenderText(gh.EncodeWithPrecision(lat, long, 5))
+	geohash := gh.EncodeWithPrecision(lat, long, 8)
+
+	type LookupResponse struct {
+		Geohash string `json:"geohash"`
+		Zonehash string `json:"zonehash"`
+	}
+
+	zone, _ := chat.FindAvailableZone(geohash)
+	resp := &LookupResponse{geohash, zone.Geohash + ":" + strconv.Itoa(zone.Subhash)}
+	return c.RenderJson(resp)
 }
 
 func (c Zone) Message(geohash string, text string) revel.Result {
@@ -22,9 +33,10 @@ func (c Zone) Message(geohash string, text string) revel.Result {
 		return c.RenderError(err)
 	}
 
-	zone, err := chat.GetOrCreateZone(geohash)
-	if err != nil {
-		return c.RenderError(err)
+	// TODO: gross. This is not right.
+	zone, err := chat.FindAvailableZone(geohash)
+	if (zone.Geohash != geohash) {
+		return c.RenderError(errors.New("Unable to send message"))
 	}
 
 	event := zone.SendMessage(user, text)
@@ -47,7 +59,11 @@ func (c Zone) Zone(geohash string) revel.Result {
 
 func (c Zone) ZoneSocket(geohash string, ws *websocket.Conn) revel.Result {
 	user, _ := chat.GetUser(c.Session["user"])
-	zone, _ := chat.GetOrCreateZone(geohash)
+	zone, _ := chat.FindAvailableZone(geohash)
+	if (zone.Geohash != geohash) {
+		return c.RenderError(errors.New("Unable to join room"))
+	}
+
 	subscription := zone.Subscribe(user)
 
 	// Listen for client disconnects
