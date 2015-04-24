@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+	"math"
 )
 
 type Zone struct {
@@ -28,10 +29,10 @@ type Zone struct {
 	unsubscribe chan (chan *Subscription) `json:"-"`
 }
 
-var world = createZone("", 0, nil)
+var world = createZone("", 1, nil)
+var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 
 func createZone(geohash string, subhash int, parent *Zone) *Zone {
-	println("Creating zone:", geohash, strconv.Itoa(subhash))
 	zone := &Zone{
 		Zonehash:    geohash + ":" + strconv.Itoa(subhash),
 		geohash:     geohash,
@@ -43,10 +44,22 @@ func createZone(geohash string, subhash int, parent *Zone) *Zone {
 		subscribe:   make(chan (chan *Subscription), 10),
 		unsubscribe: make(chan (chan *Subscription), 10),
 	}
+
+
 	go zone.redisSubscribe()      // subscribes to redis channel and publishes events
 	go zone.redisPublish()        // publishes broadcast events to redis channel
 	go zone.manageSubscriptions() // handles communication with zone subscribers
 	return zone
+}
+
+func (z *Zone) createChildZones() {
+	if z.subhash < 16 {
+		z.left = createZone(z.geohash, (z.subhash*2), z)
+		z.right = createZone(z.geohash, (z.subhash*2)+1, z)
+	} else {
+		z.left = createZone(z.geohash+string(geohashmap[(z.subhash*2)-32]), 1, z)
+		z.right = createZone(z.geohash+string(geohashmap[(z.subhash*2)-31]), 1, z)
+	}
 }
 
 func (z *Zone) Type() string {
@@ -59,16 +72,8 @@ func FindAvailableZone(lat float64, long float64) (*Zone, error) {
 }
 
 func findChatZone(root *Zone, geohash string) (*Zone, error) {
-	if root.left == nil && root.right == nil {
-		if root.subhash < 15 {
-			root.left = createZone(root.geohash, (root.subhash*2)+1, root)
-			root.right = createZone(root.geohash, (root.subhash*2)+2, root)
-		} else {
-			geohashmap := "0123456789bcdefghjkmnprstuvwxyz"
-			println("making geohashed nodes", string(geohashmap[(root.subhash*2)-30]), string(geohashmap[(root.subhash*2)-29]), strconv.Itoa((root.subhash*2)-30), strconv.Itoa((root.subhash*2)-29))
-			root.left = createZone(root.geohash+string(geohashmap[(root.subhash*2)-30]), 0, root)
-			root.right = createZone(root.geohash+string(geohashmap[(root.subhash*2)-29]), 0, root)
-		}
+	if (root.left == nil && root.right == nil) {
+		root.createChildZones()
 	}
 
 	if root.Count < maxRoomSize {
@@ -82,7 +87,13 @@ func findChatZone(root *Zone, geohash string) (*Zone, error) {
 		return root, errors.New("Room full")
 	}
 
-	if suffix[0] < 'g' {
+	// GROSS. I'm not a mathematician nor am I an algorithms expert.
+	// I'm sorry if this makes your eyes bleed.
+	l := math.Pow(2, math.Ceil(math.Log2(float64(root.right.subhash) + 1)) - 1)
+	d := 32 / l
+	i := int(d * (float64(root.right.subhash) - l))
+
+	if suffix[0] < geohashmap[i] {
 		return findChatZone(root.left, geohash)
 	} else {
 		return findChatZone(root.right, geohash)
