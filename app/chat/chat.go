@@ -29,6 +29,7 @@ var (
 	pool          *redis.Pool
 	subscriptions map[string]*Subscription
 	maxRoomSize   int32
+	world         *Zone
 )
 
 func init() {
@@ -42,6 +43,9 @@ func init() {
 	maxRoomSize = 1
 	pool = createPool(redisServer)
 	subscriptions = make(map[string]*Subscription)
+
+	world = createZone("", '0', 'z', nil)
+	world.init()
 
 	registerCommand(&command{
 		name:    "addbot",

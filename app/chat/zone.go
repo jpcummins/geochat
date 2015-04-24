@@ -3,21 +3,23 @@ package chat
 import (
 	"encoding/json"
 	"errors"
-	"github.com/garyburd/redigo/redis"
 	gh "github.com/TomiHiltunen/geohash-golang"
+	"github.com/garyburd/redigo/redis"
 	"math/rand"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
-	"math"
 )
+
+var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 
 type Zone struct {
 	Zonehash    string                    `json:"zonehash"`
 	geohash     string                    `json:"-"`
-	subhash     int                       `json:"-"`
+	from        byte                      `json:"-"`
+	to          byte                      `json:"-"`
 	parent      *Zone                     `json:"-"`
 	left        *Zone                     `json:"-"`
 	right       *Zone                     `json:"-"`
@@ -29,36 +31,39 @@ type Zone struct {
 	unsubscribe chan (chan *Subscription) `json:"-"`
 }
 
-var world = createZone("", 1, nil)
-var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
-
-func createZone(geohash string, subhash int, parent *Zone) *Zone {
+func createZone(geohash string, from byte, to byte, parent *Zone) *Zone {
 	zone := &Zone{
-		Zonehash:    geohash + ":" + strconv.Itoa(subhash),
-		geohash:     geohash,
-		subhash:     subhash,
-		parent:      parent,
-		Subscribers: make([]*Subscription, 0),
-		publish:     make(chan *Event), // unbuffered communication with web sockets
-		broadcast:   make(chan *Event), // unbuffered communication with redis
-		subscribe:   make(chan (chan *Subscription), 10),
-		unsubscribe: make(chan (chan *Subscription), 10),
+		Zonehash: geohash + ":" + string(from) + string(to),
+		geohash:  geohash,
+		from:     from,
+		to:       to,
+		parent:   parent,
 	}
-
-
-	go zone.redisSubscribe()      // subscribes to redis channel and publishes events
-	go zone.redisPublish()        // publishes broadcast events to redis channel
-	go zone.manageSubscriptions() // handles communication with zone subscribers
 	return zone
 }
 
+func (z *Zone) init() {
+	z.Subscribers = make([]*Subscription, 0)
+	z.publish = make(chan *Event)   // unbuffered communication with web sockets
+	z.broadcast = make(chan *Event) // unbuffered communication with redis
+	z.subscribe = make(chan (chan *Subscription), 10)
+	z.unsubscribe = make(chan (chan *Subscription), 10)
+	go z.redisSubscribe()      // subscribes to redis channel and publishes events
+	go z.redisPublish()        // publishes broadcast events to redis channel
+	go z.manageSubscriptions() // handles communication with zone subscribers
+}
+
 func (z *Zone) createChildZones() {
-	if z.subhash < 16 {
-		z.left = createZone(z.geohash, (z.subhash*2), z)
-		z.right = createZone(z.geohash, (z.subhash*2)+1, z)
+	from_i := strings.Index(geohashmap, string(z.from))
+	to_i := strings.Index(geohashmap, string(z.to))
+
+	if to_i-from_i > 1 {
+		split := (to_i - from_i) / 2
+		z.left = createZone(z.geohash, z.from, geohashmap[from_i+split], z)
+		z.right = createZone(z.geohash, geohashmap[from_i+split+1], z.to, z)
 	} else {
-		z.left = createZone(z.geohash+string(geohashmap[(z.subhash*2)-32]), 1, z)
-		z.right = createZone(z.geohash+string(geohashmap[(z.subhash*2)-31]), 1, z)
+		z.left = createZone(z.geohash+string(z.from), '0', 'z', z)
+		z.right = createZone(z.geohash+string(z.to), '0', 'z', z)
 	}
 }
 
@@ -72,7 +77,7 @@ func FindAvailableZone(lat float64, long float64) (*Zone, error) {
 }
 
 func findChatZone(root *Zone, geohash string) (*Zone, error) {
-	if (root.left == nil && root.right == nil) {
+	if root.left == nil && root.right == nil {
 		root.createChildZones()
 	}
 
@@ -82,22 +87,25 @@ func findChatZone(root *Zone, geohash string) (*Zone, error) {
 
 	suffix := strings.TrimPrefix(geohash, root.geohash)
 
-	// edge case - Zone for the specified geohash is full.
 	if len(suffix) == 0 {
 		return root, errors.New("Room full")
 	}
 
-	// GROSS. I'm not a mathematician nor am I an algorithms expert.
-	// I'm sorry if this makes your eyes bleed.
-	l := math.Pow(2, math.Ceil(math.Log2(float64(root.right.subhash) + 1)) - 1)
-	d := 32 / l
-	i := int(d * (float64(root.right.subhash) - l))
-
-	if suffix[0] < geohashmap[i] {
-		return findChatZone(root.left, geohash)
+	// This is gross. Like, really gross.
+	if root.geohash == root.right.geohash {
+		if suffix[0] < root.right.from {
+			return findChatZone(root.left, geohash)
+		} else {
+			return findChatZone(root.right, geohash)
+		}
 	} else {
-		return findChatZone(root.right, geohash)
+		if suffix[0] < root.right.geohash[len(root.right.geohash)-1] {
+			return findChatZone(root.left, geohash)
+		} else {
+			return findChatZone(root.right, geohash)
+		}
 	}
+
 }
 
 func (z *Zone) manageSubscriptions() {

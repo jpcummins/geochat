@@ -84,7 +84,6 @@ func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result
 	}()
 
 	// Send zone information
-	println(subscription.Zone.Zonehash)
 	subscription.Events <- chat.NewEvent(subscription.Zone)
 
 	// Send the archive
