@@ -45,7 +45,6 @@ func init() {
 	subscriptions = make(map[string]*Subscription)
 
 	world = createZone("", '0', 'z', nil)
-	world.init()
 
 	registerCommand(&command{
 		name:    "addbot",

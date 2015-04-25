@@ -9,5 +9,13 @@ type Subscription struct {
 
 func GetSubscription(id string) (s *Subscription, ok bool) {
 	s, ok = subscriptions[id]
-	return
+
+	if !ok {
+		return nil, false
+	}
+
+	req := make(chan *Subscription)
+	s.Zone.subscribe <- req // add channel to queue
+	req <- s                // when ready, pass the subscription
+	return <-req, true      // wait for processing to finish
 }

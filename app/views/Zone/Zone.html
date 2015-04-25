@@ -93,7 +93,7 @@
     function initialize() {
       var mapOptions = {
         zoom: 12,
-        center: new google.maps.LatLng({{ .box.Center.Lat }}, {{ .box.Center.Lng }}),
+        center: new google.maps.LatLng({{ .boundary.SouthWestLat }}, {{ .boundary.SouthWestLong }}),
         disableDefaultUI: true
       };
 
@@ -107,8 +107,8 @@
         fillOpacity: 0.35,
         map: map,
         bounds: new google.maps.LatLngBounds(
-          new google.maps.LatLng({{ .box.SouthWest.Lat }}, {{ .box.SouthWest.Lng }}),
-          new google.maps.LatLng({{ .box.NorthEast.Lat }}, {{ .box.NorthEast.Lng }}))
+          new google.maps.LatLng({{ .boundary.SouthWestLat }}, {{ .boundary.SouthWestLong }}),
+          new google.maps.LatLng({{ .boundary.NorthEastLat }}, {{ .boundary.NorthEastLong }}))
       });
 
     }

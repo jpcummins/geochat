@@ -62,8 +62,8 @@ func (c Zone) Zone(subscriptionId string) revel.Result {
 	}
 
 	zonehash := subscription.Zone.Zonehash
-	box := subscription.Zone.GetBoundries() // TODO: incorporate subhash
-	return c.Render(zonehash, box, subscriptionId)
+	boundary := subscription.Zone.GetBoundary()
+	return c.Render(zonehash, boundary, subscriptionId)
 }
 
 func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result {

@@ -24,11 +24,19 @@ type Zone struct {
 	left        *Zone                     `json:"-"`
 	right       *Zone                     `json:"-"`
 	Count       int32                     `json:"-"`
+	MaxUsers    int32                     `json:"max_users"`
 	Subscribers []*Subscription           `json:"subscribers"`
 	publish     chan *Event               `json:"-"`
 	broadcast   chan *Event               `json:"-"`
 	subscribe   chan (chan *Subscription) `json:"-"`
 	unsubscribe chan (chan *Subscription) `json:"-"`
+}
+
+type ZoneBoundary struct {
+	SouthWestLat  float64
+	SouthWestLong float64
+	NorthEastLat  float64
+	NorthEastLong float64
 }
 
 func createZone(geohash string, from byte, to byte, parent *Zone) *Zone {
@@ -38,6 +46,7 @@ func createZone(geohash string, from byte, to byte, parent *Zone) *Zone {
 		from:     from,
 		to:       to,
 		parent:   parent,
+		MaxUsers: maxRoomSize,
 	}
 	return zone
 }
@@ -51,6 +60,17 @@ func (z *Zone) init() {
 	go z.redisSubscribe()      // subscribes to redis channel and publishes events
 	go z.redisPublish()        // publishes broadcast events to redis channel
 	go z.manageSubscriptions() // handles communication with zone subscribers
+}
+
+func (z *Zone) GetBoundary() *ZoneBoundary {
+	sw := gh.Decode(z.geohash + string(z.from))
+	ne := gh.Decode(z.geohash + string(z.to))
+	return &ZoneBoundary{
+		SouthWestLat:  sw.SouthWest().Lat(),
+		SouthWestLong: sw.SouthWest().Lng(),
+		NorthEastLat:  ne.NorthEast().Lat(),
+		NorthEastLong: ne.NorthEast().Lng(),
+	}
 }
 
 func (z *Zone) createChildZones() {
@@ -73,7 +93,9 @@ func (z *Zone) Type() string {
 
 func FindAvailableZone(lat float64, long float64) (*Zone, error) {
 	geohash := gh.EncodeWithPrecision(lat, long, 6)
-	return findChatZone(world, geohash)
+	zone, err := findChatZone(world, geohash)
+	zone.init()
+	return zone, err
 }
 
 func findChatZone(root *Zone, geohash string) (*Zone, error) {
@@ -81,7 +103,7 @@ func findChatZone(root *Zone, geohash string) (*Zone, error) {
 		root.createChildZones()
 	}
 
-	if root.Count < maxRoomSize {
+	if root.Count < root.MaxUsers {
 		return root, nil
 	}
 
@@ -121,8 +143,11 @@ func (z *Zone) manageSubscriptions() {
 				runtime.Gosched()
 			}
 
-			subscriptions[subscription.Id] = subscription // unsafe
+			if _, found := subscriptions[subscription.Id]; !found {
+				z.Broadcast(NewEvent(&Join{Subscriber: subscription}))
+			}
 
+			subscriptions[subscription.Id] = subscription // unsafe
 			ch <- subscription
 		case ch := <-z.unsubscribe:
 			subscription := <-ch
@@ -165,7 +190,6 @@ func (z *Zone) Subscribe(user *User) *Subscription {
 	z.subscribe <- req     // add channel to queue
 	req <- newSubscription // when ready, pass the subscription
 	subscription := <-req  // wait for processing to finish
-	z.Broadcast(NewEvent(&Join{Subscriber: subscription}))
 	return subscription
 }
 
@@ -201,14 +225,10 @@ func (z *Zone) GetArchive(maxEvents int) (*Archive, error) {
 	return newArchive(archiveJson), nil
 }
 
-func (z *Zone) GetBoundries() *gh.BoundingBox {
-	return gh.Decode(z.geohash)
-}
-
 func (z *Zone) redisSubscribe() {
 	psc := redis.PubSubConn{pool.Get()}
 	defer psc.Close()
-
+	println("redis listen")
 	psc.Subscribe("zone_" + z.Zonehash)
 	for {
 		switch v := psc.Receive().(type) {
@@ -217,6 +237,7 @@ func (z *Zone) redisSubscribe() {
 			if err := json.Unmarshal(v.Data, &event); err != nil {
 				continue
 			}
+			println("publishing")
 			z.publish <- &event
 		}
 	}
