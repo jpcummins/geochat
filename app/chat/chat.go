@@ -28,17 +28,17 @@ func Init() {
 	world = newWorld()
 	subscribers = newSubscribers()
 
-	// registerCommand(&command{
-	// 	name:    "addbot",
-	// 	usage:   "addbot (number of bots) (timeout in minutes) (geohash)",
-	// 	execute: addBot,
-	// })
+	registerCommand(&command{
+		name:    "addbot",
+		usage:   "addbot (number of bots) (timeout in minutes) (geohash)",
+		execute: addBot,
+	})
 
-	// registerCommand(&command{
-	// 	name:    "flushdb",
-	// 	usage:   "",
-	// 	execute: resetRedis,
-	// })
+	registerCommand(&command{
+		name:    "flushdb",
+		usage:   "",
+		execute: resetRedis,
+	})
 }
 
 func (c *Chat) Begin() revel.Result {

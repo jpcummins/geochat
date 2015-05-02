@@ -45,7 +45,7 @@ func (suite *ZoneTestSuite) TestFindChatZone_ZoneCreation() {
 		assert.Equal(suite.T(), test+":0z", zone.Zonehash)
 
 		// While we're at it, test GetZone() functionality.
-		world = &World{root, nil, nil}
+		world = &World{root, nil, nil, nil, nil}
 		z, err := getOrCreateZone(zone.Zonehash)
 		assert.NoError(suite.T(), err)
 		assert.Equal(suite.T(), zone, z)
@@ -53,7 +53,8 @@ func (suite *ZoneTestSuite) TestFindChatZone_ZoneCreation() {
 }
 
 func (suite *ZoneTestSuite) TestGetZone() {
-	world = &World{suite.Zone, nil, nil}
+	root := newZone("", '0', 'z', nil, 1)
+	world = &World{root, nil, nil, nil, nil}
 	zone, err := getOrCreateZone(":0z")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), world.root, zone)

@@ -161,6 +161,7 @@ func (s *Subscribers) PublishEventToZone(event *Event, zone *Zone) {
 func publishEventToZone(event *Event, zone *Zone) {
 	for _, subscription := range subscribers.subscriptions {
 		if subscription.zone == zone && subscription.Events != nil {
+			println("Publishing to user", subscription.User.Name)
 			subscription.Events <- event
 		}
 	}
@@ -183,11 +184,8 @@ func (s *Subscribers) Add(user *User, zone *Zone) *Subscription {
 		Events:   make(chan *Event, 10),
 		zone:     zone,
 	}
-	println("1")
 	s.publishSubscribe <- subscription
-	println("2", strconv.Itoa(zone.count))
 	zone.Publish(NewEvent(&Join{subscription}))
-	println("3")
 	return subscription
 }
 
