@@ -10,6 +10,7 @@ import (
 
 type Zone struct {
 	*revel.Controller
+	chat.Chat
 }
 
 func (c Zone) Subscribe(lat float64, long float64) revel.Result {
@@ -18,33 +19,28 @@ func (c Zone) Subscribe(lat float64, long float64) revel.Result {
 		return c.RenderError(err)
 	}
 
-	zone, err := chat.FindAvailableZone(lat, long)
+	zone, err := chat.GetOrCreateAvailableZone(lat, long)
 	if err != nil {
 		return c.RenderError(err)
 	}
 
-	subscription := zone.Subscribe(user)
+	subscription := c.Subscribers.Add(user, zone)
 	return c.RenderJson(subscription)
 }
 
-func (c Zone) Message(subscriptionId string, text string) revel.Result {
-	user, err := chat.GetUser(c.Session["user"])
-	if err != nil {
-		return c.RenderError(err)
-	}
-
-	subscription, ok := chat.GetSubscription(subscriptionId)
-	if !ok {
+func (c Zone) Message(geochat *chat.Chat, subscriptionId string, text string) revel.Result {
+	subscription := c.Subscribers.Get(subscriptionId)
+	if subscription == nil {
 		return c.RenderError(errors.New("Invalid subscription"))
 	}
 
-	event := subscription.Zone.SendMessage(user, text)
+	event := subscription.Broadcast(text)
 	return c.RenderJson(event)
 }
 
-func (c Zone) Command(subscriptionId string, command string) revel.Result {
-	subscription, ok := chat.GetSubscription(subscriptionId)
-	if !ok {
+func (c Zone) Command(geochat *chat.Chat, subscriptionId string, command string) revel.Result {
+	subscription := c.Subscribers.Get(subscriptionId)
+	if subscription == nil {
 		return c.RenderError(errors.New("Invalid subscription"))
 	}
 
@@ -56,38 +52,50 @@ func (c Zone) Command(subscriptionId string, command string) revel.Result {
 }
 
 func (c Zone) Zone(subscriptionId string) revel.Result {
-	subscription, ok := chat.GetSubscription(subscriptionId)
-	if !ok {
+	subscription := c.Subscribers.Get(subscriptionId)
+	if subscription == nil {
 		return c.Redirect("/")
 	}
 
-	zonehash := subscription.Zone.Zonehash
-	boundary := subscription.Zone.GetBoundary()
+	zonehash := subscription.Zonehash
+	zone, err := chat.GetOrCreateZone(zonehash)
+	if err != nil {
+		return c.RenderError(err)
+	}
+
+	boundary := zone.GetBoundary()
 	return c.Render(zonehash, boundary, subscriptionId)
 }
 
 func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result {
-	subscription, ok := chat.GetSubscription(subscriptionId)
-	if !ok {
+	subscription := c.Subscribers.Get(subscriptionId)
+	if subscription == nil {
 		return c.RenderError(errors.New("Invalid subscription"))
 	}
+
+	subscription.Activate()
 
 	// Listen for client disconnects
 	go func() {
 		var msg string
 		for {
 			if websocket.Message.Receive(ws, &msg) != nil {
-				subscription.Zone.Unsubscribe(subscription)
+				subscription.Deactivate()
 				return
 			}
 		}
 	}()
 
+	zone, err := chat.GetOrCreateZone(subscription.Zonehash)
+	if err != nil {
+		return c.RenderError(err)
+	}
+
 	// Send zone information
-	subscription.Events <- chat.NewEvent(subscription.Zone)
+	subscription.Events <- chat.NewEvent(zone)
 
 	// Send the archive
-	archive, _ := subscription.Zone.GetArchive(10)
+	archive, _ := zone.GetArchive(10)
 	subscription.Events <- chat.NewEvent(archive)
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -97,7 +105,7 @@ func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result
 			subscription.Events <- &chat.Event{Type: "ping", Data: nil, Timestamp: int(time.Now().Unix())}
 		case event := <-subscription.Events:
 			if websocket.JSON.Send(ws, &event) != nil {
-				subscription.Zone.Unsubscribe(subscription)
+				subscription.Deactivate()
 				return nil
 			}
 		}

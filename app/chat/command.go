@@ -6,9 +6,9 @@ import (
 )
 
 type command struct {
-	name    string                                        `json:"command"`
-	usage   string                                        `json:"usage"`
-	execute func([]string, *Subscription) (string, error) `json:"-"`
+	name    string
+	usage   string
+	execute func([]string, *Subscription) (string, error)
 }
 
 var commands = make(map[string]*command)
@@ -27,7 +27,7 @@ func ExecuteCommand(command string, subscription *Subscription) (string, error) 
 }
 
 func resetRedis(args []string, subscription *Subscription) (string, error) {
-	c := pool.Get()
+	c := connection.Get()
 	defer c.Close()
 	c.Do("FLUSHALL")
 	return "", nil

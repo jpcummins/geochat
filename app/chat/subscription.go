@@ -1,21 +1,61 @@
 package chat
 
+import (
+	"encoding/json"
+)
+
 type Subscription struct {
-	Id     string      `json:"id"`
-	User   *User       `json:"user"`
-	Events chan *Event `json:"-"`
-	Zone   *Zone       `json:"-"`
+	Id        string      `json:"id"`
+	User      *User       `json:"user"`
+	CreatedAt int         `json:"created_at"`
+	IsOnline  bool        `json:"is_online"`
+	Events    chan *Event `json:"-"`
+	Zonehash  string      `json:"zonehash"`
+	zone      *Zone       `json:"-"`
 }
 
-func GetSubscription(id string) (s *Subscription, ok bool) {
-	s, ok = subscriptions[id]
+type jsonSubscription struct {
+	Id        string `json:"id"`
+	User      *User  `json:"user"`
+	CreatedAt int    `json:"created_at"`
+	IsOnline  bool   `json:"is_online"`
+	Zonehash  string `json:"zonehash"`
+}
 
-	if !ok {
-		return nil, false
+func (s *Subscription) UnmarshalJSON(b []byte) error {
+	var js jsonSubscription
+	if err := json.Unmarshal(b, &js); err != nil {
+		return err
 	}
+	s.Id = js.Id
+	s.User = js.User
+	s.CreatedAt = js.CreatedAt
+	s.IsOnline = js.IsOnline
+	s.Zonehash = js.Zonehash
 
-	req := make(chan *Subscription)
-	s.Zone.subscribe <- req // add channel to queue
-	req <- s                // when ready, pass the subscription
-	return <-req, true      // wait for processing to finish
+	zone, err := GetOrCreateZone(s.Zonehash)
+	s.zone = zone
+	return err
+}
+
+func (s *Subscription) Activate() {
+	if !s.IsOnline {
+		s.Events = make(chan *Event, 10)
+		s.zone.Publish(NewEvent(&Online{s}))
+		s.IsOnline = true
+	}
+}
+
+func (s *Subscription) Deactivate() {
+	if s.IsOnline {
+		s.zone.Publish(NewEvent(&Offline{s}))
+		s.IsOnline = false
+	}
+}
+
+func (s *Subscription) Broadcast(text string) *Event {
+	m := &Message{User: s.User, Text: text}
+	e := NewEvent(m)
+	s.zone.Publish(e)
+	return e
 }

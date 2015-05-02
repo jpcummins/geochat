@@ -26,8 +26,13 @@ func addBot(args []string, subscription *Subscription) (string, error) {
 		go func(num int) {
 			name := botNames[rand.Intn(len(botNames))]
 			bot := &User{Id: name, Name: name, IsBot: true}
+			zone, err := GetOrCreateZone(subscription.Zonehash)
 
-			botSubscription := subscription.Zone.Subscribe(bot)
+			if err != nil {
+				return
+			}
+
+			botSubscription := subscribers.Add(bot, zone)
 
 			// Bot event handler
 			go func() {
@@ -35,8 +40,7 @@ func addBot(args []string, subscription *Subscription) (string, error) {
 				for {
 					select {
 					case <-timer.C:
-						println("Unsubscribe")
-						botSubscription.Zone.Unsubscribe(botSubscription)
+						subscribers.Remove(botSubscription)
 						return
 					case <-subscription.Events:
 					}
