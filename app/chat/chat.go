@@ -2,6 +2,7 @@ package chat
 
 import (
 	"github.com/revel/revel"
+	"os"
 )
 
 var connection *Connection
@@ -16,7 +17,14 @@ type Chat struct {
 }
 
 func Init() {
-	connection = newConnection("redis://localhost:6379")
+
+	redisServer := os.Getenv("REDISTOGO_URL")
+
+	if redisServer == "" {
+		redisServer = "redis://localhost:6379"
+	}
+
+	connection = newConnection(redisServer)
 	world = newWorld()
 	subscribers = newSubscribers()
 
