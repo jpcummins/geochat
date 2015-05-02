@@ -18,7 +18,6 @@ func (c Zone) Subscribe(lat float64, long float64) revel.Result {
 	if err != nil {
 		return c.RenderError(err)
 	}
-
 	zone, err := chat.GetOrCreateAvailableZone(lat, long)
 	if err != nil {
 		return c.RenderError(err)

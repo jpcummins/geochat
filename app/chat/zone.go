@@ -39,14 +39,13 @@ func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zo
 		to:       to,
 		parent:   parent,
 		maxUsers: maxUsers,
+		publish:  make(chan *Event, 10),
 	}
 	return zone
 }
 
 func (z *Zone) setCount(count int) {
 	if z.count == 0 && count > 0 {
-		z.publish = make(chan *Event) // unbuffered communication with redis
-
 		// The following goroutines terminate on their own when count == 0
 		go z.redisSubscribe() // subscribe to redis channel and publishes events
 		go z.redisPublish()   // publishes publish events to redis channel
