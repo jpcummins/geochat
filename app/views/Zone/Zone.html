@@ -115,7 +115,7 @@
 
     google.maps.event.addDomListener(window, 'load', initialize);
 
-    var socket = new WebSocket('ws://' + window.location.host + '/s/{{.subscriptionId}}/socket')
+
 
     var users = {}
     function addSubscriber(subscriber) {
@@ -144,44 +144,40 @@
       }
       showTimes()
     }
-    // Message received on the socket
-    socket.onmessage = function(event) {
-      var eventData = JSON.parse(event.data)
+    // // Message received on the socket
+    // socket.onmessage = function(event) {
+    //   var eventData = JSON.parse(event.data)
 
-      switch (eventData.type) {
-        case "archive":
-          for (var i = eventData.data.events.length - 1; i >= 0; i--) {
-            display(eventData.data.events[i])
-          }
-          break;
-        case "join":
-          addSubscriber(eventData.data.subscriber)
-          break;
-        case "leave":
-          removeSubscriber(eventData.data.subscriber)
-          break;
-        case "zone":
-          for (var i = 0; i < eventData.data.subscribers.length; i++) {
-            var subscriber = eventData.data.subscribers[i];
-            addSubscriber(subscriber)
-          }
-          return
-        default:
-          break;
-      }
-      display(eventData)
+    //   switch (eventData.type) {
+    //     case "archive":
+    //       for (var i = eventData.data.events.length - 1; i >= 0; i--) {
+    //         display(eventData.data.events[i])
+    //       }
+    //       break;
+    //     case "join":
+    //       addSubscriber(eventData.data.subscriber)
+    //       break;
+    //     case "leave":
+    //       removeSubscriber(eventData.data.subscriber)
+    //       break;
+    //     case "zone":
+    //       for (var i = 0; i < eventData.data.subscribers.length; i++) {
+    //         var subscriber = eventData.data.subscribers[i];
+    //         addSubscriber(subscriber)
+    //       }
+    //       return
+    //     default:
+    //       break;
+    //   }
+    //   display(eventData)
 
-      if (notify && !focused && eventData.type == "message" && eventData.data.user.name != {{.user.Name}}) {
-        var n = new Notification(eventData.data.user.name + ": " + eventData.data.text);
-        setTimeout(function() {
-          n.close();
-        }, 2 * 1000);
-      }
-    }
-
-    socket.onclose = function(event) {
-      console.log("disconnected")
-    }
+    //   if (notify && !focused && eventData.type == "message" && eventData.data.user.name != {{.user.Name}}) {
+    //     var n = new Notification(eventData.data.user.name + ": " + eventData.data.text);
+    //     setTimeout(function() {
+    //       n.close();
+    //     }, 2 * 1000);
+    //   }
+    // }
 
     $('#message').keypress(function(e) {
       if(e.charCode == 13 || e.keyCode == 13) {
@@ -262,7 +258,16 @@
     }
 
     setInterval(showTimes, 10 * 1000)
+
+
+    var initData = {
+      zonehash: '{{.zonehash}}',
+      subscriptionId: '{{.subscriptionId}}',
+      page: 'zone'
+    }
+
   </script>
 
+  <script src="/public/js/bundle.js" type="text/javascript"></script>
   </body>
 </html>
