@@ -6,6 +6,7 @@ import (
 	"github.com/revel/revel"
 	"golang.org/x/net/websocket"
 	"time"
+	"fmt"
 )
 
 type Zone struct {
@@ -103,6 +104,7 @@ func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result
 		case <-ticker.C:
 			subscription.Events <- &chat.Event{Type: "ping", Data: nil, Timestamp: int(time.Now().Unix())}
 		case event := <-subscription.Events:
+			fmt.Printf("%+v\n", event)
 			if websocket.JSON.Send(ws, &event) != nil {
 				subscription.Deactivate()
 				return nil

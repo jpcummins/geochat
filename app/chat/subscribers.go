@@ -24,9 +24,9 @@ func newSubscribers() *Subscribers {
 	s := &Subscribers{}
 
 	s.subscriptions = make(map[string]*Subscription)
-	s.subscribe = make(chan *Subscription)
-	s.unsubscribe = make(chan *Subscription)
-	s.getSubscription = make(chan (chan interface{}))
+	s.subscribe = make(chan *Subscription, 10)
+	s.unsubscribe = make(chan *Subscription, 10)
+	s.getSubscription = make(chan (chan interface{}), 10)
 
 	s.publishSubscribe = make(chan *Subscription)
 	s.publishUnsubscribe = make(chan *Subscription)
@@ -132,11 +132,15 @@ func (s *Subscribers) manage() {
 	for {
 		select {
 		case subscription := <-s.subscribe:
-			s.subscriptions[subscription.Id] = subscription
-			IncrementZoneSubscriptionCounts(subscription.zone)
+			if _, ok := s.subscriptions[subscription.Id]; !ok {
+				s.subscriptions[subscription.Id] = subscription
+				IncrementZoneSubscriptionCounts(subscription.zone)
+			}
 		case subscription := <-s.unsubscribe:
-			delete(s.subscriptions, subscription.Id)
-			DecrementZoneSubscriptionCounts(subscription.zone)
+			if _, ok := s.subscriptions[subscription.Id]; ok {
+				delete(s.subscriptions, subscription.Id)
+				DecrementZoneSubscriptionCounts(subscription.zone)
+			}
 		case ch := <-s.getSubscription:
 			id := (<-ch).(string)
 			ch <- s.subscriptions[id]
@@ -161,7 +165,6 @@ func (s *Subscribers) PublishEventToZone(event *Event, zone *Zone) {
 func publishEventToZone(event *Event, zone *Zone) {
 	for _, subscription := range subscribers.subscriptions {
 		if subscription.zone == zone && subscription.Events != nil {
-			println("Publishing to user", subscription.User.Name)
 			subscription.Events <- event
 		}
 	}
@@ -185,7 +188,7 @@ func (s *Subscribers) Add(user *User, zone *Zone) *Subscription {
 		zone:     zone,
 	}
 	s.publishSubscribe <- subscription
-	zone.Publish(NewEvent(&Join{subscription}))
+	s.PublishEventToZone(NewEvent(&Join{subscription}), zone)
 	return subscription
 }
 

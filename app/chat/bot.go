@@ -42,7 +42,6 @@ func addBot(args []string, subscription *Subscription) (string, error) {
 					case <-timer.C:
 						subscribers.Remove(botSubscription)
 						return
-					case <-subscription.Events:
 					}
 				}
 			}()
