@@ -9,6 +9,7 @@ import (
 
 type Zone struct {
 	Zonehash string      `json:"zonehash"`
+	Boundary *ZoneBoundary `json:"boundary"`
 	geohash  string      `json:"-"`
 	from     byte        `json:"-"`
 	to       byte        `json:"-"`
