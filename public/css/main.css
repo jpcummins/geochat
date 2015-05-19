@@ -89,7 +89,7 @@ body,
     height: 100%;
 }
 
-#map-canvas,
+.map-canvas,
 .gc-users > div {
     background-color: #fff;
     height: 100%;
@@ -108,7 +108,7 @@ body,
     overflow: hidden;
     white-space:nowrap;
     padding-left: 2px;
-    padding-right: 2px;   
+    padding-right: 2px;
 }
 
 .gc-welcome-row {

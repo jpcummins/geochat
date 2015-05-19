@@ -29,6 +29,8 @@ var ZonePage = React.createClass({
       case "message":
         messagesCursor.push(event);
         break;
+      case "zone":
+        stateTree.set('zone', event);
       default:
     }
     //

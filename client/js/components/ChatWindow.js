@@ -1,6 +1,7 @@
 var React = require('react'),
     stateTree = require('../stateTree'),
-    Message = require('./events/Message');
+    Message = require('./events/Message'),
+    Zone = require('./events/Zone');
 
 var messagesCursor = stateTree.select('messages'),
     usersCursor = stateTree.select('users'),
@@ -9,9 +10,9 @@ var messagesCursor = stateTree.select('messages'),
 var ChatWindow = React.createClass({
 
   showMessage: function (e) {
-    this.setState({ events: e.data.data.map(function (message) {
-      return React.createElement(Message, message)
-    })})
+    var event = e.data.data[e.data.data.length - 1];
+    var message = React.createElement(Message, event, event.timestamp);
+    this.setState({ events: this.state.events.concat(message) });
   },
 
   showUser: function (e) {
@@ -19,7 +20,9 @@ var ChatWindow = React.createClass({
   },
 
   showZone: function (e) {
-    console.log("new zone");
+    var event = e.data.data;
+    var zone = React.createElement(Zone, event, event.timestamp);
+    this.setState({ events: this.state.events.concat(zone) });
   },
 
   getInitialState: function () {
