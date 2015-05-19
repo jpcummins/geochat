@@ -8,17 +8,17 @@ import (
 )
 
 type Zone struct {
-	Zonehash string      `json:"zonehash"`
+	Zonehash string        `json:"zonehash"`
 	Boundary *ZoneBoundary `json:"boundary"`
-	geohash  string      `json:"-"`
-	from     byte        `json:"-"`
-	to       byte        `json:"-"`
-	parent   *Zone       `json:"-"`
-	left     *Zone       `json:"-"`
-	right    *Zone       `json:"-"`
-	count    int         `json:"-"`
-	maxUsers int         `json:"-"`
-	publish  chan *Event `json:"-"`
+	geohash  string        `json:"-"`
+	from     byte          `json:"-"`
+	to       byte          `json:"-"`
+	parent   *Zone         `json:"-"`
+	left     *Zone         `json:"-"`
+	right    *Zone         `json:"-"`
+	count    int           `json:"-"`
+	maxUsers int           `json:"-"`
+	publish  chan *Event   `json:"-"`
 }
 
 type ZoneBoundary struct {
@@ -35,6 +35,7 @@ func (z *Zone) Type() string {
 func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zone {
 	zone := &Zone{
 		Zonehash: geohash + ":" + string(from) + string(to),
+		Boundary: GetBoundary(geohash, from, to),
 		geohash:  geohash,
 		from:     from,
 		to:       to,
@@ -57,9 +58,9 @@ func (z *Zone) setCount(count int) {
 	}
 }
 
-func (z *Zone) GetBoundary() *ZoneBoundary {
-	sw := gh.Decode(z.geohash + string(z.from))
-	ne := gh.Decode(z.geohash + string(z.to))
+func GetBoundary(geohash string, from, to byte) *ZoneBoundary {
+	sw := gh.Decode(geohash + string(from))
+	ne := gh.Decode(geohash + string(to))
 	return &ZoneBoundary{
 		SouthWestLat:  sw.SouthWest().Lat(),
 		SouthWestLong: sw.SouthWest().Lng(),

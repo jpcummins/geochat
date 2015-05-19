@@ -1,15 +1,18 @@
 var React = require('react'),
+    stateTree = require('../stateTree'),
     ChatHeader = require('../components/ChatHeader'),
     ChatWindow = require('../components/ChatWindow'),
     ChatCompose = require('../components/ChatCompose'),
     ChatMap = require('../components/ChatMap'),
     ChatUsers = require('../components/ChatUsers');
 
+var messagesCursor = stateTree.select('messages'),
+    usersCursor = stateTree.select('users'),
+    zoneCursor = stateTree.select('zone');
+
 var ZonePage = React.createClass({
 
-  getInitialState: function () {
-    return { events: [], zone: {} }
-  },
+  mixins: [React.addons.PureRenderMixin],
 
   wsOpened: function () {
     console.log("opened");
@@ -20,13 +23,20 @@ var ZonePage = React.createClass({
   },
 
   wsMessage: function (e) {
-    var eventData = JSON.parse(e.data);
+    var event = JSON.parse(e.data);
 
-    if (eventData.type == "zone") {
-      this.state.zone = eventData;
+    switch (event.type) {
+      case "message":
+        messagesCursor.push(event);
+        break;
+      default:
     }
-
-    this.setState({ events: this.state.events.concat(eventData) });
+    //
+    // if (eventData.type == "zone") {
+    //   this.setProps({ zone: eventData })
+    // }
+    //
+    // this.setState({ events: this.state.events.concat(eventData) });
   },
 
   wsError: function (err) {
@@ -53,7 +63,7 @@ var ZonePage = React.createClass({
           <div className="col-md-8">
             <div className="row gc-chat-window">
               <div className="col-md-12" id="gc-message-area">
-                <ChatWindow events={this.state.events} />
+                <ChatWindow />
               </div>
             </div>
             <ChatCompose subscription={this.props.subscription} />
@@ -61,7 +71,7 @@ var ZonePage = React.createClass({
           <div className="col-md-4 gc-sidebar">
             <div className="row gc-map">
               <div className="col-md-12">
-                <ChatMap zone={this.state.zone} />
+                <ChatMap />
               </div>
             </div>
             <ChatUsers />

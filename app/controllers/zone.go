@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"errors"
+	"fmt"
 	"github.com/jpcummins/geochat/app/chat"
 	"github.com/revel/revel"
 	"golang.org/x/net/websocket"
 	"time"
-	"fmt"
 )
 
 type Zone struct {
@@ -56,15 +56,7 @@ func (c Zone) Zone(subscriptionId string) revel.Result {
 	if subscription == nil {
 		return c.Redirect("/")
 	}
-
-	zonehash := subscription.Zonehash
-	zone, err := chat.GetOrCreateZone(zonehash)
-	if err != nil {
-		return c.RenderError(err)
-	}
-
-	boundary := zone.GetBoundary()
-	return c.Render(zonehash, boundary, subscriptionId)
+	return c.Render(subscriptionId)
 }
 
 func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result {
