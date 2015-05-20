@@ -8,3 +8,7 @@ type Message struct {
 func (m *Message) Type() string {
 	return "message"
 }
+
+func (m *Message) Visible() bool {
+	return true
+}

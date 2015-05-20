@@ -4,15 +4,39 @@ var React = require('react'),
     ChatWindow = require('../components/ChatWindow'),
     ChatCompose = require('../components/ChatCompose'),
     ChatMap = require('../components/ChatMap'),
-    ChatUsers = require('../components/ChatUsers');
+    SubscriberList = require('../components/SubscriberList');
 
 var messagesCursor = stateTree.select('messages'),
-    usersCursor = stateTree.select('users'),
+    subscribersCursor = stateTree.select('subscribers'),
     zoneCursor = stateTree.select('zone');
 
 var ZonePage = React.createClass({
 
   mixins: [React.addons.PureRenderMixin],
+
+  handleChatEvent: function (chatEvent) {
+    switch (chatEvent.type) {
+      case "message":
+        messagesCursor.push(chatEvent);
+        break;
+      case "zone":
+        stateTree.set('zone', chatEvent);
+        for (var i = chatEvent.data.archive.events.length - 1; i >= 0; i--) {
+          this.handleChatEvent(chatEvent.data.archive.events[i]);
+        }
+        break;
+      case "join":
+      case "online":
+      case "offline":
+        subscribersCursor.set(chatEvent.data.subscriber.id, chatEvent);
+        break;
+      case "leave":
+        subscribersCursor.unset(chatEvent.data.subscriber.id);
+        break;
+      default:
+    }
+    stateTree.commit();
+  },
 
   wsOpened: function () {
     console.log("opened");
@@ -23,22 +47,8 @@ var ZonePage = React.createClass({
   },
 
   wsMessage: function (e) {
-    var event = JSON.parse(e.data);
-
-    switch (event.type) {
-      case "message":
-        messagesCursor.push(event);
-        break;
-      case "zone":
-        stateTree.set('zone', event);
-      default:
-    }
-    //
-    // if (eventData.type == "zone") {
-    //   this.setProps({ zone: eventData })
-    // }
-    //
-    // this.setState({ events: this.state.events.concat(eventData) });
+    var wsEvent = JSON.parse(e.data);
+    return this.handleChatEvent(wsEvent);
   },
 
   wsError: function (err) {
@@ -63,11 +73,7 @@ var ZonePage = React.createClass({
         <ChatHeader />
         <div className="row gc-content">
           <div className="col-md-8">
-            <div className="row gc-chat-window">
-              <div className="col-md-12" id="gc-message-area">
-                <ChatWindow />
-              </div>
-            </div>
+            <ChatWindow />
             <ChatCompose subscription={this.props.subscription} />
           </div>
           <div className="col-md-4 gc-sidebar">
@@ -76,7 +82,7 @@ var ZonePage = React.createClass({
                 <ChatMap />
               </div>
             </div>
-            <ChatUsers />
+            <SubscriberList />
           </div>
         </div>
       </div>
@@ -85,23 +91,3 @@ var ZonePage = React.createClass({
 })
 
 module.exports = ZonePage
-
-
-
-
-  // React.render(<Users />, $('.gc-user-container')[0]);
-
-  // var socket = new WebSocket('ws://' + window.location.host + '/s/' + initData.subscriptionId + '/socket')
-  // socket.onmessage = function(event) {
-  //   var eventData = JSON.parse(event.data)
-  //   switch (eventData.type) {
-  //     case "archive": archive(eventData.data); break;
-  //     case "join": join(eventData.data); break;
-  //     case "leave": leave(eventData.data); break;
-  //     case "zone": zone(eventData.data); break;
-  //   }
-  // }
-
-  // socket.onclose = function(event) {
-  //   console.log("disconnected")
-  // }

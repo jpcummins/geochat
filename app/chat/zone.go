@@ -83,17 +83,17 @@ func (z *Zone) createChildZones() {
 	}
 }
 
-func (z *Zone) GetArchive(maxEvents int) (*Archive, error) {
+func (z *Zone) GetArchive(maxEvents int) *Archive {
 	c := connection.Get()
 	defer c.Close()
 
 	archiveJson, err := redis.Strings(c.Do("LRANGE", "zone_"+z.Zonehash, 0, maxEvents-1))
 	if err != nil {
 		println("unable to get archive:", err.Error())
-		return nil, err
+		return nil
 	}
 
-	return newArchive(archiveJson), nil
+	return newArchive(archiveJson)
 }
 
 func (z *Zone) Publish(event *Event) {
@@ -133,7 +133,11 @@ func (z *Zone) redisPublish() {
 		select {
 		case event := <-z.publish:
 			eventJson, _ := json.Marshal(event)
-			c.Do("LPUSH", "zone_"+z.Zonehash, eventJson)
+
+			if event.Type == "message" {
+				c.Do("LPUSH", "zone_"+z.Zonehash, eventJson)
+			}
+
 			c.Do("PUBLISH", "zone_"+z.Zonehash, eventJson)
 		}
 	}

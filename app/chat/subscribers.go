@@ -164,7 +164,7 @@ func (s *Subscribers) PublishEventToZone(event *Event, zone *Zone) {
 
 func publishEventToZone(event *Event, zone *Zone) {
 	for _, subscription := range subscribers.subscriptions {
-		if subscription.zone == zone && subscription.Events != nil {
+		if subscription.zone == zone && subscription.IsOnline && subscription.Events != nil {
 			subscription.Events <- event
 		}
 	}

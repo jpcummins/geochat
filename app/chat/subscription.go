@@ -41,15 +41,17 @@ func (s *Subscription) UnmarshalJSON(b []byte) error {
 func (s *Subscription) Activate() {
 	if !s.IsOnline {
 		s.Events = make(chan *Event, 10)
-		s.zone.Publish(NewEvent(&Online{s}))
 		s.IsOnline = true
+		s.zone.Publish(NewEvent(&Online{s}))
 	}
 }
 
 func (s *Subscription) Deactivate() {
 	if s.IsOnline {
-		s.zone.Publish(NewEvent(&Offline{s}))
 		s.IsOnline = false
+		close(s.Events)
+		s.Events = nil
+		s.zone.Publish(NewEvent(&Offline{s}))
 	}
 }
 

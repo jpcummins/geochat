@@ -3,6 +3,8 @@ package chat
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"math/rand"
 	"time"
 )
 
@@ -11,17 +13,17 @@ type EventData interface {
 }
 
 type Event struct {
-	Type      string    `json:"type"`
-	Timestamp int       `json:"timestamp"`
-	Data      EventData `json:"data,omitempty"`
+	Type string    `json:"type"`
+	ID   string    `json:"id"`
+	Data EventData `json:"data,omitempty"`
 }
 
 func (e *Event) UnmarshalJSON(b []byte) error {
 
 	type AnonEvent struct {
-		Type      string          `json:"type"`
-		Timestamp int             `json:"timestamp"`
-		Data      json.RawMessage `json:"data"`
+		Type string          `json:"type"`
+		ID   string          `json:"id"`
+		Data json.RawMessage `json:"data"`
 	}
 	var ae AnonEvent
 
@@ -45,11 +47,21 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 	}
 
 	e.Type = ae.Type
-	e.Timestamp = ae.Timestamp
+	e.ID = ae.ID
 
 	return json.Unmarshal(ae.Data, e.Data)
 }
 
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+func randomSequence(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
 func NewEvent(data EventData) *Event {
-	return &Event{Type: data.Type(), Data: data, Timestamp: int(time.Now().Unix())}
+	return &Event{Type: data.Type(), Data: data, ID: fmt.Sprintf("%d%s", time.Now().Unix(), randomSequence(4))}
 }
