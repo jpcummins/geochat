@@ -5,7 +5,7 @@ var Zone = React.createClass({
     return (
       <div className="row gc-message">
         <div className="col-md-offset-1 col-md-10">
-          Joined zone: {this.props.data.zonehash}
+          Joined zone: {this.props.data.id}
         </div>
       </div>
     )

@@ -287,7 +287,7 @@ var Zone = React.createClass({displayName: "Zone",
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-offset-1 col-md-10"}, 
-          "Joined zone: ", this.props.data.zonehash
+          "Joined zone: ", this.props.data.id
         )
       )
     )
