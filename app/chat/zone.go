@@ -69,6 +69,13 @@ func GetBoundary(geohash string, from, to byte) *ZoneBoundary {
 	}
 }
 
+func (z *Zone) GetSubscribers() []*Subscription {
+	ch := make(chan interface{})
+	subscribers.getSubscriptionsForZone <- ch
+	ch <- z
+	return (<-ch).([]*Subscription)
+}
+
 func (z *Zone) createChildZones() {
 	from_i := strings.Index(geohashmap, string(z.from))
 	to_i := strings.Index(geohashmap, string(z.to))
@@ -134,10 +141,7 @@ func (z *Zone) redisPublish() {
 		case event := <-z.publish:
 			eventJson, _ := json.Marshal(event)
 
-			if event.Type == "message" {
-				c.Do("LPUSH", "zone_"+z.Zonehash, eventJson)
-			}
-
+			c.Do("LPUSH", "zone_"+z.Zonehash, eventJson)
 			c.Do("PUBLISH", "zone_"+z.Zonehash, eventJson)
 		}
 	}

@@ -22,7 +22,7 @@ var SubscriberList = React.createClass({
   render: function () {
     var subscribers = this.state.subscribers.map(function (subscriber) {
       return (
-        <Subscriber subscriber={subscriber.data.subscriber} key={subscriber.id} />
+        <Subscriber subscriber={subscriber} key={subscriber.id} />
       )
     });
 

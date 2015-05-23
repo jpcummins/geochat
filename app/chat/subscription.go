@@ -9,8 +9,9 @@ type Subscription struct {
 	User      *User       `json:"user"`
 	CreatedAt int         `json:"created_at"`
 	IsOnline  bool        `json:"is_online"`
-	Events    chan *Event `json:"-"`
 	Zonehash  string      `json:"zonehash"`
+	IsLocal   bool        `json:"-"`
+	Events    chan *Event `json:"-"`
 	zone      *Zone       `json:"-"`
 }
 
@@ -32,6 +33,7 @@ func (s *Subscription) UnmarshalJSON(b []byte) error {
 	s.CreatedAt = js.CreatedAt
 	s.IsOnline = js.IsOnline
 	s.Zonehash = js.Zonehash
+	s.IsLocal = false
 
 	zone, err := GetOrCreateZone(s.Zonehash)
 	s.zone = zone
@@ -39,19 +41,23 @@ func (s *Subscription) UnmarshalJSON(b []byte) error {
 }
 
 func (s *Subscription) Activate() {
-	if !s.IsOnline {
-		s.Events = make(chan *Event, 10)
-		s.IsOnline = true
-		s.zone.Publish(NewEvent(&Online{s}))
-	}
+	s.IsLocal = true
+	s.zone.Publish(NewEvent(&Online{s}))
+	subscribers.publishOnline <- s
 }
 
 func (s *Subscription) Deactivate() {
-	if s.IsOnline {
-		s.IsOnline = false
+	s.IsLocal = false
+
+	if s.Events != nil {
 		close(s.Events)
 		s.Events = nil
+	}
+
+	if s.IsOnline {
+		s.IsOnline = false
 		s.zone.Publish(NewEvent(&Offline{s}))
+		subscribers.publishOffline <- s
 	}
 }
 

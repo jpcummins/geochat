@@ -5,17 +5,30 @@ var ChatCompose = React.createClass({
   handleKeypress: function (e) {
   	if (e.charCode == 13 || e.keyCode == 13) {
   		e.preventDefault();
-  		var message = React.findDOMNode(this.refs.chatInput);
+  		var inputBox = React.findDOMNode(this.refs.chatInput);
+      var message = inputBox.value;
 
-  		$.ajax({
-  			url: '/s/' + this.props.subscription + '/message',
-  			method: "POST",
-  			data: {
-  				text: message.value
-  			}
-  		});
+      if (/\//.test(message)) {
+        message = message.replace(/\//, '').trim()
+        $.ajax({
+          url: '/s/' + this.props.subscription + '/command',
+          method: 'POST',
+          data: {
+            command: message
+          }
+        });
+      } else {
+    		$.ajax({
+    			url: '/s/' + this.props.subscription + '/message',
+    			method: "POST",
+    			data: {
+    				text: message
+    			}
+    		});
+      }
 
-  		message.value = "";
+
+      inputBox.value = "";
   	}
   },
 

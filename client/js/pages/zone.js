@@ -6,7 +6,7 @@ var React = require('react'),
     ChatMap = require('../components/ChatMap'),
     SubscriberList = require('../components/SubscriberList');
 
-var messagesCursor = stateTree.select('messages'),
+var eventsCursor = stateTree.select('visibleEvents'),
     subscribersCursor = stateTree.select('subscribers'),
     zoneCursor = stateTree.select('zone');
 
@@ -17,20 +17,31 @@ var ZonePage = React.createClass({
   handleChatEvent: function (chatEvent) {
     switch (chatEvent.type) {
       case "message":
-        messagesCursor.push(chatEvent);
+        eventsCursor.push(chatEvent);
         break;
       case "zone":
         stateTree.set('zone', chatEvent);
-        for (var i = chatEvent.data.archive.events.length - 1; i >= 0; i--) {
-          this.handleChatEvent(chatEvent.data.archive.events[i]);
+        stateTree.set('subscribers', {});
+
+        if (chatEvent.data.archive) {
+          for (var i = chatEvent.data.archive.events.length - 1; i >= 0; i--) {
+            this.handleChatEvent(chatEvent.data.archive.events[i]);
+          }
+        }
+        eventsCursor.push(chatEvent);
+        for (var i = 0; i < chatEvent.data.subscribers.length; i++) {
+          var subscriber = chatEvent.data.subscribers[i];
+          subscribersCursor.set(subscriber.id, subscriber);
         }
         break;
       case "join":
       case "online":
       case "offline":
-        subscribersCursor.set(chatEvent.data.subscriber.id, chatEvent);
+        eventsCursor.push(chatEvent)
+        subscribersCursor.set(chatEvent.data.subscriber.id, chatEvent.data.subscriber);
         break;
       case "leave":
+        eventsCursor.push(chatEvent)
         subscribersCursor.unset(chatEvent.data.subscriber.id);
         break;
       default:
@@ -38,12 +49,12 @@ var ZonePage = React.createClass({
     stateTree.commit();
   },
 
-  wsOpened: function () {
-    console.log("opened");
+  wsOpened: function (e) {
+    console.log("opened", e);
   },
 
-  wsClosed: function () {
-    console.log("closed")
+  wsClosed: function (e) {
+    console.log("closed", e);
   },
 
   wsMessage: function (e) {

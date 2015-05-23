@@ -17,17 +17,30 @@ var ChatCompose = React.createClass({displayName: "ChatCompose",
   handleKeypress: function (e) {
   	if (e.charCode == 13 || e.keyCode == 13) {
   		e.preventDefault();
-  		var message = React.findDOMNode(this.refs.chatInput);
+  		var inputBox = React.findDOMNode(this.refs.chatInput);
+      var message = inputBox.value;
 
-  		$.ajax({
-  			url: '/s/' + this.props.subscription + '/message',
-  			method: "POST",
-  			data: {
-  				text: message.value
-  			}
-  		});
+      if (/\//.test(message)) {
+        message = message.replace(/\//, '').trim()
+        $.ajax({
+          url: '/s/' + this.props.subscription + '/command',
+          method: 'POST',
+          data: {
+            command: message
+          }
+        });
+      } else {
+    		$.ajax({
+    			url: '/s/' + this.props.subscription + '/message',
+    			method: "POST",
+    			data: {
+    				text: message
+    			}
+    		});
+      }
 
-  		message.value = "";
+
+      inputBox.value = "";
   	}
   },
 
@@ -44,18 +57,32 @@ var ChatCompose = React.createClass({displayName: "ChatCompose",
 
 module.exports = ChatCompose
 
+
 },{"react":196}],3:[function(require,module,exports){
-var React = require('react');
+var React = require('react'),
+    stateTree = require('../stateTree');
+
+var zoneCursor = stateTree.select('zone');
 
 var ChatHeader = React.createClass({displayName: "ChatHeader",
+
+  getInitialState: function () {
+    return { location: '' };
+  },
+
+  componentDidMount: function () {
+    zoneCursor.on('update', this.showZone);
+  },
+
+  showZone: function (e) {
+    this.setState({ location: e.data.data.data.id });
+  },
+
   render: function () {
     return (
       React.createElement("div", {className: "row gc-header"}, 
         React.createElement("div", {className: "col-md-12"}, 
-          React.createElement("h4", null, "Location: ?"), 
-          React.createElement("span", {className: "pull-right"}, 
-            React.createElement("input", {type: "checkbox", className: "gc-notify"}, "Notifications")
-          )
+          React.createElement("h4", null, "Location: ", this.state.location)
         )
       )
     )
@@ -64,7 +91,8 @@ var ChatHeader = React.createClass({displayName: "ChatHeader",
 
 module.exports = ChatHeader
 
-},{"react":196}],4:[function(require,module,exports){
+
+},{"../stateTree":12,"react":196}],4:[function(require,module,exports){
 var React = require('react'),
     stateTree = require('../stateTree');
 
@@ -119,31 +147,33 @@ var React = require('react'),
     Zone = require('./events/Zone'),
     Subscription = require('./events/Subscription');
 
-var messagesCursor = stateTree.select('messages'),
-    subscribersCursor = stateTree.select('subscribers'),
-    zoneCursor = stateTree.select('zone');
+var visibleEvents = stateTree.select('visibleEvents');
+
+var eventClasses = {
+  "message": Message,
+  "zone": Zone,
+  "online": Subscription,
+  "offline": Subscription,
+  "join": Subscription,
+  "leave": Subscription
+}
 
 var ChatWindow = React.createClass({displayName: "ChatWindow",
 
-  showMessage: function (e) {
+  showEvent: function (e) {
     var event = e.data.data[e.data.data.length - 1];
     event.key = event.id;
-    var message = React.createElement(Message, event);
-    this.setState({ events: this.state.events.concat(message) });
-  },
 
-  updateSubscription: function (e) {
-    var subscriptionEvent = e.data.data[Object.keys(e.data.data)[0]]; // gross!
-    subscriptionEvent.key = subscriptionEvent.id;
-    var subscription = React.createElement(Subscription, subscriptionEvent);
-    this.setState({ events: this.state.events.concat(subscription) });
-  },
-
-  showZone: function (e) {
-    var event = e.data.data;
-    event.key = event.id;
-    var zone = React.createElement(Zone, event);
-    this.setState({ events: this.state.events.concat(zone) });
+    // todo: optimize - use a hashtable instead.
+    for (var i = 0; i < this.state.events.length; i++) {
+      var key = this.state.events[i].key;
+      if (key == event.key) {
+        return;
+      }
+    }
+    
+    var element = React.createElement(eventClasses[event.type], event);
+    this.setState({ events: this.state.events.concat(element) });
   },
 
   getInitialState: function () {
@@ -156,9 +186,7 @@ var ChatWindow = React.createClass({displayName: "ChatWindow",
   },
 
   componentDidMount: function () {
-    messagesCursor.on('update', this.showMessage);
-    subscribersCursor.on('update', this.updateSubscription);
-    zoneCursor.on('update', this.showZone);
+    visibleEvents.on('update', this.showEvent);
   },
 
   getInitialState: function () {
@@ -185,8 +213,8 @@ var React = require('react');
 var Subscriber = React.createClass({displayName: "Subscriber",
   render: function () {
     return (
-	    React.createElement("div", null, 
-        this.props.subscriber.user.name, " ",  this.props.subscriber.is_online ? '(online)' : '(offline)'
+	    React.createElement("div", {className:  this.props.subscriber.is_online ? 'online' : 'offline'}, 
+        this.props.subscriber.user.name
 	    )
     )
   }
@@ -220,7 +248,7 @@ var SubscriberList = React.createClass({displayName: "SubscriberList",
   render: function () {
     var subscribers = this.state.subscribers.map(function (subscriber) {
       return (
-        React.createElement(Subscriber, {subscriber: subscriber.data.subscriber, key: subscriber.id})
+        React.createElement(Subscriber, {subscriber: subscriber, key: subscriber.id})
       )
     });
 
@@ -287,7 +315,7 @@ var Zone = React.createClass({displayName: "Zone",
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-offset-1 col-md-10"}, 
-          "Joined zone: ", this.props.data.id
+          "Joined zone: \"", this.props.data.id, "\" with ", this.props.data.subscribers.length - 1, " other users."
         )
       )
     )
@@ -306,7 +334,7 @@ var React = require('react'),
     ChatMap = require('../components/ChatMap'),
     SubscriberList = require('../components/SubscriberList');
 
-var messagesCursor = stateTree.select('messages'),
+var eventsCursor = stateTree.select('visibleEvents'),
     subscribersCursor = stateTree.select('subscribers'),
     zoneCursor = stateTree.select('zone');
 
@@ -317,20 +345,31 @@ var ZonePage = React.createClass({displayName: "ZonePage",
   handleChatEvent: function (chatEvent) {
     switch (chatEvent.type) {
       case "message":
-        messagesCursor.push(chatEvent);
+        eventsCursor.push(chatEvent);
         break;
       case "zone":
         stateTree.set('zone', chatEvent);
-        for (var i = chatEvent.data.archive.events.length - 1; i >= 0; i--) {
-          this.handleChatEvent(chatEvent.data.archive.events[i]);
+        stateTree.set('subscribers', {});
+
+        if (chatEvent.data.archive) {
+          for (var i = chatEvent.data.archive.events.length - 1; i >= 0; i--) {
+            this.handleChatEvent(chatEvent.data.archive.events[i]);
+          }
+        }
+        eventsCursor.push(chatEvent);
+        for (var i = 0; i < chatEvent.data.subscribers.length; i++) {
+          var subscriber = chatEvent.data.subscribers[i];
+          subscribersCursor.set(subscriber.id, subscriber);
         }
         break;
       case "join":
       case "online":
       case "offline":
-        subscribersCursor.set(chatEvent.data.subscriber.id, chatEvent);
+        eventsCursor.push(chatEvent)
+        subscribersCursor.set(chatEvent.data.subscriber.id, chatEvent.data.subscriber);
         break;
       case "leave":
+        eventsCursor.push(chatEvent)
         subscribersCursor.unset(chatEvent.data.subscriber.id);
         break;
       default:
@@ -338,12 +377,12 @@ var ZonePage = React.createClass({displayName: "ZonePage",
     stateTree.commit();
   },
 
-  wsOpened: function () {
-    console.log("opened");
+  wsOpened: function (e) {
+    console.log("opened", e);
   },
 
-  wsClosed: function () {
-    console.log("closed")
+  wsClosed: function (e) {
+    console.log("closed", e);
   },
 
   wsMessage: function (e) {
@@ -398,7 +437,7 @@ var ReactAddons = require('react/addons'),
     Baobab = require('baobab');
 
 var stateTree = new Baobab({
-  messages: [],
+  visibleEvents: [],
   subscribers: {},
   zone: {}
 }, {

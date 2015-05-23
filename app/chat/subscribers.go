@@ -9,15 +9,16 @@ import (
 )
 
 type Subscribers struct {
-	subscriptions      map[string]*Subscription
-	subscribe          chan *Subscription
-	unsubscribe        chan *Subscription
-	getSubscription    chan (chan interface{})
-	publishSubscribe   chan *Subscription
-	publishUnsubscribe chan *Subscription
-	publishOnline      chan *Subscription
-	publishOffline     chan *Subscription
-	publishEventToZone chan (chan interface{})
+	subscriptions           map[string]*Subscription
+	subscribe               chan *Subscription
+	unsubscribe             chan *Subscription
+	getSubscription         chan (chan interface{})
+	getSubscriptionsForZone chan (chan interface{})
+	publishSubscribe        chan *Subscription
+	publishUnsubscribe      chan *Subscription
+	publishOnline           chan *Subscription
+	publishOffline          chan *Subscription
+	publishEventToZone      chan (chan interface{})
 }
 
 func newSubscribers() *Subscribers {
@@ -27,6 +28,7 @@ func newSubscribers() *Subscribers {
 	s.subscribe = make(chan *Subscription, 10)
 	s.unsubscribe = make(chan *Subscription, 10)
 	s.getSubscription = make(chan (chan interface{}), 10)
+	s.getSubscriptionsForZone = make(chan (chan interface{}), 10)
 
 	s.publishSubscribe = make(chan *Subscription)
 	s.publishUnsubscribe = make(chan *Subscription)
@@ -82,14 +84,15 @@ func (s *Subscribers) redisSubscribe() {
 
 			if event.Type == "online" {
 				online := event.Data.(*Online)
-				online.Subscriber.Activate()
-			}
+				subscriber := s.Get(online.Subscriber.Id)
+				if subscriber == nil {
+					s.subscribe <- subscriber
+				}
 
-			if event.Type == "offline" {
-				offline := event.Data.(*Offline)
-				offline.Subscriber.Deactivate()
+				if subscriber.IsLocal {
+					subscriber.Events = make(chan *Event, 10)
+				}
 			}
-
 		}
 	}
 }
@@ -101,6 +104,7 @@ func (s *Subscribers) redisPublish() {
 	for {
 		select {
 		case subscription := <-s.publishSubscribe:
+			subscription.IsOnline = true
 			join := &Join{subscription}
 			eventJson, _ := json.Marshal(NewEvent(join))
 			subscriptionJson, _ := json.Marshal(subscription)
@@ -113,6 +117,7 @@ func (s *Subscribers) redisPublish() {
 			c.Do("PUBLISH", "subscriptions", eventJson)
 			c.Do("HSET", "subscribers", subscription.Id, subscriptionJson)
 		case subscription := <-s.publishOnline:
+			subscription.IsOnline = true
 			online := &Online{subscription}
 			eventJson, _ := json.Marshal(NewEvent(online))
 			subscriptionJson, _ := json.Marshal(subscription)
@@ -144,6 +149,15 @@ func (s *Subscribers) manage() {
 		case ch := <-s.getSubscription:
 			id := (<-ch).(string)
 			ch <- s.subscriptions[id]
+		case ch := <-s.getSubscriptionsForZone:
+			zone := (<-ch).(*Zone)
+			subscriptions := make([]*Subscription, 0)
+			for _, subscription := range subscribers.subscriptions {
+				if subscription.zone == zone {
+					subscriptions = append(subscriptions, subscription)
+				}
+			}
+			ch <- subscriptions
 		case ch := <-s.publishEventToZone:
 			event := (<-ch).(*Event)
 			zone := (<-ch).(*Zone)
@@ -164,7 +178,7 @@ func (s *Subscribers) PublishEventToZone(event *Event, zone *Zone) {
 
 func publishEventToZone(event *Event, zone *Zone) {
 	for _, subscription := range subscribers.subscriptions {
-		if subscription.zone == zone && subscription.IsOnline && subscription.Events != nil {
+		if subscription.zone == zone && subscription.IsLocal && subscription.Events != nil {
 			subscription.Events <- event
 		}
 	}
@@ -194,5 +208,6 @@ func (s *Subscribers) Add(user *User, zone *Zone) *Subscription {
 
 func (s *Subscribers) Remove(subscriber *Subscription) {
 	s.publishUnsubscribe <- subscriber
+	s.PublishEventToZone(NewEvent(&Leave{subscriber}), subscriber.zone)
 	return
 }

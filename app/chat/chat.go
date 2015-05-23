@@ -39,6 +39,12 @@ func Init() {
 		usage:   "",
 		execute: resetRedis,
 	})
+
+	registerCommand(&command{
+		name:    "join",
+		usage:   "",
+		execute: join,
+	})
 }
 
 func (c *Chat) Begin() revel.Result {

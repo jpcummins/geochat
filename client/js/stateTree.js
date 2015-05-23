@@ -2,7 +2,7 @@ var ReactAddons = require('react/addons'),
     Baobab = require('baobab');
 
 var stateTree = new Baobab({
-  messages: [],
+  visibleEvents: [],
   subscribers: {},
   zone: {}
 }, {

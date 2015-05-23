@@ -32,3 +32,16 @@ func resetRedis(args []string, subscription *Subscription) (string, error) {
 	c.Do("FLUSHALL")
 	return "", nil
 }
+
+func join(args []string, subscription *Subscription) (string, error) {
+	zone, _ := GetOrCreateAvailableZone(subscription.User.Lat, subscription.User.Long)
+	subscription.zone = zone
+	zoneInfo := &ZoneInfo{
+		ID:          zone.Zonehash,
+		Boundary:    zone.Boundary,
+		Archive:     nil,
+		Subscribers: zone.GetSubscribers(),
+	}
+	subscription.Events <- NewEvent(zoneInfo)
+	return "", nil
+}

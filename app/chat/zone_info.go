@@ -5,10 +5,10 @@ package chat
 // should be members of Zone itself. Going with a seprate struct for now,
 // because it is easiest to implement.
 type ZoneInfo struct {
-	ID          string         `json:"id"`
-	Boundary    *ZoneBoundary  `json:"boundary"`
-	Archive     *Archive       `json:"archive"`
-	Subscribers []*Subscribers `json:"subscribers"`
+	ID          string          `json:"id"`
+	Boundary    *ZoneBoundary   `json:"boundary"`
+	Archive     *Archive        `json:"archive"`
+	Subscribers []*Subscription `json:"subscribers"`
 }
 
 func (z *ZoneInfo) Type() string {

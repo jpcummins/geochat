@@ -130,3 +130,13 @@ body,
     font-style: italic;
     color: #444;
 }
+
+.online {
+  font-style: normal;
+  color: inherit;
+}
+
+.offline {
+  font-style: italic;
+  color: #999;
+}

@@ -72,6 +72,7 @@ func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result
 		var msg string
 		for {
 			if websocket.Message.Receive(ws, &msg) != nil {
+				println("close1")
 				subscription.Deactivate()
 				ws.Close()
 				return
@@ -88,7 +89,7 @@ func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result
 		ID:          zone.Zonehash,
 		Boundary:    zone.Boundary,
 		Archive:     zone.GetArchive(10),
-		Subscribers: nil,
+		Subscribers: zone.GetSubscribers(),
 	}
 
 	subscription.Events <- chat.NewEvent(zoneInfo)
@@ -101,12 +102,14 @@ func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result
 		case event := <-subscription.Events:
 
 			if !subscription.IsOnline {
+				println("close2")
 				ws.Close()
 				return nil
 			}
 
 			fmt.Printf("%+v\n", event)
 			if err := websocket.JSON.Send(ws, &event); err != nil {
+				println("close3", err.Error())
 				subscription.Deactivate()
 				ws.Close()
 				return nil
