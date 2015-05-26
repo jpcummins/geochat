@@ -2,6 +2,9 @@ package chat
 
 import (
 	"encoding/json"
+	"math/rand"
+	"strconv"
+	"time"
 )
 
 type Subscription struct {
@@ -21,6 +24,15 @@ type jsonSubscription struct {
 	CreatedAt int    `json:"created_at"`
 	IsOnline  bool   `json:"is_online"`
 	Zonehash  string `json:"zonehash"`
+}
+
+func NewSubscription(user *User, zone *Zone) *Subscription {
+	subscription := &Subscription{
+		Id:   strconv.Itoa(rand.Intn(1000)) + strconv.Itoa(int(time.Now().Unix())),
+		User: user,
+		zone: zone,
+	}
+	return subscription
 }
 
 func (s *Subscription) UnmarshalJSON(b []byte) error {
@@ -66,4 +78,8 @@ func (s *Subscription) Broadcast(text string) *Event {
 	e := NewEvent(m)
 	s.zone.Publish(e)
 	return e
+}
+
+func (s *Subscription) SetZone(zone *Zone) err {
+	return nil
 }

@@ -202,12 +202,12 @@ func (s *Subscribers) Add(user *User, zone *Zone) *Subscription {
 		zone:     zone,
 	}
 	s.publishSubscribe <- subscription
-	s.PublishEventToZone(NewEvent(&Join{subscription}), zone)
+	subscription.zone.Publish(NewEvent(&Join{subscription}))
 	return subscription
 }
 
 func (s *Subscribers) Remove(subscriber *Subscription) {
 	s.publishUnsubscribe <- subscriber
-	s.PublishEventToZone(NewEvent(&Leave{subscriber}), subscriber.zone)
+	subscriber.zone.Publish(NewEvent(&Leave{subscriber}))
 	return
 }
