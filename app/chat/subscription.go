@@ -36,7 +36,7 @@ func (s *Subscription) setZone(zone *Zone) {
 }
 
 // NewSubscription is a factory method for creating new local subscriptions.
-func NewLocalSubscription(user *User) (*Subscription, error) {
+func NewSubscription(user *User) (*Subscription, error) {
 	subscription := &Subscription{
 		id:        strconv.Itoa(rand.Intn(1000)) + strconv.Itoa(int(time.Now().Unix())),
 		user:      user,
@@ -48,7 +48,7 @@ func NewLocalSubscription(user *User) (*Subscription, error) {
 		return nil, err
 	}
 	subscription.setZone(zone)
-	LocalSubscribers.Add(subscription)
+	Subscribers.Add(subscription)
 	return subscription, err
 }
 
