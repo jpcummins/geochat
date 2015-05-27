@@ -67,7 +67,7 @@ var ZonePage = React.createClass({
   },
 
   componentDidMount: function () {
-    this.socket = new WebSocket('ws://' + window.location.host + '/s/' + this.props.subscription + '/socket')
+    this.socket = new WebSocket('ws://' + window.location.host + '/chat/socket')
     this.socket.onopen = this.wsOpened;
     this.socket.onclose = this.wsClosed;
     this.socket.onmessage = this.wsMessage;

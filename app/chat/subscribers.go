@@ -2,10 +2,8 @@ package chat
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/garyburd/redigo/redis"
-	"math/rand"
-	"strconv"
-	"time"
 )
 
 type Subscribers struct {
@@ -84,13 +82,9 @@ func (s *Subscribers) redisSubscribe() {
 
 			if event.Type == "online" {
 				online := event.Data.(*Online)
-				subscriber := s.Get(online.Subscriber.Id)
+				subscriber := s.Get(online.Subscriber.id)
 				if subscriber == nil {
 					s.subscribe <- subscriber
-				}
-
-				if subscriber.IsLocal {
-					subscriber.Events = make(chan *Event, 10)
 				}
 			}
 		}
@@ -104,31 +98,32 @@ func (s *Subscribers) redisPublish() {
 	for {
 		select {
 		case subscription := <-s.publishSubscribe:
-			subscription.IsOnline = true
+			println("publishSubscribe")
+			subscription.isOnline = true
 			join := &Join{subscription}
 			eventJson, _ := json.Marshal(NewEvent(join))
 			subscriptionJson, _ := json.Marshal(subscription)
 			c.Do("PUBLISH", "subscriptions", eventJson)
-			c.Do("HSET", "subscribers", subscription.Id, subscriptionJson)
+			c.Do("HSET", "subscribers", subscription.id, subscriptionJson)
 		case subscription := <-s.publishUnsubscribe:
 			leave := &Leave{subscription}
 			eventJson, _ := json.Marshal(NewEvent(leave))
 			subscriptionJson, _ := json.Marshal(subscription)
 			c.Do("PUBLISH", "subscriptions", eventJson)
-			c.Do("HSET", "subscribers", subscription.Id, subscriptionJson)
+			c.Do("HSET", "subscribers", subscription.id, subscriptionJson)
 		case subscription := <-s.publishOnline:
-			subscription.IsOnline = true
+			subscription.isOnline = true
 			online := &Online{subscription}
 			eventJson, _ := json.Marshal(NewEvent(online))
 			subscriptionJson, _ := json.Marshal(subscription)
 			c.Do("PUBLISH", "subscriptions", eventJson)
-			c.Do("HSET", "subscribers", subscription.Id, subscriptionJson)
+			c.Do("HSET", "subscribers", subscription.id, subscriptionJson)
 		case subscription := <-s.publishOffline:
 			offline := &Offline{subscription}
 			eventJson, _ := json.Marshal(NewEvent(offline))
 			subscriptionJson, _ := json.Marshal(subscription)
 			c.Do("PUBLISH", "subscriptions", eventJson)
-			c.Do("HSET", "subscribers", subscription.Id, subscriptionJson)
+			c.Do("HSET", "subscribers", subscription.id, subscriptionJson)
 		}
 	}
 }
@@ -137,13 +132,13 @@ func (s *Subscribers) manage() {
 	for {
 		select {
 		case subscription := <-s.subscribe:
-			if _, ok := s.subscriptions[subscription.Id]; !ok {
-				s.subscriptions[subscription.Id] = subscription
+			if _, ok := s.subscriptions[subscription.id]; !ok {
+				s.subscriptions[subscription.id] = subscription
 				IncrementZoneSubscriptionCounts(subscription.zone)
 			}
 		case subscription := <-s.unsubscribe:
-			if _, ok := s.subscriptions[subscription.Id]; ok {
-				delete(s.subscriptions, subscription.Id)
+			if _, ok := s.subscriptions[subscription.id]; ok {
+				delete(s.subscriptions, subscription.id)
 				DecrementZoneSubscriptionCounts(subscription.zone)
 			}
 		case ch := <-s.getSubscription:
@@ -178,7 +173,7 @@ func (s *Subscribers) PublishEventToZone(event *Event, zone *Zone) {
 
 func publishEventToZone(event *Event, zone *Zone) {
 	for _, subscription := range subscribers.subscriptions {
-		if subscription.zone == zone && subscription.IsLocal && subscription.Events != nil {
+		if subscription.zone == zone && subscription.Events != nil {
 			subscription.Events <- event
 		}
 	}
@@ -189,25 +184,11 @@ func (s *Subscribers) Get(id string) *Subscription {
 	s.getSubscription <- ch
 	ch <- id
 	subscription := (<-ch).(*Subscription)
+	fmt.Printf("%+v\n", subscription)
 	close(ch)
 	return subscription
 }
 
-func (s *Subscribers) Add(user *User, zone *Zone) *Subscription {
-	subscription := &Subscription{
-		Id:       strconv.Itoa(rand.Intn(1000)) + strconv.Itoa(int(time.Now().Unix())),
-		User:     user,
-		Zonehash: zone.Zonehash,
-		Events:   make(chan *Event, 10),
-		zone:     zone,
-	}
-	s.publishSubscribe <- subscription
-	subscription.zone.Publish(NewEvent(&Join{subscription}))
-	return subscription
-}
-
-func (s *Subscribers) Remove(subscriber *Subscription) {
-	s.publishUnsubscribe <- subscriber
-	subscriber.zone.Publish(NewEvent(&Leave{subscriber}))
-	return
+func GetSubscription(id string) *Subscription {
+	return subscribers.Get(id)
 }

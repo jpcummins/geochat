@@ -136,7 +136,7 @@ func getOrCreateZone(id string) (*Zone, error) {
 	zone := world.root
 
 	for {
-		if zone.Zonehash == id {
+		if zone.id == id {
 			return zone, nil
 		}
 		zonegeohashLength := len(zone.geohash)

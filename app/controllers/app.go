@@ -10,7 +10,7 @@ type App struct {
 	User *chat.User
 }
 
-func (c App) Index(geochat *chat.Chat) revel.Result {
+func (c App) Index() revel.Result {
 	user, _ := chat.GetUser(c.Session["user"])
 	return c.Render(user)
 }

@@ -4,82 +4,131 @@ import (
 	"encoding/json"
 	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 )
 
+// Subscription represesnts a user's connection. The connection may or may not
+// be local to this server instance. "events" is nil for remote connections,
+// connections where the user's websocket is handled by another server instance.
 type Subscription struct {
-	Id        string      `json:"id"`
-	User      *User       `json:"user"`
-	CreatedAt int         `json:"created_at"`
-	IsOnline  bool        `json:"is_online"`
-	Zonehash  string      `json:"zonehash"`
-	IsLocal   bool        `json:"-"`
-	Events    chan *Event `json:"-"`
-	zone      *Zone       `json:"-"`
+	id        string
+	zone      *Zone
+	user      *User
+	createdAt int
+	isOnline  bool
+	Events    chan *Event
 }
 
-type jsonSubscription struct {
-	Id        string `json:"id"`
+type subscriptionJSON struct {
+	ID        string `json:"id"`
 	User      *User  `json:"user"`
 	CreatedAt int    `json:"created_at"`
 	IsOnline  bool   `json:"is_online"`
-	Zonehash  string `json:"zonehash"`
+	Zone      string `json:"zone"`
 }
 
-func NewSubscription(user *User, zone *Zone) *Subscription {
+// NewSubscription is a factory method for creating new subscriptions.
+func NewSubscription(user *User) *Subscription {
 	subscription := &Subscription{
-		Id:   strconv.Itoa(rand.Intn(1000)) + strconv.Itoa(int(time.Now().Unix())),
-		User: user,
-		zone: zone,
+		id:        strconv.Itoa(rand.Intn(1000)) + strconv.Itoa(int(time.Now().Unix())),
+		user:      user,
+		createdAt: int(time.Now().Unix()),
 	}
+	subscribers.publishSubscribe <- subscription
 	return subscription
 }
 
+// UnmarshalJSON overrides Go's default JSON unmarshaling method so that this
+// object can be marshaled/unmarshaled as the type `subscriptionJSON`.
 func (s *Subscription) UnmarshalJSON(b []byte) error {
-	var js jsonSubscription
+	var js subscriptionJSON
 	if err := json.Unmarshal(b, &js); err != nil {
 		return err
 	}
-	s.Id = js.Id
-	s.User = js.User
-	s.CreatedAt = js.CreatedAt
-	s.IsOnline = js.IsOnline
-	s.Zonehash = js.Zonehash
-	s.IsLocal = false
 
-	zone, err := GetOrCreateZone(s.Zonehash)
-	s.zone = zone
-	return err
+	s.id = js.ID
+	s.user = js.User
+	s.createdAt = js.CreatedAt
+	s.isOnline = js.IsOnline
+
+	if js.Zone != "" {
+		zone, err := GetOrCreateZone(js.Zone)
+		if err != nil {
+			return err
+		}
+		s.zone = zone
+	}
+
+	return nil
 }
 
-func (s *Subscription) Activate() {
-	s.IsLocal = true
-	s.zone.Publish(NewEvent(&Online{s}))
+// MarshalJSON overrides Go's default JSON marshaling method so that this object
+// can be marshaled/unmarshaled as the type `subscriptionJSON`
+func (s *Subscription) MarshalJSON() ([]byte, error) {
+
+	var zoneID string
+	if s.zone == nil {
+		zoneID = ""
+	} else {
+		zoneID = s.zone.GetID()
+	}
+
+	subscriptionJSON := &subscriptionJSON{
+		ID:        s.id,
+		User:      s.user,
+		CreatedAt: s.createdAt,
+		IsOnline:  s.isOnline,
+		Zone:      zoneID,
+	}
+
+	return json.Marshal(subscriptionJSON)
+}
+
+// SetOnline sets the subscription to an online state and communicates the
+// state change to other server nodes.
+func (s *Subscription) SetOnline() {
+	s.isOnline = true
+	s.Events = make(chan *Event, 10)
 	subscribers.publishOnline <- s
 }
 
-func (s *Subscription) Deactivate() {
-	s.IsLocal = false
-
-	if s.Events != nil {
-		close(s.Events)
-		s.Events = nil
-	}
-
-	if s.IsOnline {
-		s.IsOnline = false
-		s.zone.Publish(NewEvent(&Offline{s}))
-		subscribers.publishOffline <- s
-	}
+// SetOffline sets the subscription to an offline state and communicates the
+// state change to other server nodes.
+func (s *Subscription) SetOffline() {
+	close(s.Events)
+	s.Events = nil
+	s.isOnline = false
+	subscribers.publishOffline <- s
 }
 
-func (s *Subscription) Broadcast(text string) *Event {
-	m := &Message{User: s.User, Text: text}
-	e := NewEvent(m)
-	s.zone.Publish(e)
-	return e
+// GetZone returns the user's current zone
+func (s *Subscription) GetZone() *Zone {
+	return s.zone
 }
 
-func (s *Subscription) SetZone(zone *Zone) err {
-	return nil
+// GetUser returns the user associated to the subscription
+func (s *Subscription) GetUser() *User {
+	return s.user
+}
+
+// SetZone is used to change the subscriber's zone and communicate it to other
+// nodes on the network.
+func (s *Subscription) SetZone(zone *Zone) {
+	s.zone = zone
+}
+
+// GetID returns the current subscription id
+func (s *Subscription) GetID() string {
+	return s.id
+}
+
+// ExecuteCommand allows certain subscribers to issue administrative commands.
+func (s *Subscription) ExecuteCommand(command string) (string, error) {
+	args := strings.Split(command, " ")
+	if len(args) == 0 || commands[args[0]] == nil {
+		output, err := json.Marshal(commands)
+		return string(output[:]), err
+	}
+	return commands[args[0]].execute(args[1:], s)
 }

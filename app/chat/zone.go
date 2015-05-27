@@ -7,36 +7,69 @@ import (
 	"strings"
 )
 
+// Zone represesnts a chat zone
 type Zone struct {
-	Zonehash string        `json:"zonehash"`
-	Boundary *ZoneBoundary `json:"boundary"`
-	geohash  string        `json:"-"`
-	from     byte          `json:"-"`
-	to       byte          `json:"-"`
-	parent   *Zone         `json:"-"`
-	left     *Zone         `json:"-"`
-	right    *Zone         `json:"-"`
-	count    int           `json:"-"`
-	maxUsers int           `json:"-"`
-	publish  chan *Event   `json:"-"`
+	id          string
+	boundary    *ZoneBoundary
+	geohash     string
+	from        byte
+	to          byte
+	parent      *Zone
+	left        *Zone
+	right       *Zone
+	count       int
+	maxUsers    int
+	publish     chan *Event
+	subscribers []*Subscription
 }
 
+// ZoneBoundary provides the lat/long coordinates of the zone
 type ZoneBoundary struct {
-	SouthWestLat  float64
-	SouthWestLong float64
-	NorthEastLat  float64
-	NorthEastLong float64
+	SouthWestLat  float64 `json:"swlat"`
+	SouthWestLong float64 `json:"swlong"`
+	NorthEastLat  float64 `json:"nelat"`
+	NorthEastLong float64 `json:"nelong"`
 }
 
+// ZoneJSON is passed to the client when a websocket connection is established
+type ZoneJSON struct {
+	ID          string          `json:"id"`
+	Boundary    *ZoneBoundary   `json:"boundary"`
+	Archive     *Archive        `json:"archive"`
+	Subscribers []*Subscription `json:"subscribers"`
+}
+
+// Type implements EventType, which is used to provide Event.UnmarshalJSON a
+// hint on how to unmarshal Zone JSON.
 func (z *Zone) Type() string {
 	return "zone"
 }
 
+// MarshalJSON overrides Go's default JSON marshaling method so that this object
+// can be marshaled/unmarshaled as the type `zoneJSON`
+func (z *Zone) MarshalJSON() ([]byte, error) {
+	js := &ZoneJSON{
+		ID:          z.GetID(),
+		Boundary:    z.GetBoundary(),
+		Archive:     z.GetArchive(50),
+		Subscribers: z.GetSubscribers(),
+	}
+	return json.Marshal(js)
+}
+
 func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zone {
+	sw := gh.Decode(geohash + string(from))
+	ne := gh.Decode(geohash + string(to))
+
 	zone := &Zone{
-		Zonehash: geohash + ":" + string(from) + string(to),
-		Boundary: GetBoundary(geohash, from, to),
-		geohash:  geohash,
+		id:      geohash + ":" + string(from) + string(to),
+		geohash: geohash,
+		boundary: &ZoneBoundary{
+			SouthWestLat:  sw.SouthWest().Lat(),
+			SouthWestLong: sw.SouthWest().Lng(),
+			NorthEastLat:  ne.NorthEast().Lat(),
+			NorthEastLong: ne.NorthEast().Lng(),
+		},
 		from:     from,
 		to:       to,
 		parent:   parent,
@@ -58,59 +91,24 @@ func (z *Zone) setCount(count int) {
 	}
 }
 
-func GetBoundary(geohash string, from, to byte) *ZoneBoundary {
-	sw := gh.Decode(geohash + string(from))
-	ne := gh.Decode(geohash + string(to))
-	return &ZoneBoundary{
-		SouthWestLat:  sw.SouthWest().Lat(),
-		SouthWestLong: sw.SouthWest().Lng(),
-		NorthEastLat:  ne.NorthEast().Lat(),
-		NorthEastLong: ne.NorthEast().Lng(),
-	}
-}
-
-func (z *Zone) GetSubscribers() []*Subscription {
-	ch := make(chan interface{})
-	subscribers.getSubscriptionsForZone <- ch
-	ch <- z
-	return (<-ch).([]*Subscription)
-}
-
 func (z *Zone) createChildZones() {
-	from_i := strings.Index(geohashmap, string(z.from))
-	to_i := strings.Index(geohashmap, string(z.to))
+	fromI := strings.Index(geohashmap, string(z.from))
+	toI := strings.Index(geohashmap, string(z.to))
 
-	if to_i-from_i > 1 {
-		split := (to_i - from_i) / 2
-		z.left = newZone(z.geohash, z.from, geohashmap[from_i+split], z, z.maxUsers)
-		z.right = newZone(z.geohash, geohashmap[from_i+split+1], z.to, z, z.maxUsers)
+	if toI-fromI > 1 {
+		split := (toI - fromI) / 2
+		z.left = newZone(z.geohash, z.from, geohashmap[fromI+split], z, z.maxUsers)
+		z.right = newZone(z.geohash, geohashmap[fromI+split+1], z.to, z, z.maxUsers)
 	} else {
 		z.left = newZone(z.geohash+string(z.from), '0', 'z', z, z.maxUsers)
 		z.right = newZone(z.geohash+string(z.to), '0', 'z', z, z.maxUsers)
 	}
 }
 
-func (z *Zone) GetArchive(maxEvents int) *Archive {
-	c := connection.Get()
-	defer c.Close()
-
-	archiveJson, err := redis.Strings(c.Do("LRANGE", "zone_"+z.Zonehash, 0, maxEvents-1))
-	if err != nil {
-		println("unable to get archive:", err.Error())
-		return nil
-	}
-
-	return newArchive(archiveJson)
-}
-
-func (z *Zone) Publish(event *Event) {
-	z.publish <- event
-}
-
 func (z *Zone) redisSubscribe() {
-	psc := redis.PubSubConn{connection.Get()}
+	psc := redis.PubSubConn{Conn: connection.Get()}
 	defer psc.Close()
-	psc.Subscribe("zone_" + z.Zonehash)
+	psc.Subscribe("zone_" + z.id)
 	for {
 		switch v := psc.Receive().(type) {
 		case redis.Message:
@@ -129,7 +127,7 @@ func (z *Zone) redisSubscribe() {
 }
 
 func (z *Zone) redisPublish() {
-	c := connection.Get() // Not sure if a long lived redis connection is a good idea
+	c := connection.Get()
 	defer c.Close()
 	for {
 
@@ -139,10 +137,44 @@ func (z *Zone) redisPublish() {
 
 		select {
 		case event := <-z.publish:
-			eventJson, _ := json.Marshal(event)
+			eventJSON, _ := json.Marshal(event)
 
-			c.Do("LPUSH", "zone_"+z.Zonehash, eventJson)
-			c.Do("PUBLISH", "zone_"+z.Zonehash, eventJson)
+			c.Do("LPUSH", "zone_"+z.id, eventJSON)
+			c.Do("PUBLISH", "zone_"+z.id, eventJSON)
 		}
 	}
+}
+
+// GetID returns the zone identifier
+func (z *Zone) GetID() string {
+	return z.id
+}
+
+// GetSubscribers returns all of the zone's subscribers
+func (z *Zone) GetSubscribers() []*Subscription {
+	return z.subscribers
+}
+
+// GetArchive returns the last N events in the zone
+func (z *Zone) GetArchive(maxEvents int) *Archive {
+	c := connection.Get()
+	defer c.Close()
+
+	archiveJSON, err := redis.Strings(c.Do("LRANGE", "zone_"+z.id, 0, maxEvents-1))
+	if err != nil {
+		println("Unable to get archive:", err.Error())
+		return nil
+	}
+
+	return newArchive(archiveJSON)
+}
+
+// GetBoundary returns the zone's coordinates
+func (z *Zone) GetBoundary() *ZoneBoundary {
+	return z.boundary
+}
+
+// Publish publishes an event to the zone
+func (z *Zone) Publish(event *Event) {
+	z.publish <- event
 }
