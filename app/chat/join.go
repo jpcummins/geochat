@@ -7,3 +7,8 @@ type Join struct {
 func (j *Join) Type() string {
 	return "join"
 }
+
+func (j *Join) OnReceive(e *Event) error {
+	j.Subscriber.zone.join(j.Subscriber)
+	return nil
+}

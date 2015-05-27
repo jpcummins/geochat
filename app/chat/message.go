@@ -9,6 +9,7 @@ func (m *Message) Type() string {
 	return "message"
 }
 
-func (m *Message) Visible() bool {
-	return true
+func (m *Message) OnReceive(e *Event) error {
+	// Publish event to zone
+	return nil
 }

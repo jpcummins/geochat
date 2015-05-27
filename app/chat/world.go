@@ -66,7 +66,7 @@ func incrementZoneSubscriptionCounts(zone *Zone) {
 		if zone == nil {
 			return
 		}
-		zone.setCount(zone.count + 1)
+		zone.count = zone.count + 1
 		zone = zone.parent
 	}
 }
@@ -84,12 +84,12 @@ func decrementZoneSubscriptionCounts(zone *Zone) {
 		if zone == nil {
 			return
 		}
-		zone.setCount(zone.count - 1)
+		zone.count = zone.count - 1
 		zone = zone.parent
 	}
 }
 
-func GetOrCreateAvailableZone(lat float64, long float64) (*Zone, error) {
+func getOrCreateAvailableZone(lat float64, long float64) (*Zone, error) {
 	geohash := gh.EncodeWithPrecision(lat, long, 6)
 	ch := make(chan interface{})
 	world.getAvailableZone <- ch

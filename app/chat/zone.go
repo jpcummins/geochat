@@ -45,6 +45,12 @@ func (z *Zone) Type() string {
 	return "zone"
 }
 
+// OnReceive implements EventType. This method is called when a "zone" event is
+// received from Redis.
+func (z *Zone) OnReceive(event *Event) error {
+	return nil
+}
+
 // MarshalJSON overrides Go's default JSON marshaling method so that this object
 // can be marshaled/unmarshaled as the type `zoneJSON`
 func (z *Zone) MarshalJSON() ([]byte, error) {
@@ -76,19 +82,11 @@ func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zo
 		maxUsers: maxUsers,
 		publish:  make(chan *Event, 10),
 	}
+
+	go zone.redisSubscribe() // subscribe to zone's redis channel
+	go zone.redisPublish()   // publishes publish events to redis channel
+
 	return zone
-}
-
-func (z *Zone) setCount(count int) {
-	if z.count == 0 && count > 0 {
-		// The following goroutines terminate on their own when count == 0
-		go z.redisSubscribe() // subscribe to redis channel and publishes events
-		go z.redisPublish()   // publishes publish events to redis channel
-	}
-
-	if count >= 0 {
-		z.count = count
-	}
 }
 
 func (z *Zone) createChildZones() {
@@ -112,16 +110,14 @@ func (z *Zone) redisSubscribe() {
 	for {
 		switch v := psc.Receive().(type) {
 		case redis.Message:
-
-			if z.count == 0 {
-				return
-			}
-
 			var event Event
 			if err := json.Unmarshal(v.Data, &event); err != nil {
-				continue
+				println("Error unmarshaling event: ", err.Error())
 			}
-			subscribers.PublishEventToZone(&event, z)
+
+			if err := event.Data.OnReceive(&event); err != nil {
+				println("Error executing event: ", err.Error())
+			}
 		}
 	}
 }
@@ -130,15 +126,9 @@ func (z *Zone) redisPublish() {
 	c := connection.Get()
 	defer c.Close()
 	for {
-
-		if z.count == 0 {
-			return
-		}
-
 		select {
 		case event := <-z.publish:
 			eventJSON, _ := json.Marshal(event)
-
 			c.Do("LPUSH", "zone_"+z.id, eventJSON)
 			c.Do("PUBLISH", "zone_"+z.id, eventJSON)
 		}
@@ -177,4 +167,21 @@ func (z *Zone) GetBoundary() *ZoneBoundary {
 // Publish publishes an event to the zone
 func (z *Zone) Publish(event *Event) {
 	z.publish <- event
+}
+
+func (z *Zone) join(s *Subscription) {
+	z.subscribers = append(z.subscribers, s)
+	incrementZoneSubscriptionCounts(z) // bubble up the count
+}
+
+func (z *Zone) leave(s *Subscription) {
+	for i, x := range z.subscribers {
+		if x.id == s.id {
+			copy(z.subscribers[i:], z.subscribers[i+1:])
+			z.subscribers[len(z.subscribers)-1] = nil
+			z.subscribers = z.subscribers[:len(z.subscribers)-1]
+			decrementZoneSubscriptionCounts(z) // bubble up the count
+			return
+		}
+	}
 }

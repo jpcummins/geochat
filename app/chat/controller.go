@@ -4,8 +4,8 @@ import (
 	"os"
 )
 
+var LocalSubscribers *LocalSubscriptions
 var connection *Connection
-var subscribers *Subscribers
 var world *World
 
 func Init() {
@@ -18,7 +18,7 @@ func Init() {
 
 	connection = newConnection(redisServer)
 	world = newWorld()
-	subscribers = newSubscribers()
+	LocalSubscribers = newSubscriptions()
 
 	registerCommand(&command{
 		name:    "addbot",

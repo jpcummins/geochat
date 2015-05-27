@@ -10,6 +10,7 @@ import (
 
 type EventData interface {
 	Type() string
+	OnReceive(*Event) error
 }
 
 type Event struct {

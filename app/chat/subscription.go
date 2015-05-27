@@ -28,15 +28,28 @@ type subscriptionJSON struct {
 	Zone      string `json:"zone"`
 }
 
-// NewSubscription is a factory method for creating new subscriptions.
-func NewSubscription(user *User) *Subscription {
+func (s *Subscription) setZone(zone *Zone) {
+	if s.zone != zone {
+		s.zone = zone
+		s.zone.publish <- NewEvent(&Join{Subscriber: s})
+	}
+}
+
+// NewSubscription is a factory method for creating new local subscriptions.
+func NewLocalSubscription(user *User) (*Subscription, error) {
 	subscription := &Subscription{
 		id:        strconv.Itoa(rand.Intn(1000)) + strconv.Itoa(int(time.Now().Unix())),
 		user:      user,
 		createdAt: int(time.Now().Unix()),
 	}
-	subscribers.publishSubscribe <- subscription
-	return subscription
+
+	zone, err := getOrCreateAvailableZone(subscription.user.Lat, subscription.user.Long)
+	if err != nil {
+		return nil, err
+	}
+	subscription.setZone(zone)
+	LocalSubscribers.Add(subscription)
+	return subscription, err
 }
 
 // UnmarshalJSON overrides Go's default JSON unmarshaling method so that this
@@ -52,13 +65,11 @@ func (s *Subscription) UnmarshalJSON(b []byte) error {
 	s.createdAt = js.CreatedAt
 	s.isOnline = js.IsOnline
 
-	if js.Zone != "" {
-		zone, err := GetOrCreateZone(js.Zone)
-		if err != nil {
-			return err
-		}
-		s.zone = zone
+	zone, err := GetOrCreateZone(js.Zone)
+	if err != nil {
+		return err
 	}
+	s.zone = zone
 
 	return nil
 }
@@ -85,24 +96,7 @@ func (s *Subscription) MarshalJSON() ([]byte, error) {
 	return json.Marshal(subscriptionJSON)
 }
 
-// SetOnline sets the subscription to an online state and communicates the
-// state change to other server nodes.
-func (s *Subscription) SetOnline() {
-	s.isOnline = true
-	s.Events = make(chan *Event, 10)
-	subscribers.publishOnline <- s
-}
-
-// SetOffline sets the subscription to an offline state and communicates the
-// state change to other server nodes.
-func (s *Subscription) SetOffline() {
-	close(s.Events)
-	s.Events = nil
-	s.isOnline = false
-	subscribers.publishOffline <- s
-}
-
-// GetZone returns the user's current zone
+// GetZone returns the zone associated to the subscription
 func (s *Subscription) GetZone() *Zone {
 	return s.zone
 }
@@ -110,12 +104,6 @@ func (s *Subscription) GetZone() *Zone {
 // GetUser returns the user associated to the subscription
 func (s *Subscription) GetUser() *User {
 	return s.user
-}
-
-// SetZone is used to change the subscriber's zone and communicate it to other
-// nodes on the network.
-func (s *Subscription) SetZone(zone *Zone) {
-	s.zone = zone
 }
 
 // GetID returns the current subscription id

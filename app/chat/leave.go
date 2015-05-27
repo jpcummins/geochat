@@ -7,3 +7,7 @@ type Leave struct {
 func (m *Leave) Type() string {
 	return "leave"
 }
+
+func (l *Leave) OnReceive(e *Event) error {
+	return nil
+}

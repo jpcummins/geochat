@@ -13,18 +13,22 @@ func (ac AuthController) Login(name string, lat float64, long float64) revel.Res
 	id, ok := ac.Session["subscription"]
 
 	var subscription *chat.Subscription
-
 	if ok {
-		subscription = chat.GetSubscription(id)
-		if subscription == nil {
+		subscription, ok = (*chat.Subscribers).Get(id)
+
+		if !ok {
 			delete(ac.Session, "subscription")
-			ok = !ok
 		}
 	}
 
 	if !ok {
 		user := &chat.User{Id: name, Name: name, Lat: lat, Long: long}
-		subscription = chat.NewSubscription(user)
+		subscription, err := chat.NewSubscription(user)
+
+		if err != nil {
+			return ac.RenderError(err)
+		}
+
 		ac.Session["subscription"] = subscription.GetID()
 	}
 
