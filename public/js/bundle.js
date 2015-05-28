@@ -23,7 +23,7 @@ var ChatCompose = React.createClass({displayName: "ChatCompose",
       if (/\//.test(message)) {
         message = message.replace(/\//, '').trim()
         $.ajax({
-          url: '/s/' + this.props.subscription + '/command',
+          url: '/command',
           method: 'POST',
           data: {
             command: message
@@ -31,7 +31,7 @@ var ChatCompose = React.createClass({displayName: "ChatCompose",
         });
       } else {
     		$.ajax({
-    			url: '/s/' + this.props.subscription + '/message',
+    			url: '/message',
     			method: "POST",
     			data: {
     				text: message

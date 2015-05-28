@@ -83,6 +83,23 @@ func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zo
 		publish:  make(chan *Event, 10),
 	}
 
+	// Pull zone information from Redis
+	c := connection.Get()
+	defer c.Close()
+	subscribersJSON, err := redis.Strings(c.Do("LRANGE", "subscribers_"+zone.id, 0, -1))
+
+	if err != nil {
+		panic("Unable to download subscribers for zone " + zone.id)
+	}
+
+	for _, subscriptionJSON := range subscribersJSON {
+		subscription := Subscription{}
+		if err := json.Unmarshal([]byte(subscriptionJSON), &subscription); err != nil {
+			panic("Unable to unmarshal subscription in zone " + zone.id)
+		}
+		zone.subscribers = append(zone.subscribers, &subscription)
+	}
+
 	go zone.redisSubscribe() // subscribe to zone's redis channel
 	go zone.redisPublish()   // publishes publish events to redis channel
 
