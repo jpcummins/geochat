@@ -2,6 +2,7 @@ package chat
 
 import (
 	"encoding/json"
+	"fmt"
 	gh "github.com/TomiHiltunen/geohash-golang"
 	"github.com/garyburd/redigo/redis"
 	"strings"
@@ -171,6 +172,7 @@ func (z *Zone) Publish(event *Event) {
 
 func (z *Zone) join(s *Subscription) {
 	z.subscribers = append(z.subscribers, s)
+	fmt.Printf("Subscribers: %+v\n", z.subscribers)
 	incrementZoneSubscriptionCounts(z) // bubble up the count
 }
 

@@ -12,20 +12,22 @@ import (
 // be local to this server instance. "events" is nil for remote connections,
 // connections where the user's websocket is handled by another server instance.
 type Subscription struct {
-	id        string
-	zone      *Zone
-	user      *User
-	createdAt int
-	isOnline  bool
-	Events    chan *Event
+	id           string
+	zone         *Zone
+	user         *User
+	createdAt    int
+	lastActivity int
+	isOnline     bool
+	Events       chan *Event
 }
 
 type subscriptionJSON struct {
-	ID        string `json:"id"`
-	User      *User  `json:"user"`
-	CreatedAt int    `json:"created_at"`
-	IsOnline  bool   `json:"is_online"`
-	Zone      string `json:"zone"`
+	ID           string `json:"id"`
+	User         *User  `json:"user"`
+	CreatedAt    int    `json:"created_at"`
+	LastActivity int    `json:"last_activity"`
+	IsOnline     bool   `json:"is_online"`
+	Zone         string `json:"zone"`
 }
 
 func (s *Subscription) setZone(zone *Zone) {
@@ -35,12 +37,13 @@ func (s *Subscription) setZone(zone *Zone) {
 	}
 }
 
-// NewSubscription is a factory method for creating new local subscriptions.
-func NewSubscription(user *User) (*Subscription, error) {
+// NewLocalSubscription is a factory method for creating new local subscriptions.
+func NewLocalSubscription(user *User) (*Subscription, error) {
 	subscription := &Subscription{
-		id:        strconv.Itoa(rand.Intn(1000)) + strconv.Itoa(int(time.Now().Unix())),
-		user:      user,
-		createdAt: int(time.Now().Unix()),
+		id:           strconv.Itoa(rand.Intn(1000)) + strconv.Itoa(int(time.Now().Unix())),
+		user:         user,
+		createdAt:    int(time.Now().Unix()),
+		lastActivity: int(time.Now().Unix()),
 	}
 
 	zone, err := getOrCreateAvailableZone(subscription.user.Lat, subscription.user.Long)
@@ -48,7 +51,7 @@ func NewSubscription(user *User) (*Subscription, error) {
 		return nil, err
 	}
 	subscription.setZone(zone)
-	Subscribers.Add(subscription)
+	Subscribers.Set(subscription)
 	return subscription, err
 }
 
@@ -63,6 +66,7 @@ func (s *Subscription) UnmarshalJSON(b []byte) error {
 	s.id = js.ID
 	s.user = js.User
 	s.createdAt = js.CreatedAt
+	s.lastActivity = js.LastActivity
 	s.isOnline = js.IsOnline
 
 	zone, err := GetOrCreateZone(js.Zone)
@@ -86,11 +90,12 @@ func (s *Subscription) MarshalJSON() ([]byte, error) {
 	}
 
 	subscriptionJSON := &subscriptionJSON{
-		ID:        s.id,
-		User:      s.user,
-		CreatedAt: s.createdAt,
-		IsOnline:  s.isOnline,
-		Zone:      zoneID,
+		ID:           s.id,
+		User:         s.user,
+		CreatedAt:    s.createdAt,
+		LastActivity: s.lastActivity,
+		IsOnline:     s.isOnline,
+		Zone:         zoneID,
 	}
 
 	return json.Marshal(subscriptionJSON)
@@ -119,4 +124,10 @@ func (s *Subscription) ExecuteCommand(command string) (string, error) {
 		return string(output[:]), err
 	}
 	return commands[args[0]].execute(args[1:], s)
+}
+
+// UpdateLastActiveTime sets the last active time for the subscriber
+func (s *Subscription) UpdateLastActiveTime() {
+	s.lastActivity = int(time.Now().Unix())
+	Subscribers.Set(s)
 }

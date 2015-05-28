@@ -22,14 +22,12 @@ func (zc *ZoneController) setSession() revel.Result {
 	subscriptionID, ok := zc.Session["subscription"]
 
 	if !ok {
-		println("1")
 		zc.Redirect("/")
 	}
 
 	subscription, found := (*chat.Subscribers).Get(subscriptionID)
 
 	if !found {
-		println("2")
 		return zc.Redirect("/")
 	}
 
@@ -63,30 +61,38 @@ func (zc *ZoneController) Zone() revel.Result {
 // ZoneSocket action handles WebSocket communication
 func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 
+	zone := zc.subscription.GetZone()
+	zc.subscription.Events = make(chan *chat.Event, 10)
+	zc.subscription.Events <- chat.NewEvent(zone)
+
+	closeConnection := make(chan bool)
+
 	// Listen for client disconnects
 	go func() {
 		var msg string
 		for {
+			// The value of msg is ignored. Commands are not accepted over the websocket.
 			if websocket.Message.Receive(ws, &msg) != nil {
-				ws.Close()
+				closeConnection <- true
 				return
 			}
 		}
 	}()
 
-	zone := zc.subscription.GetZone()
-	zc.subscription.Events <- chat.NewEvent(zone)
-
-	ticker := time.NewTicker(30 * time.Second)
+	// Send events to the WebSocket
+	ping := time.NewTicker(30 * time.Second)
 	for {
 		select {
-		case <-ticker.C:
+		case <-ping.C:
 			zc.subscription.Events <- chat.NewEvent(&chat.Ping{})
 		case event := <-zc.subscription.Events:
 			if err := websocket.JSON.Send(ws, &event); err != nil {
-				ws.Close()
-				return nil
+				closeConnection <- true
 			}
+		case _ = <-closeConnection:
+			ws.Close()
+			close(zc.subscription.Events)
+			return nil
 		}
 	}
 }

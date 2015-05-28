@@ -23,7 +23,7 @@ func (ac AuthController) Login(name string, lat float64, long float64) revel.Res
 
 	if !ok {
 		user := &chat.User{Id: name, Name: name, Lat: lat, Long: long}
-		subscription, err := chat.NewSubscription(user)
+		subscription, err := chat.NewLocalSubscription(user)
 
 		if err != nil {
 			return ac.RenderError(err)
