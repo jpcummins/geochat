@@ -5,10 +5,12 @@ import (
 	gh "github.com/TomiHiltunen/geohash-golang"
 	"github.com/garyburd/redigo/redis"
 	"strings"
+	"sync"
 )
 
 // Zone represesnts a chat zone
 type Zone struct {
+	sync.RWMutex
 	id          string
 	boundary    *ZoneBoundary
 	geohash     string
@@ -20,7 +22,8 @@ type Zone struct {
 	count       int
 	maxUsers    int
 	publish     chan *Event
-	subscribers []*Subscription
+	archive     chan *Event
+	subscribers map[string]*Subscription
 }
 
 // ZoneBoundary provides the lat/long coordinates of the zone
@@ -33,10 +36,10 @@ type ZoneBoundary struct {
 
 // ZoneJSON is passed to the client when a websocket connection is established
 type ZoneJSON struct {
-	ID          string          `json:"id"`
-	Boundary    *ZoneBoundary   `json:"boundary"`
-	Archive     *Archive        `json:"archive"`
-	Subscribers []*Subscription `json:"subscribers"`
+	ID          string                   `json:"id"`
+	Boundary    *ZoneBoundary            `json:"boundary"`
+	Archive     *Archive                 `json:"archive"`
+	Subscribers map[string]*Subscription `json:"subscribers"`
 }
 
 // Type implements EventType, which is used to provide Event.UnmarshalJSON a
@@ -60,7 +63,8 @@ func (z *Zone) MarshalJSON() ([]byte, error) {
 		Archive:     z.GetArchive(50),
 		Subscribers: z.GetSubscribers(),
 	}
-	return json.Marshal(js)
+	json, err := json.Marshal(js)
+	return json, err
 }
 
 func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zone {
@@ -76,10 +80,11 @@ func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zo
 			NorthEastLat:  ne.NorthEast().Lat(),
 			NorthEastLong: ne.NorthEast().Lng(),
 		},
-		from:     from,
-		to:       to,
-		parent:   parent,
-		maxUsers: maxUsers,
+		from:        from,
+		to:          to,
+		parent:      parent,
+		maxUsers:    maxUsers,
+		subscribers: make(map[string]*Subscription),
 	}
 	return zone
 }
@@ -90,6 +95,7 @@ func (z *Zone) isInitialized() bool {
 
 func (z *Zone) initialize() {
 	z.publish = make(chan *Event, 10)
+	z.archive = make(chan *Event, 10)
 
 	c := connection.Get()
 	defer c.Close()
@@ -102,7 +108,6 @@ func (z *Zone) initialize() {
 		if err := json.Unmarshal([]byte(subscriptionJSON), &subscription); err != nil {
 			panic("Unable to unmarshal subscription in zone " + z.id)
 		}
-		z.subscribers = append(z.subscribers, &subscription)
 	}
 
 	go z.redisSubscribe() // subscribe to zone's redis channel
@@ -149,8 +154,10 @@ func (z *Zone) redisPublish() {
 		select {
 		case event := <-z.publish:
 			eventJSON, _ := json.Marshal(event)
-			c.Do("LPUSH", "archive_"+z.id, eventJSON)
 			c.Do("PUBLISH", "zone_"+z.id, eventJSON)
+		case event := <-z.archive:
+			eventJSON, _ := json.Marshal(event)
+			c.Do("LPUSH", "archive_"+z.id, eventJSON)
 		}
 	}
 }
@@ -158,11 +165,6 @@ func (z *Zone) redisPublish() {
 // GetID returns the zone identifier
 func (z *Zone) GetID() string {
 	return z.id
-}
-
-// GetSubscribers returns all of the zone's subscribers
-func (z *Zone) GetSubscribers() []*Subscription {
-	return z.subscribers
 }
 
 // GetArchive returns the last N events in the zone
@@ -184,24 +186,43 @@ func (z *Zone) GetBoundary() *ZoneBoundary {
 	return z.boundary
 }
 
-// Publish publishes an event to the zone
+func (z *Zone) GetSubscribers() map[string]*Subscription {
+	z.RLock()
+	subscribers := make(map[string]*Subscription, len(z.subscribers))
+	for k, v := range z.subscribers {
+		subscribers[k] = v
+	}
+	z.RUnlock()
+	return subscribers
+}
+
+func (z *Zone) SetSubscription(s *Subscription) {
+	z.Lock()
+	z.subscribers[s.GetID()] = s
+	z.Unlock()
+}
+
+// Publish publishes an event to the zone's Redis channel
 func (z *Zone) Publish(event *Event) {
 	z.publish <- event
 }
 
-func (z *Zone) onJoinEvent(s *Subscription) {
-	z.subscribers = append(z.subscribers, s)
-	incrementZoneSubscriptionCounts(z) // bubble up the count
-}
-
-func (z *Zone) onLeaveEvent(s *Subscription) {
-	for i, x := range z.subscribers {
-		if x.id == s.id {
-			copy(z.subscribers[i:], z.subscribers[i+1:])
-			z.subscribers[len(z.subscribers)-1] = nil
-			z.subscribers = z.subscribers[:len(z.subscribers)-1]
-			decrementZoneSubscriptionCounts(z) // bubble up the count
-			return
+// Broadcast sends an event to all local subscribers in the zone
+func (z *Zone) broadcastEvent(event *Event) {
+	z.RLock()
+	for _, subscriber := range z.subscribers {
+		if subscriber.IsConnected() {
+			subscriber.Events <- event
 		}
 	}
+	z.RUnlock()
+}
+
+func (z *Zone) archiveEvent(event *Event) {
+	z.archive <- event
+}
+
+func (z *Zone) onJoinEvent(j *Join) {
+	z.SetSubscription(j.Subscriber)
+	incrementZoneSubscriptionCounts(z) // bubble up the count
 }

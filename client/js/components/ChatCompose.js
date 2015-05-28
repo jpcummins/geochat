@@ -11,7 +11,7 @@ var ChatCompose = React.createClass({
       if (/\//.test(message)) {
         message = message.replace(/\//, '').trim()
         $.ajax({
-          url: '/command',
+          url: '/chat/command',
           method: 'POST',
           data: {
             command: message
@@ -19,7 +19,7 @@ var ChatCompose = React.createClass({
         });
       } else {
     		$.ajax({
-    			url: '/message',
+    			url: '/chat/message',
     			method: "POST",
     			data: {
     				text: message

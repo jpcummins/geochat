@@ -2,6 +2,7 @@ package chat
 
 import (
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -43,11 +44,11 @@ func NewLocalSubscription(user *User) (*Subscription, error) {
 	if err != nil {
 		return nil, err
 	}
+	subscription.zone = zone
 
 	// This indirectly adds the subscription to the zone's subscriber list. The
-	// event is announced, then picked up by onJoinEvent.
+	// event is announced, then picked up by Join's OnReceive method.
 	zone.Publish(NewEvent(&Join{Subscriber: subscription}))
-	subscription.zone = zone
 
 	// Save the subscription to Redis
 	c := connection.Get()
@@ -68,6 +69,10 @@ func (s *Subscription) UnmarshalJSON(b []byte) error {
 	var js subscriptionJSON
 	if err := json.Unmarshal(b, &js); err != nil {
 		return err
+	}
+
+	if _, found := Subscribers.cacheGet(js.ID); found {
+		panic(errors.New("Attempted to unmarshal a known subscription."))
 	}
 
 	s.id = js.ID
@@ -127,9 +132,22 @@ func (s *Subscription) GetID() string {
 	return s.id
 }
 
-// IsLocal returns true if the subscription is connected to this server instance
-func (s *Subscription) IsLocal() bool {
+// IsConnected returns true if the subscription is connected to this server instance
+func (s *Subscription) IsConnected() bool {
 	return s.Events != nil
+}
+
+func (s *Subscription) Connect() {
+	s.Events = make(chan *Event, 10)
+	s.isOnline = true
+	Subscribers.Set(s)
+}
+
+func (s *Subscription) Disconnect() {
+	close(s.Events)
+	s.Events = nil
+	s.isOnline = false
+	Subscribers.Set(s)
 }
 
 // ExecuteCommand allows certain subscribers to issue administrative commands.

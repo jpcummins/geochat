@@ -16,11 +16,10 @@ func Init() {
 		redisServer = "redis://localhost:6379"
 	}
 
+	Subscribers = NewSubscriptions()
 	connection = newConnection(redisServer)
 	world = newWorld()
 	world.root.initialize()
-
-	Subscribers = &Subscriptions{}
 
 	registerCommand(&command{
 		name:    "addbot",

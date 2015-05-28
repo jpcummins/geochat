@@ -23,7 +23,7 @@ var ChatCompose = React.createClass({displayName: "ChatCompose",
       if (/\//.test(message)) {
         message = message.replace(/\//, '').trim()
         $.ajax({
-          url: '/command',
+          url: '/chat/command',
           method: 'POST',
           data: {
             command: message
@@ -31,7 +31,7 @@ var ChatCompose = React.createClass({displayName: "ChatCompose",
         });
       } else {
     		$.ajax({
-    			url: '/message',
+    			url: '/chat/message',
     			method: "POST",
     			data: {
     				text: message
@@ -266,14 +266,17 @@ module.exports = SubscriberList
 
 
 },{"../stateTree":12,"./Subscriber":6,"react":196}],8:[function(require,module,exports){
-var React = require('react');
+var React = require('react'),
+    stateTree = require('../../stateTree');
+
+var subscribersCursor = stateTree.select('subscribers');
 
 var Message = React.createClass({displayName: "Message",
   render: function () {
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-1 gc-name"}, 
-          this.props.data.user.name
+          subscribersCursor.get(this.props.data.subscription).user.name
         ), 
         React.createElement("div", {className: "col-md-10"}, 
           this.props.data.text
@@ -286,7 +289,7 @@ var Message = React.createClass({displayName: "Message",
 module.exports = Message
 
 
-},{"react":196}],9:[function(require,module,exports){
+},{"../../stateTree":12,"react":196}],9:[function(require,module,exports){
 var React = require('react');
 
 var Subscription = React.createClass({displayName: "Subscription",
@@ -315,7 +318,7 @@ var Zone = React.createClass({displayName: "Zone",
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-offset-1 col-md-10"}, 
-          "Joined zone: \"", this.props.data.id, "\" with ", this.props.data.subscribers.length - 1, " other users."
+          "Joined zone: \"", this.props.data.id, "\" with ", Object.keys(this.props.data.subscribers).length - 1, " other users."
         )
       )
     )
@@ -349,18 +352,13 @@ var ZonePage = React.createClass({displayName: "ZonePage",
         break;
       case "zone":
         stateTree.set('zone', chatEvent);
-        stateTree.set('subscribers', {});
-
+        stateTree.set('subscribers', chatEvent.data.subscribers);
         if (chatEvent.data.archive) {
           for (var i = chatEvent.data.archive.events.length - 1; i >= 0; i--) {
             this.handleChatEvent(chatEvent.data.archive.events[i]);
           }
         }
         eventsCursor.push(chatEvent);
-        for (var i = 0; i < chatEvent.data.subscribers.length; i++) {
-          var subscriber = chatEvent.data.subscribers[i];
-          subscribersCursor.set(subscriber.id, subscriber);
-        }
         break;
       case "join":
       case "online":

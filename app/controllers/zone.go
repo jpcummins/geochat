@@ -37,7 +37,7 @@ func (zc *ZoneController) setSession() revel.Result {
 
 // Message action sends a message to those in the subscriber's zone.
 func (zc *ZoneController) Message(text string) revel.Result {
-	message := &chat.Message{User: zc.subscription.GetUser(), Text: text}
+	message := &chat.Message{Subscriber: zc.subscription, Text: text}
 	event := chat.NewEvent(message)
 	zone := zc.subscription.GetZone()
 	zone.Publish(event)
@@ -60,11 +60,8 @@ func (zc *ZoneController) Zone() revel.Result {
 
 // ZoneSocket action handles WebSocket communication
 func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
-
-	zone := zc.subscription.GetZone()
-	zc.subscription.Events = make(chan *chat.Event, 10)
-	zc.subscription.Events <- chat.NewEvent(zone)
-
+	zc.subscription.Connect()
+	zc.subscription.Events <- chat.NewEvent(zc.subscription.GetZone())
 	closeConnection := make(chan bool)
 
 	// Listen for client disconnects
@@ -90,8 +87,8 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 				closeConnection <- true
 			}
 		case _ = <-closeConnection:
+			zc.subscription.Disconnect()
 			ws.Close()
-			close(zc.subscription.Events)
 			return nil
 		}
 	}

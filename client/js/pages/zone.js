@@ -21,18 +21,13 @@ var ZonePage = React.createClass({
         break;
       case "zone":
         stateTree.set('zone', chatEvent);
-        stateTree.set('subscribers', {});
-
+        stateTree.set('subscribers', chatEvent.data.subscribers);
         if (chatEvent.data.archive) {
           for (var i = chatEvent.data.archive.events.length - 1; i >= 0; i--) {
             this.handleChatEvent(chatEvent.data.archive.events[i]);
           }
         }
         eventsCursor.push(chatEvent);
-        for (var i = 0; i < chatEvent.data.subscribers.length; i++) {
-          var subscriber = chatEvent.data.subscribers[i];
-          subscribersCursor.set(subscriber.id, subscriber);
-        }
         break;
       case "join":
       case "online":
