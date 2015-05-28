@@ -80,30 +80,33 @@ func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zo
 		to:       to,
 		parent:   parent,
 		maxUsers: maxUsers,
-		publish:  make(chan *Event, 10),
 	}
+	return zone
+}
 
-	// Pull zone information from Redis
+func (z *Zone) isInitialized() bool {
+	return z.publish != nil
+}
+
+func (z *Zone) initialize() {
+	z.publish = make(chan *Event, 10)
+
 	c := connection.Get()
 	defer c.Close()
-	subscribersJSON, err := redis.Strings(c.Do("LRANGE", "subscribers_"+zone.id, 0, -1))
-
+	subscribersJSON, err := redis.Strings(c.Do("LRANGE", "subscribers_"+z.id, 0, -1))
 	if err != nil {
-		panic("Unable to download subscribers for zone " + zone.id)
+		panic("Unable to download subscribers for zone " + z.id)
 	}
-
 	for _, subscriptionJSON := range subscribersJSON {
 		subscription := Subscription{}
 		if err := json.Unmarshal([]byte(subscriptionJSON), &subscription); err != nil {
-			panic("Unable to unmarshal subscription in zone " + zone.id)
+			panic("Unable to unmarshal subscription in zone " + z.id)
 		}
-		zone.subscribers = append(zone.subscribers, &subscription)
+		z.subscribers = append(z.subscribers, &subscription)
 	}
 
-	go zone.redisSubscribe() // subscribe to zone's redis channel
-	go zone.redisPublish()   // publishes publish events to redis channel
-
-	return zone
+	go z.redisSubscribe() // subscribe to zone's redis channel
+	go z.redisPublish()   // publishes publish events to redis channel
 }
 
 func (z *Zone) createChildZones() {
@@ -184,24 +187,6 @@ func (z *Zone) GetBoundary() *ZoneBoundary {
 // Publish publishes an event to the zone
 func (z *Zone) Publish(event *Event) {
 	z.publish <- event
-}
-
-// addNewSubscription adds a new subscriber to the zone. This should only be
-// called for new subscriptions. Subscriptions that are announced on the redis
-// channel are added via onJoinEvent.
-func (z *Zone) addLocalSubscription(s *Subscription) {
-	// This indirectly adds the subscription to the zone's subscriber list. The
-	// event is announced, then picked up by onJoinEvent.
-	z.Publish(NewEvent(&Join{Subscriber: s}))
-
-	// Publish the new subscription to Redis
-	c := connection.Get()
-	defer c.Close()
-
-	subscriptionJSON, err := json.Marshal(s)
-	if err != nil {
-		c.Do("LPUSH", "subscribers_"+z.id, subscriptionJSON)
-	}
 }
 
 func (z *Zone) onJoinEvent(s *Subscription) {

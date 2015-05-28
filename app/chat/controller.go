@@ -18,6 +18,8 @@ func Init() {
 
 	connection = newConnection(redisServer)
 	world = newWorld()
+	world.root.initialize()
+
 	Subscribers = &Subscriptions{}
 
 	registerCommand(&command{

@@ -30,13 +30,6 @@ type subscriptionJSON struct {
 	Zone         string `json:"zone"`
 }
 
-func (s *Subscription) setZone(zone *Zone) {
-	if s.zone != zone {
-		s.zone = zone
-		s.zone.addLocalSubscription(s)
-	}
-}
-
 // NewLocalSubscription is a factory method for creating new local subscriptions.
 func NewLocalSubscription(user *User) (*Subscription, error) {
 	subscription := &Subscription{
@@ -51,7 +44,20 @@ func NewLocalSubscription(user *User) (*Subscription, error) {
 		return nil, err
 	}
 
-	subscription.setZone(zone)
+	// This indirectly adds the subscription to the zone's subscriber list. The
+	// event is announced, then picked up by onJoinEvent.
+	zone.Publish(NewEvent(&Join{Subscriber: subscription}))
+	subscription.zone = zone
+
+	// Save the subscription to Redis
+	c := connection.Get()
+	defer c.Close()
+	subscriptionJSON, err := json.Marshal(subscription)
+	if err != nil {
+		return nil, err
+	}
+	c.Do("LPUSH", "subscribers_"+zone.id, subscriptionJSON)
+
 	Subscribers.Set(subscription)
 	return subscription, err
 }
@@ -75,6 +81,10 @@ func (s *Subscription) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	s.zone = zone
+
+	if !s.zone.isInitialized() {
+		s.zone.initialize()
+	}
 
 	return nil
 }
@@ -115,6 +125,11 @@ func (s *Subscription) GetUser() *User {
 // GetID returns the current subscription id
 func (s *Subscription) GetID() string {
 	return s.id
+}
+
+// IsLocal returns true if the subscription is connected to this server instance
+func (s *Subscription) IsLocal() bool {
+	return s.Events != nil
 }
 
 // ExecuteCommand allows certain subscribers to issue administrative commands.
