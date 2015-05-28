@@ -2,7 +2,6 @@ package chat
 
 import (
 	"encoding/json"
-	"fmt"
 	gh "github.com/TomiHiltunen/geohash-golang"
 	"github.com/garyburd/redigo/redis"
 	"strings"
@@ -130,7 +129,7 @@ func (z *Zone) redisPublish() {
 		select {
 		case event := <-z.publish:
 			eventJSON, _ := json.Marshal(event)
-			c.Do("LPUSH", "zone_"+z.id, eventJSON)
+			c.Do("LPUSH", "archive_"+z.id, eventJSON)
 			c.Do("PUBLISH", "zone_"+z.id, eventJSON)
 		}
 	}
@@ -151,7 +150,7 @@ func (z *Zone) GetArchive(maxEvents int) *Archive {
 	c := connection.Get()
 	defer c.Close()
 
-	archiveJSON, err := redis.Strings(c.Do("LRANGE", "zone_"+z.id, 0, maxEvents-1))
+	archiveJSON, err := redis.Strings(c.Do("LRANGE", "archive_"+z.id, 0, maxEvents-1))
 	if err != nil {
 		println("Unable to get archive:", err.Error())
 		return nil
@@ -170,13 +169,30 @@ func (z *Zone) Publish(event *Event) {
 	z.publish <- event
 }
 
-func (z *Zone) join(s *Subscription) {
+// addNewSubscription adds a new subscriber to the zone. This should only be
+// called for new subscriptions. Subscriptions that are announced on the redis
+// channel are added via onJoinEvent.
+func (z *Zone) addLocalSubscription(s *Subscription) {
+	// This indirectly adds the subscription to the zone's subscriber list. The
+	// event is announced, then picked up by onJoinEvent.
+	z.Publish(NewEvent(&Join{Subscriber: s}))
+
+	// Publish the new subscription to Redis
+	c := connection.Get()
+	defer c.Close()
+
+	subscriptionJSON, err := json.Marshal(s)
+	if err != nil {
+		c.Do("LPUSH", "subscribers_"+z.id, subscriptionJSON)
+	}
+}
+
+func (z *Zone) onJoinEvent(s *Subscription) {
 	z.subscribers = append(z.subscribers, s)
-	fmt.Printf("Subscribers: %+v\n", z.subscribers)
 	incrementZoneSubscriptionCounts(z) // bubble up the count
 }
 
-func (z *Zone) leave(s *Subscription) {
+func (z *Zone) onLeaveEvent(s *Subscription) {
 	for i, x := range z.subscribers {
 		if x.id == s.id {
 			copy(z.subscribers[i:], z.subscribers[i+1:])

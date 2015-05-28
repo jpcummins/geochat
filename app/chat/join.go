@@ -9,6 +9,6 @@ func (j *Join) Type() string {
 }
 
 func (j *Join) OnReceive(e *Event) error {
-	j.Subscriber.zone.join(j.Subscriber)
+	j.Subscriber.zone.onJoinEvent(j.Subscriber)
 	return nil
 }

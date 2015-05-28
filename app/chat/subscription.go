@@ -33,7 +33,7 @@ type subscriptionJSON struct {
 func (s *Subscription) setZone(zone *Zone) {
 	if s.zone != zone {
 		s.zone = zone
-		s.zone.publish <- NewEvent(&Join{Subscriber: s})
+		s.zone.addLocalSubscription(s)
 	}
 }
 
@@ -50,6 +50,7 @@ func NewLocalSubscription(user *User) (*Subscription, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	subscription.setZone(zone)
 	Subscribers.Set(subscription)
 	return subscription, err
