@@ -45,7 +45,6 @@ func NewLocalSubscription(user *User) (*Subscription, error) {
 		return nil, err
 	}
 
-	Subscribers.Set(subscription)      // cache the subscription
 	zone.AddSubscription(subscription) // add subscription to the zone
 	return subscription, err
 }
