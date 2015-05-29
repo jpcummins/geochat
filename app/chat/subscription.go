@@ -44,22 +44,9 @@ func NewLocalSubscription(user *User) (*Subscription, error) {
 	if err != nil {
 		return nil, err
 	}
-	subscription.zone = zone
 
-	// This indirectly adds the subscription to the zone's subscriber list. The
-	// event is announced, then picked up by Join's OnReceive method.
-	zone.Publish(NewEvent(&Join{Subscriber: subscription}))
-
-	// Save the subscription to Redis
-	c := connection.Get()
-	defer c.Close()
-	subscriptionJSON, err := json.Marshal(subscription)
-	if err != nil {
-		return nil, err
-	}
-	c.Do("LPUSH", "subscribers_"+zone.id, subscriptionJSON)
-
-	Subscribers.Set(subscription)
+	Subscribers.Set(subscription)      // cache the subscription
+	zone.AddSubscription(subscription) // add subscription to the zone
 	return subscription, err
 }
 

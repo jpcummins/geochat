@@ -47,7 +47,6 @@ func (s *Subscriptions) cacheSet(subscription *Subscription) {
 	s.Lock()
 	s.subscriptions[subscription.GetID()] = subscription
 	s.Unlock()
-	subscription.GetZone().SetSubscription(subscription)
 }
 
 func (s *Subscriptions) redisGet(id string) (*Subscription, bool) {

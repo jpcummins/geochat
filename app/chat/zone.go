@@ -2,6 +2,7 @@ package chat
 
 import (
 	"encoding/json"
+	"errors"
 	gh "github.com/TomiHiltunen/geohash-golang"
 	"github.com/garyburd/redigo/redis"
 	"strings"
@@ -23,6 +24,7 @@ type Zone struct {
 	maxUsers    int
 	publish     chan *Event
 	archive     chan *Event
+	add         chan *Subscription
 	subscribers map[string]*Subscription
 }
 
@@ -96,18 +98,22 @@ func (z *Zone) isInitialized() bool {
 func (z *Zone) initialize() {
 	z.publish = make(chan *Event, 10)
 	z.archive = make(chan *Event, 10)
+	z.add = make(chan *Subscription, 10)
 
 	c := connection.Get()
 	defer c.Close()
-	subscribersJSON, err := redis.Strings(c.Do("LRANGE", "subscribers_"+z.id, 0, -1))
+
+	ids, err := redis.Strings(c.Do("SMEMBERS", "subscribers_"+z.id))
 	if err != nil {
-		panic("Unable to download subscribers for zone " + z.id)
+		panic(errors.New("Unable to download subscribers for zone " + z.id))
 	}
-	for _, subscriptionJSON := range subscribersJSON {
-		subscription := Subscription{}
-		if err := json.Unmarshal([]byte(subscriptionJSON), &subscription); err != nil {
-			panic("Unable to unmarshal subscription in zone " + z.id)
+
+	for _, id := range ids {
+		subscription, found := Subscribers.Get(id)
+		if !found {
+			panic(errors.New("Unable to find subscription " + id))
 		}
+		z.SetSubscription(subscription)
 	}
 
 	go z.redisSubscribe() // subscribe to zone's redis channel
@@ -158,6 +164,8 @@ func (z *Zone) redisPublish() {
 		case event := <-z.archive:
 			eventJSON, _ := json.Marshal(event)
 			c.Do("LPUSH", "archive_"+z.id, eventJSON)
+		case subscription := <-z.add:
+			c.Do("SADD", "subscribers_"+z.id, subscription.GetID())
 		}
 	}
 }
@@ -196,6 +204,12 @@ func (z *Zone) GetSubscribers() map[string]*Subscription {
 	return subscribers
 }
 
+func (z *Zone) AddSubscription(s *Subscription) {
+	s.zone = z
+	z.add <- s
+	z.Publish(NewEvent(&Join{Subscriber: s}))
+}
+
 func (z *Zone) SetSubscription(s *Subscription) {
 	z.Lock()
 	z.subscribers[s.GetID()] = s
@@ -220,9 +234,4 @@ func (z *Zone) broadcastEvent(event *Event) {
 
 func (z *Zone) archiveEvent(event *Event) {
 	z.archive <- event
-}
-
-func (z *Zone) onJoinEvent(j *Join) {
-	z.SetSubscription(j.Subscriber)
-	incrementZoneSubscriptionCounts(z) // bubble up the count
 }
