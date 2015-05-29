@@ -1,7 +1,7 @@
 package chat
 
 type Online struct {
-	Subscriber *Subscription `json:"subscriber"`
+	User *User `json:"user"`
 }
 
 func (o *Online) Type() string {

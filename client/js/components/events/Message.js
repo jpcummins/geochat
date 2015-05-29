@@ -1,14 +1,14 @@
 var React = require('react'),
     stateTree = require('../../stateTree');
 
-var subscribersCursor = stateTree.select('subscribers');
+var usersCursor = stateTree.select('users');
 
 var Message = React.createClass({
   render: function () {
     return (
       <div className="row gc-message">
         <div className="col-md-1 gc-name">
-          {subscribersCursor.get(this.props.data.subscription).name}
+          {usersCursor.get(this.props.data.user_id).name}
         </div>
         <div className="col-md-10">
           {this.props.data.text}

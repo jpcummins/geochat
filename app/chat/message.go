@@ -6,13 +6,13 @@ import (
 )
 
 type messageJSON struct {
-	SubscriptionID string `json:"subscription"`
-	Text           string `json:"text"`
+	UserID string `json:"user_id"`
+	Text   string `json:"text"`
 }
 
 type Message struct {
-	Subscriber *Subscription
-	Text       string
+	User *User
+	Text string
 }
 
 func (m *Message) Type() string {
@@ -25,26 +25,26 @@ func (m *Message) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	subscription, found := Subscribers.Get(js.SubscriptionID)
+	user, found := UserCache.Get(js.UserID)
 	if !found {
-		panic(errors.New("Unknown subscription: " + js.SubscriptionID))
+		panic(errors.New("Unknown user: " + js.UserID))
 	}
 
-	m.Subscriber = subscription
+	m.User = user
 	m.Text = js.Text
 	return nil
 }
 
 func (m *Message) MarshalJSON() ([]byte, error) {
 	messageJSON := &messageJSON{
-		SubscriptionID: m.Subscriber.GetID(),
-		Text:           m.Text,
+		UserID: m.User.GetID(),
+		Text:   m.Text,
 	}
 	return json.Marshal(messageJSON)
 }
 
 func (m *Message) OnReceive(e *Event) error {
-	zone := m.Subscriber.GetZone()
+	zone := m.User.GetZone()
 	zone.broadcastEvent(e)
 	zone.archiveEvent(e)
 	return nil

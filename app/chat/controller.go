@@ -4,7 +4,7 @@ import (
 	"os"
 )
 
-var Subscribers *Subscriptions
+var UserCache *Users
 var connection *Connection
 var world *World
 
@@ -16,7 +16,7 @@ func Init() {
 		redisServer = "redis://localhost:6379"
 	}
 
-	Subscribers = NewSubscriptions()
+	UserCache = NewUsers()
 	connection = newConnection(redisServer)
 	world = newWorld()
 	world.root.initialize()

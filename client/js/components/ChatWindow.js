@@ -2,17 +2,17 @@ var React = require('react'),
     stateTree = require('../stateTree'),
     Message = require('./events/Message'),
     Zone = require('./events/Zone'),
-    Subscription = require('./events/Subscription');
+    User = require('./events/User');
 
 var visibleEvents = stateTree.select('visibleEvents');
 
 var eventClasses = {
   "message": Message,
   "zone": Zone,
-  "online": Subscription,
-  "offline": Subscription,
-  "join": Subscription,
-  "leave": Subscription
+  "online": User,
+  "offline": User,
+  "join": User,
+  "leave": User
 }
 
 var ChatWindow = React.createClass({
@@ -28,7 +28,7 @@ var ChatWindow = React.createClass({
         return;
       }
     }
-    
+
     var element = React.createElement(eventClasses[event.type], event);
     this.setState({ events: this.state.events.concat(element) });
   },

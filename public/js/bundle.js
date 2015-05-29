@@ -145,17 +145,17 @@ var React = require('react'),
     stateTree = require('../stateTree'),
     Message = require('./events/Message'),
     Zone = require('./events/Zone'),
-    Subscription = require('./events/Subscription');
+    User = require('./events/User');
 
 var visibleEvents = stateTree.select('visibleEvents');
 
 var eventClasses = {
   "message": Message,
   "zone": Zone,
-  "online": Subscription,
-  "offline": Subscription,
-  "join": Subscription,
-  "leave": Subscription
+  "online": User,
+  "offline": User,
+  "join": User,
+  "leave": User
 }
 
 var ChatWindow = React.createClass({displayName: "ChatWindow",
@@ -171,7 +171,7 @@ var ChatWindow = React.createClass({displayName: "ChatWindow",
         return;
       }
     }
-    
+
     var element = React.createElement(eventClasses[event.type], event);
     this.setState({ events: this.state.events.concat(element) });
   },
@@ -207,76 +207,76 @@ var ChatWindow = React.createClass({displayName: "ChatWindow",
 module.exports = ChatWindow
 
 
-},{"../stateTree":12,"./events/Message":8,"./events/Subscription":9,"./events/Zone":10,"react":196}],6:[function(require,module,exports){
+},{"../stateTree":12,"./events/Message":8,"./events/User":9,"./events/Zone":10,"react":196}],6:[function(require,module,exports){
 var React = require('react');
 
-var Subscriber = React.createClass({displayName: "Subscriber",
+var User = React.createClass({displayName: "User",
   render: function () {
     return (
-	    React.createElement("div", {className:  this.props.subscriber.is_online ? 'online' : 'offline'}, 
-        this.props.subscriber.name
+	    React.createElement("div", {className:  this.props.user.is_online ? 'online' : 'offline'}, 
+        this.props.user.name
 	    )
     )
   }
 })
 
-module.exports = Subscriber
+module.exports = User
 
 
 },{"react":196}],7:[function(require,module,exports){
 var React = require('react'),
     stateTree = require('../stateTree'),
-    Subscriber = require('./Subscriber');
+    User = require('./User');
 
-var subscribersCursor = stateTree.select('subscribers');
+var usersCursor = stateTree.select('users');
 
-var SubscriberList = React.createClass({displayName: "SubscriberList",
+var UserList = React.createClass({displayName: "UserList",
 
   getInitialState: function() {
-    return { subscribers: [] };
+    return { users: [] };
   },
 
-  handleSubscriptionUpdate: function (e) {
-    var subscribers = $.map(subscribersCursor.get(), function(e) { return e; });
-    this.setState({ subscribers: subscribers });
+  handleUserUpdate: function (e) {
+    var users = $.map(usersCursor.get(), function(e) { return e; });
+    this.setState({ users: users });
   },
 
   componentDidMount: function () {
-    subscribersCursor.on('update', this.handleSubscriptionUpdate);
+    usersCursor.on('update', this.handleUserUpdate);
   },
 
   render: function () {
-    var subscribers = this.state.subscribers.map(function (subscriber) {
+    var users = this.state.users.map(function (user) {
       return (
-        React.createElement(Subscriber, {subscriber: subscriber, key: subscriber.id})
+        React.createElement(User, {user: user, key: user.id})
       )
     });
 
     return (
 	    React.createElement("div", {className: "row gc-users"}, 
 	      React.createElement("div", {className: "col-md-12 gc-user-container"}, 
-          subscribers
+          users
 	      )
 	    )
     )
   }
 })
 
-module.exports = SubscriberList
+module.exports = UserList
 
 
-},{"../stateTree":12,"./Subscriber":6,"react":196}],8:[function(require,module,exports){
+},{"../stateTree":12,"./User":6,"react":196}],8:[function(require,module,exports){
 var React = require('react'),
     stateTree = require('../../stateTree');
 
-var subscribersCursor = stateTree.select('subscribers');
+var usersCursor = stateTree.select('users');
 
 var Message = React.createClass({displayName: "Message",
   render: function () {
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-1 gc-name"}, 
-          subscribersCursor.get(this.props.data.subscription).name
+          usersCursor.get(this.props.data.user_id).name
         ), 
         React.createElement("div", {className: "col-md-10"}, 
           this.props.data.text
@@ -292,12 +292,12 @@ module.exports = Message
 },{"../../stateTree":12,"react":196}],9:[function(require,module,exports){
 var React = require('react');
 
-var Subscription = React.createClass({displayName: "Subscription",
+var User = React.createClass({displayName: "User",
   render: function () {
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-1 gc-name"}, 
-          this.props.data.subscriber.name
+          this.props.data.user.name
         ), 
         React.createElement("div", {className: "col-md-10"}, 
           this.props.type
@@ -307,7 +307,7 @@ var Subscription = React.createClass({displayName: "Subscription",
   }
 })
 
-module.exports = Subscription
+module.exports = User
 
 
 },{"react":196}],10:[function(require,module,exports){
@@ -318,7 +318,7 @@ var Zone = React.createClass({displayName: "Zone",
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-offset-1 col-md-10"}, 
-          "Joined zone: \"", this.props.data.id, "\" with ", Object.keys(this.props.data.subscribers).length - 1, " other users."
+          "Joined zone: \"", this.props.data.id, "\" with ", Object.keys(this.props.data.users).length - 1, " other users."
         )
       )
     )
@@ -335,10 +335,10 @@ var React = require('react'),
     ChatWindow = require('../components/ChatWindow'),
     ChatCompose = require('../components/ChatCompose'),
     ChatMap = require('../components/ChatMap'),
-    SubscriberList = require('../components/SubscriberList');
+    UserList = require('../components/UserList');
 
 var eventsCursor = stateTree.select('visibleEvents'),
-    subscribersCursor = stateTree.select('subscribers'),
+    usersCursor = stateTree.select('users'),
     zoneCursor = stateTree.select('zone');
 
 var ZonePage = React.createClass({displayName: "ZonePage",
@@ -352,7 +352,7 @@ var ZonePage = React.createClass({displayName: "ZonePage",
         break;
       case "zone":
         stateTree.set('zone', chatEvent);
-        stateTree.set('subscribers', chatEvent.data.subscribers);
+        stateTree.set('users', chatEvent.data.users);
         if (chatEvent.data.archive) {
           for (var i = chatEvent.data.archive.events.length - 1; i >= 0; i--) {
             this.handleChatEvent(chatEvent.data.archive.events[i]);
@@ -364,11 +364,11 @@ var ZonePage = React.createClass({displayName: "ZonePage",
       case "online":
       case "offline":
         eventsCursor.push(chatEvent)
-        subscribersCursor.set(chatEvent.data.subscriber.id, chatEvent.data.subscriber);
+        usersCursor.set(chatEvent.data.user.id, chatEvent.data.user);
         break;
       case "leave":
         eventsCursor.push(chatEvent)
-        subscribersCursor.unset(chatEvent.data.subscriber.id);
+        usersCursor.unset(chatEvent.data.user.id);
         break;
       default:
     }
@@ -411,7 +411,7 @@ var ZonePage = React.createClass({displayName: "ZonePage",
         React.createElement("div", {className: "row gc-content"}, 
           React.createElement("div", {className: "col-md-8"}, 
             React.createElement(ChatWindow, null), 
-            React.createElement(ChatCompose, {subscription: this.props.subscription})
+            React.createElement(ChatCompose, null)
           ), 
           React.createElement("div", {className: "col-md-4 gc-sidebar"}, 
             React.createElement("div", {className: "row gc-map"}, 
@@ -419,7 +419,7 @@ var ZonePage = React.createClass({displayName: "ZonePage",
                 React.createElement(ChatMap, null)
               )
             ), 
-            React.createElement(SubscriberList, null)
+            React.createElement(UserList, null)
           )
         )
       )
@@ -430,13 +430,13 @@ var ZonePage = React.createClass({displayName: "ZonePage",
 module.exports = ZonePage
 
 
-},{"../components/ChatCompose":2,"../components/ChatHeader":3,"../components/ChatMap":4,"../components/ChatWindow":5,"../components/SubscriberList":7,"../stateTree":12,"react":196}],12:[function(require,module,exports){
+},{"../components/ChatCompose":2,"../components/ChatHeader":3,"../components/ChatMap":4,"../components/ChatWindow":5,"../components/UserList":7,"../stateTree":12,"react":196}],12:[function(require,module,exports){
 var ReactAddons = require('react/addons'),
     Baobab = require('baobab');
 
 var stateTree = new Baobab({
   visibleEvents: [],
-  subscribers: {},
+  users: {},
   zone: {}
 }, {
   mixins: [ReactAddons.PureRenderMixin],

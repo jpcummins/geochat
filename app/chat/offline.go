@@ -1,7 +1,7 @@
 package chat
 
 type Offline struct {
-	Subscriber *Subscription `json:"subscriber"`
+	User *User `json:"user"`
 }
 
 func (o *Offline) Type() string {

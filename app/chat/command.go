@@ -3,7 +3,7 @@ package chat
 type command struct {
 	name    string
 	usage   string
-	execute func([]string, *Subscription) (string, error)
+	execute func([]string, *User) (string, error)
 }
 
 var commands = make(map[string]*command)
@@ -12,7 +12,7 @@ func registerCommand(command *command) {
 	commands[command.name] = command
 }
 
-func resetRedis(args []string, subscription *Subscription) (string, error) {
+func resetRedis(args []string, user *User) (string, error) {
 	c := connection.Get()
 	defer c.Close()
 	c.Do("FLUSHALL")

@@ -4,10 +4,10 @@ var React = require('react'),
     ChatWindow = require('../components/ChatWindow'),
     ChatCompose = require('../components/ChatCompose'),
     ChatMap = require('../components/ChatMap'),
-    SubscriberList = require('../components/SubscriberList');
+    UserList = require('../components/UserList');
 
 var eventsCursor = stateTree.select('visibleEvents'),
-    subscribersCursor = stateTree.select('subscribers'),
+    usersCursor = stateTree.select('users'),
     zoneCursor = stateTree.select('zone');
 
 var ZonePage = React.createClass({
@@ -21,7 +21,7 @@ var ZonePage = React.createClass({
         break;
       case "zone":
         stateTree.set('zone', chatEvent);
-        stateTree.set('subscribers', chatEvent.data.subscribers);
+        stateTree.set('users', chatEvent.data.users);
         if (chatEvent.data.archive) {
           for (var i = chatEvent.data.archive.events.length - 1; i >= 0; i--) {
             this.handleChatEvent(chatEvent.data.archive.events[i]);
@@ -33,11 +33,11 @@ var ZonePage = React.createClass({
       case "online":
       case "offline":
         eventsCursor.push(chatEvent)
-        subscribersCursor.set(chatEvent.data.subscriber.id, chatEvent.data.subscriber);
+        usersCursor.set(chatEvent.data.user.id, chatEvent.data.user);
         break;
       case "leave":
         eventsCursor.push(chatEvent)
-        subscribersCursor.unset(chatEvent.data.subscriber.id);
+        usersCursor.unset(chatEvent.data.user.id);
         break;
       default:
     }
@@ -80,7 +80,7 @@ var ZonePage = React.createClass({
         <div className="row gc-content">
           <div className="col-md-8">
             <ChatWindow />
-            <ChatCompose subscription={this.props.subscription} />
+            <ChatCompose />
           </div>
           <div className="col-md-4 gc-sidebar">
             <div className="row gc-map">
@@ -88,7 +88,7 @@ var ZonePage = React.createClass({
                 <ChatMap />
               </div>
             </div>
-            <SubscriberList />
+            <UserList />
           </div>
         </div>
       </div>

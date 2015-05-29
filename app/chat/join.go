@@ -1,7 +1,7 @@
 package chat
 
 type Join struct {
-	Subscriber *Subscription `json:"subscriber"`
+	User *User `json:"subscriber"`
 }
 
 func (j *Join) Type() string {
@@ -9,9 +9,9 @@ func (j *Join) Type() string {
 }
 
 func (j *Join) OnReceive(e *Event) error {
-	zone := j.Subscriber.GetZone()
-	Subscribers.Set(j.Subscriber)         // Cache Subscriber
-	zone.SetSubscription(j.Subscriber)    //
+	zone := j.User.GetZone()
+	UserCache.Set(j.User) // Cache Subscriber
+	zone.SetUser(j.User)
 	incrementZoneSubscriptionCounts(zone) // bubble up the count
 	zone.broadcastEvent(e)
 	return nil

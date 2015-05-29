@@ -1,11 +1,11 @@
 var React = require('react');
 
-var Subscription = React.createClass({
+var User = React.createClass({
   render: function () {
     return (
       <div className="row gc-message">
         <div className="col-md-1 gc-name">
-          {this.props.data.subscriber.name}
+          {this.props.data.user.name}
         </div>
         <div className="col-md-10">
           {this.props.type}
@@ -15,4 +15,4 @@ var Subscription = React.createClass({
   }
 })
 
-module.exports = Subscription
+module.exports = User

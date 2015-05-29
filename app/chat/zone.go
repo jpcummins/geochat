@@ -12,20 +12,20 @@ import (
 // Zone represesnts a chat zone
 type Zone struct {
 	sync.RWMutex
-	id          string
-	boundary    *ZoneBoundary
-	geohash     string
-	from        byte
-	to          byte
-	parent      *Zone
-	left        *Zone
-	right       *Zone
-	count       int
-	maxUsers    int
-	publish     chan *Event
-	archive     chan *Event
-	add         chan *Subscription
-	subscribers map[string]*Subscription
+	id       string
+	boundary *ZoneBoundary
+	geohash  string
+	from     byte
+	to       byte
+	parent   *Zone
+	left     *Zone
+	right    *Zone
+	count    int
+	maxUsers int
+	publish  chan *Event
+	archive  chan *Event
+	add      chan *User
+	users    map[string]*User
 }
 
 // ZoneBoundary provides the lat/long coordinates of the zone
@@ -38,10 +38,10 @@ type ZoneBoundary struct {
 
 // ZoneJSON is passed to the client when a websocket connection is established
 type ZoneJSON struct {
-	ID          string                   `json:"id"`
-	Boundary    *ZoneBoundary            `json:"boundary"`
-	Archive     *Archive                 `json:"archive"`
-	Subscribers map[string]*Subscription `json:"subscribers"`
+	ID       string           `json:"id"`
+	Boundary *ZoneBoundary    `json:"boundary"`
+	Archive  *Archive         `json:"archive"`
+	Users    map[string]*User `json:"users"`
 }
 
 // Type implements EventType, which is used to provide Event.UnmarshalJSON a
@@ -60,10 +60,10 @@ func (z *Zone) OnReceive(event *Event) error {
 // can be marshaled/unmarshaled as the type `zoneJSON`
 func (z *Zone) MarshalJSON() ([]byte, error) {
 	js := &ZoneJSON{
-		ID:          z.GetID(),
-		Boundary:    z.GetBoundary(),
-		Archive:     z.GetArchive(50),
-		Subscribers: z.GetSubscribers(),
+		ID:       z.GetID(),
+		Boundary: z.GetBoundary(),
+		Archive:  z.GetArchive(50),
+		Users:    z.GetUsers(),
 	}
 	json, err := json.Marshal(js)
 	return json, err
@@ -82,11 +82,11 @@ func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zo
 			NorthEastLat:  ne.NorthEast().Lat(),
 			NorthEastLong: ne.NorthEast().Lng(),
 		},
-		from:        from,
-		to:          to,
-		parent:      parent,
-		maxUsers:    maxUsers,
-		subscribers: make(map[string]*Subscription),
+		from:     from,
+		to:       to,
+		parent:   parent,
+		maxUsers: maxUsers,
+		users:    make(map[string]*User),
 	}
 	return zone
 }
@@ -98,22 +98,22 @@ func (z *Zone) isInitialized() bool {
 func (z *Zone) initialize() {
 	z.publish = make(chan *Event, 10)
 	z.archive = make(chan *Event, 10)
-	z.add = make(chan *Subscription, 10)
+	z.add = make(chan *User, 10)
 
 	c := connection.Get()
 	defer c.Close()
 
-	ids, err := redis.Strings(c.Do("SMEMBERS", "subscribers_"+z.id))
+	ids, err := redis.Strings(c.Do("SMEMBERS", "users_"+z.id))
 	if err != nil {
-		panic(errors.New("Unable to download subscribers for zone " + z.id))
+		panic(errors.New("Unable to download users for zone " + z.id))
 	}
 
 	for _, id := range ids {
-		subscription, found := Subscribers.Get(id)
+		user, found := UserCache.Get(id)
 		if !found {
-			panic(errors.New("Unable to find subscription " + id))
+			panic(errors.New("Unable to find user " + id))
 		}
-		z.SetSubscription(subscription)
+		z.SetUser(user)
 	}
 
 	go z.redisSubscribe() // subscribe to zone's redis channel
@@ -164,8 +164,8 @@ func (z *Zone) redisPublish() {
 		case event := <-z.archive:
 			eventJSON, _ := json.Marshal(event)
 			c.Do("LPUSH", "archive_"+z.id, eventJSON)
-		case subscription := <-z.add:
-			c.Do("SADD", "subscribers_"+z.id, subscription.GetID())
+		case user := <-z.add:
+			c.Do("SADD", "users_"+z.id, user.GetID())
 		}
 	}
 }
@@ -194,25 +194,25 @@ func (z *Zone) GetBoundary() *ZoneBoundary {
 	return z.boundary
 }
 
-func (z *Zone) GetSubscribers() map[string]*Subscription {
+func (z *Zone) GetUsers() map[string]*User {
 	z.RLock()
-	subscribers := make(map[string]*Subscription, len(z.subscribers))
-	for k, v := range z.subscribers {
-		subscribers[k] = v
+	users := make(map[string]*User, len(z.users))
+	for k, v := range z.users {
+		users[k] = v
 	}
 	z.RUnlock()
-	return subscribers
+	return users
 }
 
-func (z *Zone) AddSubscription(s *Subscription) {
-	s.zone = z
-	z.add <- s
-	z.Publish(NewEvent(&Join{Subscriber: s}))
+func (z *Zone) AddUser(u *User) {
+	u.zone = z
+	z.add <- u
+	z.Publish(NewEvent(&Join{User: u}))
 }
 
-func (z *Zone) SetSubscription(s *Subscription) {
+func (z *Zone) SetUser(u *User) {
 	z.Lock()
-	z.subscribers[s.GetID()] = s
+	z.users[u.GetID()] = u
 	z.Unlock()
 }
 
@@ -221,12 +221,12 @@ func (z *Zone) Publish(event *Event) {
 	z.publish <- event
 }
 
-// Broadcast sends an event to all local subscribers in the zone
+// Broadcast sends an event to all local users in the zone
 func (z *Zone) broadcastEvent(event *Event) {
 	z.RLock()
-	for _, subscriber := range z.subscribers {
-		if subscriber.IsConnected() {
-			subscriber.Events <- event
+	for _, user := range z.users {
+		if user.IsConnected() {
+			user.Events <- event
 		}
 	}
 	z.RUnlock()

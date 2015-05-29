@@ -1,7 +1,7 @@
 package chat
 
 type Leave struct {
-	Subscriber *Subscription `json:"subscriber"`
+	User *User `json:"user"`
 }
 
 func (m *Leave) Type() string {

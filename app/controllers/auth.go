@@ -10,26 +10,26 @@ type AuthController struct {
 }
 
 func (ac AuthController) Login(name string, lat float64, long float64) revel.Result {
-	id, ok := ac.Session["subscription"]
+	id, ok := ac.Session["user_id"]
 
-	var subscription *chat.Subscription
+	var user *chat.User
 	if ok {
-		subscription, ok = (*chat.Subscribers).Get(id)
+		user, ok = (*chat.UserCache).Get(id)
 
 		if !ok {
-			delete(ac.Session, "subscription")
+			delete(ac.Session, "user_id")
 		}
 	}
 
 	if !ok {
-		subscription, err := chat.NewLocalSubscription(lat, long, name)
+		user, err := chat.NewLocalUser(lat, long, name)
 
 		if err != nil {
 			return ac.RenderError(err)
 		}
 
-		ac.Session["subscription"] = subscription.GetID()
+		ac.Session["user_id"] = user.GetID()
 	}
 
-	return ac.RenderJson(subscription)
+	return ac.RenderJson(user)
 }
