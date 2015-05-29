@@ -5,24 +5,27 @@ import (
 	"encoding/json"
 )
 
+// Archive contains the latest events in a zone
 type Archive struct {
 	Events []*Event `json:"events"`
 }
 
+// Type implements EventData, which provides a hint to Event.Unmarshal on how
+// to parse Event.Data
 func (a *Archive) Type() string {
 	return "archive"
 }
 
-func newArchive(eventsJson []string) (a *Archive) {
+func newArchive(eventsJSON []string) (a *Archive) {
 	a = &Archive{}
 	events := list.New()
 
 	// TODO: there must be a better way...
 
-	for i := range eventsJson {
+	for i := range eventsJSON {
 		event := Event{}
-		if err := json.Unmarshal([]byte(eventsJson[i]), &event); err != nil {
-			println(err.Error() + ": `" + eventsJson[i] + "`")
+		if err := json.Unmarshal([]byte(eventsJSON[i]), &event); err != nil {
+			println(err.Error() + ": `" + eventsJSON[i] + "`")
 			continue
 		}
 		events.PushBack(&event)
