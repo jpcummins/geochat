@@ -6,10 +6,12 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 type User struct {
+	sync.RWMutex
 	id           string
 	zone         *Zone
 	createdAt    int
@@ -18,7 +20,7 @@ type User struct {
 	name         string
 	lat          float64
 	long         float64
-	Events       chan *Event
+	connections  []*Connection
 }
 
 type userJSON struct {
@@ -36,6 +38,7 @@ func NewLocalUser(lat float64, long float64, name string) (*User, error) {
 		createdAt:    int(time.Now().Unix()),
 		lastActivity: int(time.Now().Unix()),
 		name:         name,
+		connections:  make([]*Connection, 0),
 	}
 
 	zone, err := getOrCreateAvailableZone(lat, long)
@@ -107,21 +110,26 @@ func (u *User) GetID() string {
 	return u.id
 }
 
-// IsConnected returns true if the subscription is connected to this server instance
-func (u *User) IsConnected() bool {
-	return u.Events != nil
+func (u *User) Connect() *Connection {
+	c := newConnection(u)
+	u.Lock()
+	u.connections = append(u.connections, c)
+	u.Unlock()
+	return c
 }
 
-func (u *User) Connect() {
-	u.Events = make(chan *Event, 10)
-	u.isOnline = true
-	UserCache.Set(u)
-}
+func (u *User) Disconnect(c *Connection) {
+	close(c.Events)
+	c.Events = nil
 
-func (u *User) Disconnect() {
-	close(u.Events)
-	u.Events = nil
-	u.isOnline = false
+	u.Lock()
+	for _, connection := range u.connections {
+		if connection == c {
+			// remove connection
+			break
+		}
+	}
+
 	UserCache.Set(u)
 }
 

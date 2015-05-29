@@ -225,8 +225,8 @@ func (z *Zone) Publish(event *Event) {
 func (z *Zone) broadcastEvent(event *Event) {
 	z.RLock()
 	for _, user := range z.users {
-		if user.IsConnected() {
-			user.Events <- event
+		for _, connection := range user.connections {
+			connection.Events <- event
 		}
 	}
 	z.RUnlock()
