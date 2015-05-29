@@ -84,7 +84,13 @@
   var findLocation = function () {
     $(".gc-info").text("Determining location…")
     $("#enter").addClass("disabled");
-    navigator.geolocation.getCurrentPosition(handlePosition, handlePositionError)
+    // navigator.geolocation.getCurrentPosition(handlePosition, handlePositionError)
+    handlePosition({
+      coords: {
+        latitude: 0,
+        longitude: 0
+      }
+    })
   }
 
   </script>

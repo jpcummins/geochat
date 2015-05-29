@@ -5,7 +5,7 @@ var Subscription = React.createClass({
     return (
       <div className="row gc-message">
         <div className="col-md-1 gc-name">
-          {this.props.data.subscriber.user.name}
+          {this.props.data.subscriber.name}
         </div>
         <div className="col-md-10">
           {this.props.type}

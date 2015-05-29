@@ -99,35 +99,35 @@ var React = require('react'),
 var zoneCursor = stateTree.select('zone');
 
 var ChatMap = React.createClass({displayName: "ChatMap",
-
-  updateMap: function (e) {
-    var zone = e.data.data.data; // gross
-
-	  var mapOptions = {
-	    zoom: 1,
-	    center: new google.maps.LatLng(zone.boundary.SouthWestLat, zone.boundary.SouthWestLong),
-	    disableDefaultUI: true
-	  };
-
-	  var map = new google.maps.Map(this.getDOMNode(), mapOptions);
-
-	  var rectangle = new google.maps.Rectangle({
-	    strokeColor: '#FF0000',
-	    strokeOpacity: 0.8,
-	    strokeWeight: 2,
-	    fillColor: '#FF0000',
-	    fillOpacity: 0.35,
-	    map: map,
-	    bounds: new google.maps.LatLngBounds(
-	      new google.maps.LatLng(zone.boundary.SouthWestLat, zone.boundary.SouthWestLong),
-	      new google.maps.LatLng(zone.boundary.NorthEastLat, zone.boundary.NorthEastLong))
-	  });
-
-    this.setState({ map: map });
-  },
+  // 
+  // updateMap: function (e) {
+  //   var zone = e.data.data.data; // gross
+  //
+	//   var mapOptions = {
+	//     zoom: 1,
+	//     center: new google.maps.LatLng(zone.boundary.SouthWestLat, zone.boundary.SouthWestLong),
+	//     disableDefaultUI: true
+	//   };
+  //
+	//   var map = new google.maps.Map(this.getDOMNode(), mapOptions);
+  //
+	//   var rectangle = new google.maps.Rectangle({
+	//     strokeColor: '#FF0000',
+	//     strokeOpacity: 0.8,
+	//     strokeWeight: 2,
+	//     fillColor: '#FF0000',
+	//     fillOpacity: 0.35,
+	//     map: map,
+	//     bounds: new google.maps.LatLngBounds(
+	//       new google.maps.LatLng(zone.boundary.SouthWestLat, zone.boundary.SouthWestLong),
+	//       new google.maps.LatLng(zone.boundary.NorthEastLat, zone.boundary.NorthEastLong))
+	//   });
+  //
+  //   this.setState({ map: map });
+  // },
 
   componentDidMount: function () {
-    zoneCursor.on('update', this.updateMap);
+
   },
 
   render: function () {
@@ -214,7 +214,7 @@ var Subscriber = React.createClass({displayName: "Subscriber",
   render: function () {
     return (
 	    React.createElement("div", {className:  this.props.subscriber.is_online ? 'online' : 'offline'}, 
-        this.props.subscriber.user.name
+        this.props.subscriber.name
 	    )
     )
   }
@@ -276,7 +276,7 @@ var Message = React.createClass({displayName: "Message",
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-1 gc-name"}, 
-          subscribersCursor.get(this.props.data.subscription).user.name
+          subscribersCursor.get(this.props.data.subscription).name
         ), 
         React.createElement("div", {className: "col-md-10"}, 
           this.props.data.text
@@ -297,7 +297,7 @@ var Subscription = React.createClass({displayName: "Subscription",
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-1 gc-name"}, 
-          this.props.data.subscriber.user.name
+          this.props.data.subscriber.name
         ), 
         React.createElement("div", {className: "col-md-10"}, 
           this.props.type

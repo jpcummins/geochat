@@ -15,32 +15,34 @@ import (
 type Subscription struct {
 	id           string
 	zone         *Zone
-	user         *User
 	createdAt    int
 	lastActivity int
 	isOnline     bool
+	name         string
+	lat          float64
+	long         float64
 	Events       chan *Event
 }
 
 type subscriptionJSON struct {
 	ID           string `json:"id"`
-	User         *User  `json:"user"`
 	CreatedAt    int    `json:"created_at"`
 	LastActivity int    `json:"last_activity"`
 	IsOnline     bool   `json:"is_online"`
 	Zone         string `json:"zone"`
+	Name         string `json:"name"`
 }
 
 // NewLocalSubscription is a factory method for creating new local subscriptions.
-func NewLocalSubscription(user *User) (*Subscription, error) {
+func NewLocalSubscription(lat float64, long float64, name string) (*Subscription, error) {
 	subscription := &Subscription{
 		id:           strconv.Itoa(rand.Intn(1000)) + strconv.Itoa(int(time.Now().Unix())),
-		user:         user,
 		createdAt:    int(time.Now().Unix()),
 		lastActivity: int(time.Now().Unix()),
+		name:         name,
 	}
 
-	zone, err := getOrCreateAvailableZone(subscription.user.Lat, subscription.user.Long)
+	zone, err := getOrCreateAvailableZone(lat, long)
 	if err != nil {
 		return nil, err
 	}
@@ -62,10 +64,10 @@ func (s *Subscription) UnmarshalJSON(b []byte) error {
 	}
 
 	s.id = js.ID
-	s.user = js.User
 	s.createdAt = js.CreatedAt
 	s.lastActivity = js.LastActivity
 	s.isOnline = js.IsOnline
+	s.name = js.Name
 
 	zone, err := GetOrCreateZone(js.Zone)
 	if err != nil {
@@ -93,11 +95,11 @@ func (s *Subscription) MarshalJSON() ([]byte, error) {
 
 	subscriptionJSON := &subscriptionJSON{
 		ID:           s.id,
-		User:         s.user,
 		CreatedAt:    s.createdAt,
 		LastActivity: s.lastActivity,
 		IsOnline:     s.isOnline,
 		Zone:         zoneID,
+		Name:         s.name,
 	}
 
 	return json.Marshal(subscriptionJSON)
@@ -106,11 +108,6 @@ func (s *Subscription) MarshalJSON() ([]byte, error) {
 // GetZone returns the zone associated to the subscription
 func (s *Subscription) GetZone() *Zone {
 	return s.zone
-}
-
-// GetUser returns the user associated to the subscription
-func (s *Subscription) GetUser() *User {
-	return s.user
 }
 
 // GetID returns the current subscription id

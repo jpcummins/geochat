@@ -4,7 +4,7 @@ var Subscriber = React.createClass({
   render: function () {
     return (
 	    <div className={ this.props.subscriber.is_online ? 'online' : 'offline' }>
-        {this.props.subscriber.user.name}
+        {this.props.subscriber.name}
 	    </div>
     )
   }
