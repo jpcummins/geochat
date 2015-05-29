@@ -60,8 +60,9 @@ func (zc *ZoneController) Zone() revel.Result {
 
 // ZoneSocket action handles WebSocket communication
 func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
-	zc.user.Connect()
-	zc.user.Events <- chat.NewEvent(zc.user.GetZone())
+
+	connection := zc.user.Connect()
+	connection.Events <- chat.NewEvent(zc.user.GetZone())
 	closeConnection := make(chan bool)
 
 	// Listen for client disconnects
@@ -81,13 +82,13 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 	for {
 		select {
 		case <-ping.C:
-			zc.user.Events <- chat.NewEvent(&chat.Ping{})
-		case event := <-zc.user.Events:
+			connection.Events <- chat.NewEvent(&chat.Ping{})
+		case event := <-connection.Events:
 			if err := websocket.JSON.Send(ws, &event); err != nil {
 				closeConnection <- true
 			}
 		case _ = <-closeConnection:
-			zc.user.Disconnect()
+			zc.user.Disconnect(connection)
 			ws.Close()
 			return nil
 		}
