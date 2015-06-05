@@ -28,7 +28,7 @@ type userJSON struct {
 	CreatedAt    int    `json:"created_at"`
 	LastActivity int    `json:"last_activity"`
 	IsOnline     bool   `json:"is_online"`
-	Zone         string `json:"zone"`
+	ZoneID       string `json:"zone_id"`
 	Name         string `json:"name"`
 }
 
@@ -46,7 +46,7 @@ func NewLocalUser(lat float64, long float64, name string) (*User, error) {
 		return nil, err
 	}
 
-	zone.AddUser(user)
+	user.Join(zone)
 	return user, err
 }
 
@@ -66,34 +66,22 @@ func (u *User) UnmarshalJSON(b []byte) error {
 	u.isOnline = js.IsOnline
 	u.name = js.Name
 
-	zone, err := GetOrCreateZone(js.Zone)
+	zone, err := GetOrCreateZone(js.ZoneID)
 	if err != nil {
 		return err
 	}
+
 	u.zone = zone
-
-	if !u.zone.isInitialized() {
-		u.zone.initialize()
-	}
-
 	return nil
 }
 
 func (u *User) MarshalJSON() ([]byte, error) {
-
-	var zoneID string
-	if u.zone == nil {
-		zoneID = ""
-	} else {
-		zoneID = u.zone.GetID()
-	}
-
 	userJSON := &userJSON{
 		ID:           u.id,
 		CreatedAt:    u.createdAt,
 		LastActivity: u.lastActivity,
 		IsOnline:     u.isOnline,
-		Zone:         zoneID,
+		ZoneID:       u.zone.GetID(),
 		Name:         u.name,
 	}
 
@@ -103,6 +91,31 @@ func (u *User) MarshalJSON() ([]byte, error) {
 // GetZone returns the zone associated to the subscription
 func (u *User) GetZone() *Zone {
 	return u.zone
+}
+
+func (u *User) SetOnline() {
+	u.GetZone().Publish(NewEvent(&Online{User: u}))
+}
+
+func (u *User) SetOffline() {
+	u.GetZone().Publish(NewEvent(&Offline{User: u}))
+}
+
+func (u *User) Join(z *Zone) {
+	u.isOnline = true
+	u.zone = z
+	u.zone.join <- u
+	u.zone.Publish(NewEvent(&Join{User: u}))
+}
+
+func (u *User) Leave() {
+	println("leave")
+	u.isOnline = false
+	u.zone.leave <- u
+	u.zone.Publish(NewEvent(&Leave{UserID: u.GetID(), ZoneID: u.zone.id}))
+
+	u.zone = nil
+	UserCache.Set(u)
 }
 
 // GetID returns the current subscription id
@@ -129,6 +142,7 @@ func (u *User) Disconnect(c *Connection) {
 			break
 		}
 	}
+	u.Unlock()
 
 	UserCache.Set(u)
 }

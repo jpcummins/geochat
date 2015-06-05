@@ -24,7 +24,8 @@ type Zone struct {
 	maxUsers int
 	publish  chan *Event
 	archive  chan *Event
-	add      chan *User
+	join     chan *User
+	leave    chan *User
 	users    map[string]*User
 }
 
@@ -98,7 +99,8 @@ func (z *Zone) isInitialized() bool {
 func (z *Zone) initialize() {
 	z.publish = make(chan *Event, 10)
 	z.archive = make(chan *Event, 10)
-	z.add = make(chan *User, 10)
+	z.join = make(chan *User, 10)
+	z.leave = make(chan *User, 10)
 
 	c := connection.Get()
 	defer c.Close()
@@ -113,7 +115,7 @@ func (z *Zone) initialize() {
 		if !found {
 			panic(errors.New("Unable to find user " + id))
 		}
-		z.SetUser(user)
+		z.setUser(user)
 	}
 
 	go z.redisSubscribe() // subscribe to zone's redis channel
@@ -164,14 +166,19 @@ func (z *Zone) redisPublish() {
 		case event := <-z.archive:
 			eventJSON, _ := json.Marshal(event)
 			c.Do("LPUSH", "archive_"+z.id, eventJSON)
-		case user := <-z.add:
+		case user := <-z.join:
 			c.Do("SADD", "users_"+z.id, user.GetID())
+		case user := <-z.leave:
+			c.Do("SREM", "users_"+z.id, user.GetID())
 		}
 	}
 }
 
 // GetID returns the zone identifier
 func (z *Zone) GetID() string {
+	if z == nil {
+		return ""
+	}
 	return z.id
 }
 
@@ -204,15 +211,15 @@ func (z *Zone) GetUsers() map[string]*User {
 	return users
 }
 
-func (z *Zone) AddUser(u *User) {
-	u.zone = z
-	z.add <- u
-	z.Publish(NewEvent(&Join{User: u}))
-}
-
-func (z *Zone) SetUser(u *User) {
+func (z *Zone) setUser(u *User) {
 	z.Lock()
 	z.users[u.GetID()] = u
+	z.Unlock()
+}
+
+func (z *Zone) delUser(userID string) {
+	z.Lock()
+	delete(z.users, userID)
 	z.Unlock()
 }
 

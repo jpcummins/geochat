@@ -60,7 +60,6 @@ func (zc *ZoneController) Zone() revel.Result {
 
 // ZoneSocket action handles WebSocket communication
 func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
-
 	connection := zc.user.Connect()
 	connection.Events <- chat.NewEvent(zc.user.GetZone())
 	closeConnection := make(chan bool)

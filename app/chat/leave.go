@@ -1,7 +1,8 @@
 package chat
 
 type Leave struct {
-	User *User `json:"user"`
+	UserID string `json:"user_id"`
+	ZoneID string `json:"zone_id"`
 }
 
 func (m *Leave) Type() string {
@@ -9,17 +10,12 @@ func (m *Leave) Type() string {
 }
 
 func (l *Leave) OnReceive(e *Event) error {
-	// zone := l.Subscriber.GetZone()
-	// subscribers := zone.GetSubscribers()
-	//
-	// for i, x := range subscribers {
-	// 	if x.id == l.Subscriber.GetID() {
-	// 		copy(subscribers[i:], subscribers[i+1:])
-	// 		subscribers[len(subscribers)-1] = nil
-	// 		subscribers = subscribers[:len(subscribers)-1]
-	// 		decrementZoneSubscriptionCounts(zone) // bubble up the count
-	// 		return nil
-	// 	}
-	// }
-	return nil
+	zone, err := GetOrCreateZone(l.ZoneID)
+
+	if err != nil {
+		zone.delUser(l.UserID)
+		zone.broadcastEvent(e)
+	}
+
+	return err
 }
