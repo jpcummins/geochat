@@ -12,6 +12,10 @@ func (j *Join) OnReceive(e *Event) error {
 	zone := j.User.GetZone()
 	zone.setUser(j.User)
 	zone.broadcastEvent(e)
-	UserCache.cacheSet(j.User)
+
+	if _, found := UserCache.Get(j.User.GetID()); !found {
+		UserCache.Set(j.User)
+	}
+
 	return nil
 }

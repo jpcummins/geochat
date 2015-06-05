@@ -12,7 +12,7 @@ func (m *Leave) Type() string {
 func (l *Leave) OnReceive(e *Event) error {
 	zone, err := GetOrCreateZone(l.ZoneID)
 
-	if err != nil {
+	if err == nil {
 		zone.delUser(l.UserID)
 		zone.broadcastEvent(e)
 	}

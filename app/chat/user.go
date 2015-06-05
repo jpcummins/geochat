@@ -136,15 +136,15 @@ func (u *User) Disconnect(c *Connection) {
 	c.Events = nil
 
 	u.Lock()
-	for _, connection := range u.connections {
+	for i, connection := range u.connections {
 		if connection == c {
-			// remove connection
+			copy(u.connections[i:], u.connections[i+1:])
+			u.connections[len(u.connections)-1] = nil // gc
+			u.connections = u.connections[:len(u.connections)-1]
 			break
 		}
 	}
 	u.Unlock()
-
-	UserCache.Set(u)
 }
 
 // ExecuteCommand allows certain subscribers to issue administrative commands.
