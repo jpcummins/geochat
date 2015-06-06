@@ -30,14 +30,13 @@ var ZonePage = React.createClass({
         eventsCursor.push(chatEvent);
         break;
       case "join":
+        eventsCursor.push(chatEvent)
       case "online":
       case "offline":
-        eventsCursor.push(chatEvent)
         usersCursor.set(chatEvent.data.user.id, chatEvent.data.user);
         break;
       case "leave":
         eventsCursor.push(chatEvent)
-        usersCursor.unset(chatEvent.data.user.id);
         break;
       default:
     }

@@ -32,9 +32,11 @@ type userJSON struct {
 	Name         string `json:"name"`
 }
 
+var r = rand.New(rand.NewSource(342324))
+
 func NewLocalUser(lat float64, long float64, name string) (*User, error) {
 	user := &User{
-		id:           strconv.Itoa(rand.Intn(1000)) + strconv.Itoa(int(time.Now().Unix())),
+		id:           name + strconv.Itoa(r.Intn(1000000)),
 		createdAt:    int(time.Now().Unix()),
 		lastActivity: int(time.Now().Unix()),
 		name:         name,
@@ -57,7 +59,7 @@ func (u *User) UnmarshalJSON(b []byte) error {
 	}
 
 	if _, found := UserCache.cacheGet(js.ID); found {
-		panic(errors.New("Attempted to unmarshal a known user."))
+		panic(errors.New("Attempted to unmarshal a known user: " + js.ID))
 	}
 
 	u.id = js.ID
@@ -109,7 +111,6 @@ func (u *User) Join(z *Zone) {
 }
 
 func (u *User) Leave() {
-	println("leave")
 	u.isOnline = false
 	u.zone.leave <- u
 	u.zone.Publish(NewEvent(&Leave{UserID: u.GetID(), ZoneID: u.zone.id}))
