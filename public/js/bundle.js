@@ -284,13 +284,12 @@ module.exports = Join
 
 
 },{"react":197}],9:[function(require,module,exports){
-var React = require('react'),
-    stateTree = require('../../stateTree');
+var React = require('react')
 
 var Leave = React.createClass({displayName: "Leave",
 
   getInitialState: function () {
-    return stateTree.select('users').get(this.props.data.user_id)
+    return this.props.data.user
   },
 
   render: function () {
@@ -307,7 +306,7 @@ var Leave = React.createClass({displayName: "Leave",
 module.exports = Leave
 
 
-},{"../../stateTree":13,"react":197}],10:[function(require,module,exports){
+},{"react":197}],10:[function(require,module,exports){
 var React = require('react'),
     stateTree = require('../../stateTree');
 
@@ -382,13 +381,15 @@ var ZonePage = React.createClass({displayName: "ZonePage",
         eventsCursor.push(chatEvent);
         break;
       case "join":
-        eventsCursor.push(chatEvent)
       case "online":
       case "offline":
+        eventsCursor.push(chatEvent)
         usersCursor.set(chatEvent.data.user.id, chatEvent.data.user);
         break;
       case "leave":
+        chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
         eventsCursor.push(chatEvent)
+        usersCursor.unset(chatEvent.data.user_id);
         break;
       default:
     }

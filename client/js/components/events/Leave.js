@@ -1,10 +1,9 @@
-var React = require('react'),
-    stateTree = require('../../stateTree');
+var React = require('react')
 
 var Leave = React.createClass({
 
   getInitialState: function () {
-    return stateTree.select('users').get(this.props.data.user_id)
+    return this.props.data.user
   },
 
   render: function () {
