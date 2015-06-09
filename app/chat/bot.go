@@ -25,7 +25,7 @@ func addBot(args []string, user *User) (string, error) {
 	for i := 0; i < number; i++ {
 		go func(num int) {
 			name := botNames[rand.Intn(len(botNames))]
-			bot, _ := NewLocalUser(user.lat, user.long, name)
+			bot, _ := NewUser(user.lat, user.long, name)
 
 			// Bot event handler
 			go func() {

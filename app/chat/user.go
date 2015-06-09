@@ -34,7 +34,7 @@ type userJSON struct {
 
 var r = rand.New(rand.NewSource(342324))
 
-func NewLocalUser(lat float64, long float64, name string) (*User, error) {
+func NewUser(lat float64, long float64, name string) (*User, error) {
 	user := &User{
 		id:           name + strconv.Itoa(r.Intn(1000000)),
 		createdAt:    int(time.Now().Unix()),
