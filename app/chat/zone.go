@@ -22,8 +22,7 @@ type Zone struct {
 	right         *Zone
 	count         int
 	maxUsers      int
-	minUsers      int
-	open          bool
+	isOpen        bool
 	publish       chan *Event
 	archive       chan *Event
 	announceJoin  chan *User
@@ -72,7 +71,7 @@ func (z *Zone) MarshalJSON() ([]byte, error) {
 	return json, err
 }
 
-func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int, minUsers int) *Zone {
+func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zone {
 	sw := gh.Decode(geohash + string(from))
 	ne := gh.Decode(geohash + string(to))
 
@@ -89,9 +88,8 @@ func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int, min
 		to:       to,
 		parent:   parent,
 		maxUsers: maxUsers,
-		minUsers: minUsers,
 		users:    make(map[string]*User),
-		open:     true,
+		isOpen:   true,
 	}
 	return zone
 }
@@ -133,11 +131,11 @@ func (z *Zone) createChildZones() {
 
 	if toI-fromI > 1 {
 		split := (toI - fromI) / 2
-		z.left = newZone(z.geohash, z.from, geohashmap[fromI+split], z, z.maxUsers, z.minUsers)
-		z.right = newZone(z.geohash, geohashmap[fromI+split+1], z.to, z, z.maxUsers, z.minUsers)
+		z.left = newZone(z.geohash, z.from, geohashmap[fromI+split], z, z.maxUsers)
+		z.right = newZone(z.geohash, geohashmap[fromI+split+1], z.to, z, z.maxUsers)
 	} else {
-		z.left = newZone(z.geohash+string(z.from), '0', 'z', z, z.maxUsers, z.minUsers)
-		z.right = newZone(z.geohash+string(z.to), '0', 'z', z, z.maxUsers, z.minUsers)
+		z.left = newZone(z.geohash+string(z.from), '0', 'z', z, z.maxUsers)
+		z.right = newZone(z.geohash+string(z.to), '0', 'z', z, z.maxUsers)
 	}
 }
 
@@ -278,45 +276,4 @@ func (z *Zone) split() {
 		user.Join(zone)
 	}
 	z.Unlock()
-}
-
-func (z *Zone) isOpen(user *User) {
-		if
-}
-
-
-func (z *Zone) split2() {
-	z.Lock()
-	lCount := 0
-	rCount := 0
-	for _, user := range z.users {
-		zone, err := getOrCreateAvailableZone(user.lat, user.long)
-		if err != nil {
-			panic("Unable to get next zone.")
-		}
-
-		if zone == z.left {
-			lCount = lCount + 1
-		} else {
-			rCount = rCount + 1
-		}
-	}
-	z.Unlock()
-
-	if lCount > z.left.minUsers && rCount > z.right.minUsers {
-		// clean split
-		z.open = false
-		return
-	}
-
-	if lCount > z.left.minUsers {
-		z.splitLeft()
-	}
-	if rCount > z.right.minUsers {
-		z.splitRight()
-	}
-
-	if len(z.users) == 0 {
-
-	}
 }

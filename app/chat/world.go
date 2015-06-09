@@ -18,7 +18,7 @@ type World struct {
 
 func newWorld() *World {
 	world := &World{
-		root:             newZone("", '0', 'z', nil, 4, 2),
+		root:             newZone("", '0', 'z', nil, 2),
 		getAvailableZone: make(chan (chan interface{})),
 		getZone:          make(chan (chan interface{})),
 		incrementZoneSubscriptionCounts: make(chan (chan *Zone)),
