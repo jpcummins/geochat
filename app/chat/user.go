@@ -106,15 +106,12 @@ func (u *User) SetOffline() {
 func (u *User) Join(z *Zone) {
 	u.isOnline = true
 	u.zone = z
-	u.zone.join <- u
-	u.zone.Publish(NewEvent(&Join{User: u}))
+	u.zone.join(u)
 }
 
 func (u *User) Leave() {
 	u.isOnline = false
-	u.zone.leave <- u
-	u.zone.Publish(NewEvent(&Leave{UserID: u.GetID(), ZoneID: u.zone.id}))
-
+	u.zone.leave(u)
 	u.zone = nil
 	UserCache.Set(u)
 }

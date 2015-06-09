@@ -12,21 +12,23 @@ import (
 // Zone represesnts a chat zone
 type Zone struct {
 	sync.RWMutex
-	id       string
-	boundary *ZoneBoundary
-	geohash  string
-	from     byte
-	to       byte
-	parent   *Zone
-	left     *Zone
-	right    *Zone
-	count    int
-	maxUsers int
-	publish  chan *Event
-	archive  chan *Event
-	join     chan *User
-	leave    chan *User
-	users    map[string]*User
+	id            string
+	boundary      *ZoneBoundary
+	geohash       string
+	from          byte
+	to            byte
+	parent        *Zone
+	left          *Zone
+	right         *Zone
+	count         int
+	maxUsers      int
+	minUsers      int
+	open          bool
+	publish       chan *Event
+	archive       chan *Event
+	announceJoin  chan *User
+	announceLeave chan *User
+	users         map[string]*User
 }
 
 // ZoneBoundary provides the lat/long coordinates of the zone
@@ -70,7 +72,7 @@ func (z *Zone) MarshalJSON() ([]byte, error) {
 	return json, err
 }
 
-func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zone {
+func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int, minUsers int) *Zone {
 	sw := gh.Decode(geohash + string(from))
 	ne := gh.Decode(geohash + string(to))
 
@@ -87,7 +89,9 @@ func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zo
 		to:       to,
 		parent:   parent,
 		maxUsers: maxUsers,
+		minUsers: minUsers,
 		users:    make(map[string]*User),
+		open:     true,
 	}
 	return zone
 }
@@ -99,8 +103,8 @@ func (z *Zone) isInitialized() bool {
 func (z *Zone) initialize() {
 	z.publish = make(chan *Event, 10)
 	z.archive = make(chan *Event, 10)
-	z.join = make(chan *User, 10)
-	z.leave = make(chan *User, 10)
+	z.announceJoin = make(chan *User, 10)
+	z.announceLeave = make(chan *User, 10)
 
 	c := connection.Get()
 	defer c.Close()
@@ -115,7 +119,8 @@ func (z *Zone) initialize() {
 		if !found {
 			panic(errors.New("Unable to find user " + id))
 		}
-		z.setUser(user)
+		IncrementZoneSubscriptionCounts(z) // optimize this at some point.
+		z.addUser(user)
 	}
 
 	go z.redisSubscribe() // subscribe to zone's redis channel
@@ -128,11 +133,11 @@ func (z *Zone) createChildZones() {
 
 	if toI-fromI > 1 {
 		split := (toI - fromI) / 2
-		z.left = newZone(z.geohash, z.from, geohashmap[fromI+split], z, z.maxUsers)
-		z.right = newZone(z.geohash, geohashmap[fromI+split+1], z.to, z, z.maxUsers)
+		z.left = newZone(z.geohash, z.from, geohashmap[fromI+split], z, z.maxUsers, z.minUsers)
+		z.right = newZone(z.geohash, geohashmap[fromI+split+1], z.to, z, z.maxUsers, z.minUsers)
 	} else {
-		z.left = newZone(z.geohash+string(z.from), '0', 'z', z, z.maxUsers)
-		z.right = newZone(z.geohash+string(z.to), '0', 'z', z, z.maxUsers)
+		z.left = newZone(z.geohash+string(z.from), '0', 'z', z, z.maxUsers, z.minUsers)
+		z.right = newZone(z.geohash+string(z.to), '0', 'z', z, z.maxUsers, z.minUsers)
 	}
 }
 
@@ -166,9 +171,9 @@ func (z *Zone) redisPublish() {
 		case event := <-z.archive:
 			eventJSON, _ := json.Marshal(event)
 			c.Do("LPUSH", "archive_"+z.id, eventJSON)
-		case user := <-z.join:
+		case user := <-z.announceJoin:
 			c.Do("SADD", "users_"+z.id, user.GetID())
-		case user := <-z.leave:
+		case user := <-z.announceLeave:
 			c.Do("SREM", "users_"+z.id, user.GetID())
 		}
 	}
@@ -211,7 +216,23 @@ func (z *Zone) GetUsers() map[string]*User {
 	return users
 }
 
-func (z *Zone) setUser(u *User) {
+func (z *Zone) join(u *User) {
+	IncrementZoneSubscriptionCounts(z)
+	z.announceJoin <- u
+	z.Publish(NewEvent(&Join{User: u}))
+
+	if z.count > z.maxUsers {
+		z.split()
+	}
+}
+
+func (z *Zone) leave(u *User) {
+	DecrementZoneSubscriptionCounts(z)
+	z.announceLeave <- u
+	z.Publish(NewEvent(&Leave{UserID: u.GetID(), ZoneID: u.zone.id}))
+}
+
+func (z *Zone) addUser(u *User) {
 	z.Lock()
 	z.users[u.GetID()] = u
 	z.Unlock()
@@ -241,4 +262,61 @@ func (z *Zone) broadcastEvent(event *Event) {
 
 func (z *Zone) archiveEvent(event *Event) {
 	z.archive <- event
+}
+
+func (z *Zone) split() {
+	z.Lock()
+	z.isOpen = false
+	for _, user := range z.users {
+		user.Leave()
+
+		zone, err := getOrCreateAvailableZone(user.lat, user.long)
+		if err != nil {
+			panic("Unable to create zone.")
+		}
+
+		user.Join(zone)
+	}
+	z.Unlock()
+}
+
+func (z *Zone) isOpen(user *User) {
+		if
+}
+
+
+func (z *Zone) split2() {
+	z.Lock()
+	lCount := 0
+	rCount := 0
+	for _, user := range z.users {
+		zone, err := getOrCreateAvailableZone(user.lat, user.long)
+		if err != nil {
+			panic("Unable to get next zone.")
+		}
+
+		if zone == z.left {
+			lCount = lCount + 1
+		} else {
+			rCount = rCount + 1
+		}
+	}
+	z.Unlock()
+
+	if lCount > z.left.minUsers && rCount > z.right.minUsers {
+		// clean split
+		z.open = false
+		return
+	}
+
+	if lCount > z.left.minUsers {
+		z.splitLeft()
+	}
+	if rCount > z.right.minUsers {
+		z.splitRight()
+	}
+
+	if len(z.users) == 0 {
+
+	}
 }

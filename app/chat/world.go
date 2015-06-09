@@ -18,7 +18,7 @@ type World struct {
 
 func newWorld() *World {
 	world := &World{
-		root:             newZone("", '0', 'z', nil, 2),
+		root:             newZone("", '0', 'z', nil, 4, 2),
 		getAvailableZone: make(chan (chan interface{})),
 		getZone:          make(chan (chan interface{})),
 		incrementZoneSubscriptionCounts: make(chan (chan *Zone)),
@@ -100,6 +100,10 @@ func getOrCreateAvailableZone(lat float64, long float64) (*Zone, error) {
 
 	if err != nil {
 		return nil, err.(error)
+	}
+
+	if !zone.isInitialized() {
+		zone.initialize()
 	}
 
 	return zone, nil
@@ -185,7 +189,7 @@ func findChatZone(root *Zone, geohash string) (*Zone, error) {
 		root.createChildZones()
 	}
 
-	if root.count < root.maxUsers {
+	if root.isOpen {
 		return root, nil
 	}
 

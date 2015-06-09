@@ -10,7 +10,7 @@ func (j *Join) Type() string {
 
 func (j *Join) OnReceive(e *Event) error {
 	zone := j.User.GetZone()
-	zone.setUser(j.User)
+	zone.addUser(j.User)
 	zone.broadcastEvent(e)
 
 	if _, found := UserCache.Get(j.User.GetID()); !found {
