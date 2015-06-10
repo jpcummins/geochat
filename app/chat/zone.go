@@ -3,7 +3,6 @@ package chat
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	gh "github.com/TomiHiltunen/geohash-golang"
 	"github.com/garyburd/redigo/redis"
 	"strings"
@@ -219,7 +218,8 @@ func (z *Zone) join(u *User) {
 	z.announceJoin <- u
 	z.Publish(NewEvent(&Join{user: u}))
 
-	if z.count > z.maxUsers {
+	if z.count > z.maxUsers && z.isOpen {
+		z.isOpen = false
 		z.Publish(NewEvent(&Split{}))
 	}
 }
@@ -251,7 +251,6 @@ func (z *Zone) Publish(event *Event) {
 func (z *Zone) broadcastEvent(event *Event) {
 	z.RLock()
 	for _, user := range z.users {
-		fmt.Printf("B: %p - %+v\n", user, user)
 		for _, connection := range user.connections {
 			connection.Events <- event
 		}

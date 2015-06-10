@@ -34,10 +34,10 @@ func (suite *ZoneTestSuite) TestFindChatZone_ZoneCreation() {
 
 	for _, test := range testCases {
 		root = newZone("", '0', 'z', nil, 1)
-		root.count = 1
+		root.isOpen = false
 		for i := 0; i < 5*len(test); i++ {
 			zone, _ = findChatZone(root, test)
-			zone.count = 1
+			zone.isOpen = false
 			if len(zone.geohash) == len(test) {
 				break
 			}

@@ -91,6 +91,7 @@ func decrementZoneSubscriptionCounts(zone *Zone) {
 
 func getOrCreateAvailableZone(lat float64, long float64) (*Zone, error) {
 	geohash := gh.EncodeWithPrecision(lat, long, 6)
+	println(geohash)
 	ch := make(chan interface{})
 	world.getAvailableZone <- ch
 	ch <- geohash

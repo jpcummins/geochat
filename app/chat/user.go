@@ -41,6 +41,8 @@ func NewUser(lat float64, long float64, name string) *User {
 		lastActivity: int(time.Now().Unix()),
 		name:         name,
 		connections:  make([]*Connection, 0),
+		lat:          lat,
+		long:         long,
 	}
 	return user
 }
@@ -109,8 +111,7 @@ func (u *User) JoinZone(z *Zone) {
 	u.isOnline = true
 	u.zone = z
 	u.zone.join(u)
-	UserCache.cacheSet(u)
-	println("Added user " + u.GetID() + " to cache")
+	UserCache.Set(u)
 }
 
 func (u *User) LeaveZone() {

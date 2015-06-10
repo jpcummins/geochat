@@ -44,3 +44,46 @@ func addBot(args []string, user *User) (string, error) {
 
 	return "ok", nil
 }
+
+func addBot2(args []string, user *User) (string, error) {
+
+	if len(args) < 2 {
+		return "", errors.New("Expected additional arguments")
+	}
+
+	number, err := strconv.Atoi(args[0])  // number of bots
+	timeout, err := strconv.Atoi(args[1]) // timeout
+
+	if err != nil {
+		return "", err
+	}
+
+	for i := 0; i < number; i++ {
+		go func(num int) {
+			name := botNames[rand.Intn(len(botNames))]
+			bot := NewUser(user.lat, user.long, name)
+
+			zone, err := getOrCreateAvailableZone(user.lat, user.long)
+
+			if err != nil {
+				panic(errors.New("Unable to find chat room for bot"))
+			}
+
+			bot.JoinZone(zone)
+
+			// Bot event handler
+			go func() {
+				timer := time.NewTimer(time.Duration(timeout) * time.Second)
+				for {
+					select {
+					case <-timer.C:
+						bot.LeaveZone()
+						return
+					}
+				}
+			}()
+		}(i)
+	}
+
+	return "ok", nil
+}

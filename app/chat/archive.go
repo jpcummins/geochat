@@ -28,6 +28,7 @@ func newArchive(eventsJSON []string) (a *Archive) {
 			println(err.Error() + ": `" + eventsJSON[i] + "`")
 			continue
 		}
+		println(string(i))
 		events.PushBack(&event)
 	}
 
