@@ -5,7 +5,7 @@ import (
 )
 
 var UserCache *Users
-var connection *RedisConnection
+var Redis DbConnection
 var world *World
 
 func Init() {
@@ -17,7 +17,7 @@ func Init() {
 	}
 
 	UserCache = NewUsers()
-	connection = newRedisConnection(redisServer)
+	Redis = newRedisConnection(redisServer)
 	world = newWorld()
 	world.root.initialize()
 

@@ -9,11 +9,9 @@ import (
 var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 
 type World struct {
-	root                            *Zone
-	getAvailableZone                chan (chan interface{})
-	getZone                         chan (chan interface{})
-	incrementZoneSubscriptionCounts chan (chan *Zone)
-	decrementZoneSubscriptionCounts chan (chan *Zone)
+	root             *Zone
+	getAvailableZone chan (chan interface{})
+	getZone          chan (chan interface{})
 }
 
 func newWorld() *World {
@@ -21,8 +19,6 @@ func newWorld() *World {
 		root:             newZone("", '0', 'z', nil, 2),
 		getAvailableZone: make(chan (chan interface{})),
 		getZone:          make(chan (chan interface{})),
-		incrementZoneSubscriptionCounts: make(chan (chan *Zone)),
-		decrementZoneSubscriptionCounts: make(chan (chan *Zone)),
 	}
 	go world.manage()
 	return world
@@ -41,57 +37,12 @@ func (w *World) manage() { // It's a tough job.
 			zone, err := getOrCreateZone(id)
 			ch <- zone
 			ch <- err
-		case ch := <-w.incrementZoneSubscriptionCounts:
-			zone := <-ch
-			incrementZoneSubscriptionCounts(zone)
-			close(ch)
-		case ch := <-w.decrementZoneSubscriptionCounts:
-			zone := <-ch
-			decrementZoneSubscriptionCounts(zone)
-			close(ch)
 		}
-	}
-}
-
-func IncrementZoneSubscriptionCounts(zone *Zone) {
-	ch := make(chan *Zone)
-	world.incrementZoneSubscriptionCounts <- ch
-	ch <- zone
-	<-ch
-	return
-}
-
-func incrementZoneSubscriptionCounts(zone *Zone) {
-	for {
-		if zone == nil {
-			return
-		}
-		zone.count = zone.count + 1
-		zone = zone.parent
-	}
-}
-
-func DecrementZoneSubscriptionCounts(zone *Zone) {
-	ch := make(chan *Zone)
-	world.decrementZoneSubscriptionCounts <- ch
-	ch <- zone
-	<-ch
-	return
-}
-
-func decrementZoneSubscriptionCounts(zone *Zone) {
-	for {
-		if zone == nil {
-			return
-		}
-		zone.count = zone.count - 1
-		zone = zone.parent
 	}
 }
 
 func getOrCreateAvailableZone(lat float64, long float64) (*Zone, error) {
 	geohash := gh.EncodeWithPrecision(lat, long, 6)
-	println(geohash)
 	ch := make(chan interface{})
 	world.getAvailableZone <- ch
 	ch <- geohash

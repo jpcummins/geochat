@@ -23,7 +23,6 @@ type Zone struct {
 	count         int
 	maxUsers      int
 	isOpen        bool
-	publish       chan *Event
 	archive       chan *Event
 	announceJoin  chan *User
 	announceLeave chan *User
@@ -95,16 +94,15 @@ func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zo
 }
 
 func (z *Zone) isInitialized() bool {
-	return z.publish != nil
+	return z.archive != nil
 }
 
 func (z *Zone) initialize() {
-	z.publish = make(chan *Event, 10)
 	z.archive = make(chan *Event, 10)
 	z.announceJoin = make(chan *User, 10)
 	z.announceLeave = make(chan *User, 10)
 
-	c := connection.Get()
+	c := Redis.Get()
 	defer c.Close()
 
 	ids, err := redis.Strings(c.Do("SMEMBERS", "users_"+z.id))
@@ -115,7 +113,6 @@ func (z *Zone) initialize() {
 	for _, id := range ids {
 		user, found := UserCache.Get(id)
 		if found {
-			IncrementZoneSubscriptionCounts(z) // optimize this at some point.
 			z.addUser(user)
 		}
 	}
@@ -139,7 +136,7 @@ func (z *Zone) createChildZones() {
 }
 
 func (z *Zone) redisSubscribe() {
-	psc := redis.PubSubConn{Conn: connection.Get()}
+	psc := redis.PubSubConn{Conn: Redis.Get()}
 	defer psc.Close()
 	psc.Subscribe("zone_" + z.id)
 	for {
@@ -158,13 +155,10 @@ func (z *Zone) redisSubscribe() {
 }
 
 func (z *Zone) redisPublish() {
-	c := connection.Get()
+	c := Redis.Get()
 	defer c.Close()
 	for {
 		select {
-		case event := <-z.publish:
-			eventJSON, _ := json.Marshal(event)
-			c.Do("PUBLISH", "zone_"+z.id, eventJSON)
 		case event := <-z.archive:
 			eventJSON, _ := json.Marshal(event)
 			c.Do("LPUSH", "archive_"+z.id, eventJSON)
@@ -186,7 +180,7 @@ func (z *Zone) GetID() string {
 
 // GetArchive returns the last N events in the zone
 func (z *Zone) GetArchive(maxEvents int) *Archive {
-	c := connection.Get()
+	c := Redis.Get()
 	defer c.Close()
 
 	archiveJSON, err := redis.Strings(c.Do("LRANGE", "archive_"+z.id, 0, maxEvents-1))
@@ -214,20 +208,18 @@ func (z *Zone) GetUsers() map[string]*User {
 }
 
 func (z *Zone) join(u *User) {
-	IncrementZoneSubscriptionCounts(z)
 	z.announceJoin <- u
-	z.Publish(NewEvent(&Join{user: u}))
+	Redis.Publish(NewEvent(&Join{user: u}), z)
 
 	if z.count > z.maxUsers && z.isOpen {
 		z.isOpen = false
-		z.Publish(NewEvent(&Split{}))
+		Redis.Publish(NewEvent(&Split{}), z)
 	}
 }
 
 func (z *Zone) leave(u *User) {
-	DecrementZoneSubscriptionCounts(z)
 	z.announceLeave <- u
-	z.Publish(NewEvent(&Leave{UserID: u.GetID()}))
+	Redis.Publish(NewEvent(&Leave{UserID: u.GetID()}), z)
 }
 
 func (z *Zone) addUser(u *User) {
@@ -240,11 +232,6 @@ func (z *Zone) delUser(userID string) {
 	z.Lock()
 	delete(z.users, userID)
 	z.Unlock()
-}
-
-// Publish publishes an event to the zone's Redis channel
-func (z *Zone) Publish(event *Event) {
-	z.publish <- event
 }
 
 // Broadcast sends an event to all local users in the zone

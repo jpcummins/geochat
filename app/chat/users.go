@@ -50,7 +50,7 @@ func (u *Users) cacheSet(user *User) {
 }
 
 func (u *Users) redisGet(id string) (*User, bool) {
-	c := connection.Get()
+	c := Redis.Get()
 	defer c.Close()
 
 	usersJSON, err := redis.String(c.Do("HGET", "users", id))
@@ -66,7 +66,7 @@ func (u *Users) redisGet(id string) (*User, bool) {
 }
 
 func (u *Users) redisSet(user *User) {
-	c := connection.Get()
+	c := Redis.Get()
 	defer c.Close()
 	eventJSON, err := json.Marshal(user)
 	if err != nil {

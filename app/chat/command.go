@@ -13,7 +13,7 @@ func registerCommand(command *command) {
 }
 
 func resetRedis(args []string, user *User) (string, error) {
-	c := connection.Get()
+	c := Redis.Get()
 	defer c.Close()
 	c.Do("FLUSHALL")
 	return "", nil

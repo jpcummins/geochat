@@ -66,7 +66,7 @@ func addBot2(args []string, user *User) (string, error) {
 			zone, err := getOrCreateAvailableZone(user.lat, user.long)
 
 			if err != nil {
-				panic(errors.New("Unable to find chat room for bot"))
+				panic(err)
 			}
 
 			bot.JoinZone(zone)

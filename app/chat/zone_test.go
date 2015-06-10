@@ -13,6 +13,7 @@ type ZoneTestSuite struct {
 
 func (suite *ZoneTestSuite) SetupTest() {
 	suite.Zone = newZone("", '0', 'z', nil, 1)
+	connection = &mockConnection{}
 }
 
 var lat float64 = 47.6235616
@@ -45,7 +46,7 @@ func (suite *ZoneTestSuite) TestFindChatZone_ZoneCreation() {
 		assert.Equal(suite.T(), test+":0z", zone.id)
 
 		// While we're at it, test GetZone() functionality.
-		world = &World{root, nil, nil, nil, nil}
+		world = &World{root, nil, nil}
 		z, err := getOrCreateZone(zone.id)
 		assert.NoError(suite.T(), err)
 		assert.Equal(suite.T(), zone, z)
@@ -54,10 +55,23 @@ func (suite *ZoneTestSuite) TestFindChatZone_ZoneCreation() {
 
 func (suite *ZoneTestSuite) TestGetZone() {
 	root := newZone("", '0', 'z', nil, 1)
-	world = &World{root, nil, nil, nil, nil}
+	world = &World{root, nil, nil}
 	zone, err := getOrCreateZone(":0z")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), world.root, zone)
+}
+
+func (suite *ZoneTestSuite) TestZoneSplit() {
+	root := newZone("", '0', 'z', nil, 4)
+
+	users := make([]*User, 5)
+	for i, _ := range users {
+		users[i] = NewUser(lat, long, "user")
+		root.join(users[i])
+
+		assert.True(suite.T(), root.isOpen)
+	}
+
 }
 
 func TestSuite(t *testing.T) {

@@ -40,7 +40,7 @@ func (zc *ZoneController) Message(text string) revel.Result {
 	message := &chat.Message{User: zc.user, Text: text}
 	event := chat.NewEvent(message)
 	zone := zc.user.GetZone()
-	zone.Publish(event)
+	chat.Redis.Publish(event, zone)
 	return zc.RenderJson(event)
 }
 

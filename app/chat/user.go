@@ -90,14 +90,6 @@ func (u *User) GetZone() *Zone {
 	return u.zone
 }
 
-func (u *User) SetOnline() {
-	u.GetZone().Publish(NewEvent(&Online{User: u}))
-}
-
-func (u *User) SetOffline() {
-	u.GetZone().Publish(NewEvent(&Offline{User: u}))
-}
-
 func (u *User) JoinNextAvailableZone() (*Zone, error) {
 	zone, err := getOrCreateAvailableZone(u.lat, u.long)
 
