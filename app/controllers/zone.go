@@ -22,12 +22,14 @@ func (zc *ZoneController) setSession() revel.Result {
 	userID, ok := zc.Session["user_id"]
 
 	if !ok {
+		println("redirect1")
 		zc.Redirect("/")
 	}
 
 	user, found := (*chat.UserCache).Get(userID)
 
 	if !found {
+		println("redirect2")
 		return zc.Redirect("/")
 	}
 

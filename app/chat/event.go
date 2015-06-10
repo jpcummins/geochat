@@ -10,7 +10,7 @@ import (
 
 type EventData interface {
 	Type() string
-	OnReceive(*Event) error
+	OnReceive(*Event, *Zone) error
 }
 
 type Event struct {

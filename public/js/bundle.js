@@ -266,7 +266,7 @@ var React = require('react')
 var Join = React.createClass({displayName: "Join",
 
   getInitialState: function () {
-    return this.props.data.user
+    return this.props.data
   },
 
   render: function () {
@@ -384,7 +384,7 @@ var ZonePage = React.createClass({displayName: "ZonePage",
       case "online":
       case "offline":
         eventsCursor.push(chatEvent)
-        usersCursor.set(chatEvent.data.user.id, chatEvent.data.user);
+        usersCursor.set(chatEvent.data.id, chatEvent.data);
         break;
       case "leave":
         chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)

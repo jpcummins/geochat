@@ -8,6 +8,6 @@ func (o *Online) Type() string {
 	return "online"
 }
 
-func (o *Online) OnReceive(e *Event) error {
+func (o *Online) OnReceive(e *Event, z *Zone) error {
 	return nil
 }

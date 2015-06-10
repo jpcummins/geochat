@@ -3,6 +3,7 @@ package chat
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	gh "github.com/TomiHiltunen/geohash-golang"
 	"github.com/garyburd/redigo/redis"
 	"strings"
@@ -54,7 +55,7 @@ func (z *Zone) Type() string {
 
 // OnReceive implements EventType. This method is called when a "zone" event is
 // received from Redis.
-func (z *Zone) OnReceive(event *Event) error {
+func (z *Zone) OnReceive(event *Event, zone *Zone) error {
 	return nil
 }
 
@@ -150,7 +151,7 @@ func (z *Zone) redisSubscribe() {
 				println("Error unmarshaling event: ", err.Error())
 			}
 
-			if err := event.Data.OnReceive(&event); err != nil {
+			if err := event.Data.OnReceive(&event, z); err != nil {
 				println("Error executing event: ", err.Error())
 			}
 		}
@@ -216,17 +217,17 @@ func (z *Zone) GetUsers() map[string]*User {
 func (z *Zone) join(u *User) {
 	IncrementZoneSubscriptionCounts(z)
 	z.announceJoin <- u
-	z.Publish(NewEvent(&Join{User: u}))
+	z.Publish(NewEvent(&Join{user: u}))
 
 	if z.count > z.maxUsers {
-		z.split()
+		z.Publish(NewEvent(&Split{}))
 	}
 }
 
 func (z *Zone) leave(u *User) {
 	DecrementZoneSubscriptionCounts(z)
 	z.announceLeave <- u
-	z.Publish(NewEvent(&Leave{UserID: u.GetID(), ZoneID: u.zone.id}))
+	z.Publish(NewEvent(&Leave{UserID: u.GetID()}))
 }
 
 func (z *Zone) addUser(u *User) {
@@ -250,6 +251,7 @@ func (z *Zone) Publish(event *Event) {
 func (z *Zone) broadcastEvent(event *Event) {
 	z.RLock()
 	for _, user := range z.users {
+		fmt.Printf("B: %p - %+v\n", user, user)
 		for _, connection := range user.connections {
 			connection.Events <- event
 		}

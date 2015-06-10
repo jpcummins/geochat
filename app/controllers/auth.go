@@ -22,6 +22,7 @@ func (ac AuthController) Login(name string, lat float64, long float64) revel.Res
 	}
 
 	if !ok {
+		println("creating new user")
 		user := chat.NewUser(lat, long, name)
 		if _, err := user.JoinNextAvailableZone(); err != nil {
 			return ac.RenderError(err)

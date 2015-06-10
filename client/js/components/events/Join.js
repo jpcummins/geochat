@@ -3,7 +3,7 @@ var React = require('react')
 var Join = React.createClass({
 
   getInitialState: function () {
-    return this.props.data.user
+    return this.props.data
   },
 
   render: function () {

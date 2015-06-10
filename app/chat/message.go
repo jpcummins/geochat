@@ -43,9 +43,8 @@ func (m *Message) MarshalJSON() ([]byte, error) {
 	return json.Marshal(messageJSON)
 }
 
-func (m *Message) OnReceive(e *Event) error {
-	zone := m.User.GetZone()
-	zone.broadcastEvent(e)
-	zone.archiveEvent(e)
+func (m *Message) OnReceive(e *Event, z *Zone) error {
+	z.broadcastEvent(e)
+	z.archiveEvent(e)
 	return nil
 }

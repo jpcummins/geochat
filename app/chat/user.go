@@ -2,6 +2,7 @@ package chat
 
 import (
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -31,9 +32,11 @@ type userJSON struct {
 	Name         string `json:"name"`
 }
 
+var r = rand.New(rand.NewSource(342324))
+
 func NewUser(lat float64, long float64, name string) *User {
 	user := &User{
-		id:           name + strconv.Itoa(rand.Intn(1000000)),
+		id:           name + strconv.Itoa(r.Intn(1000000)),
 		createdAt:    int(time.Now().Unix()),
 		lastActivity: int(time.Now().Unix()),
 		name:         name,
@@ -48,9 +51,8 @@ func (u *User) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	if user, found := UserCache.cacheGet(js.ID); found {
-		*u = *user
-		return nil
+	if _, found := UserCache.cacheGet(js.ID); found {
+		panic(errors.New("Attempted to unmarshal a known user"))
 	}
 
 	u.id = js.ID
@@ -63,8 +65,8 @@ func (u *User) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-
 	u.zone = zone
+	UserCache.cacheSet(u)
 	return nil
 }
 
@@ -107,7 +109,8 @@ func (u *User) JoinZone(z *Zone) {
 	u.isOnline = true
 	u.zone = z
 	u.zone.join(u)
-	UserCache.Set(u)
+	UserCache.cacheSet(u)
+	println("Added user " + u.GetID() + " to cache")
 }
 
 func (u *User) LeaveZone() {
