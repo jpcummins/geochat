@@ -218,9 +218,9 @@ func (z *Zone) join(u *User) {
 	z.announceJoin <- u
 	z.Publish(NewEvent(&Join{User: u}))
 
-	// if z.count > z.maxUsers {
-	// 	z.split()
-	// }
+	if z.count > z.maxUsers {
+		z.split()
+	}
 }
 
 func (z *Zone) leave(u *User) {
@@ -261,18 +261,18 @@ func (z *Zone) archiveEvent(event *Event) {
 	z.archive <- event
 }
 
-// func (z *Zone) split() {
-// 	z.Lock()
-// 	z.isOpen = false
-// 	for _, user := range z.users {
-// 		user.Leave()
-//
-// 		zone, err := getOrCreateAvailableZone(user.lat, user.long)
-// 		if err != nil {
-// 			panic("Unable to create zone.")
-// 		}
-//
-// 		user.Join(zone)
-// 	}
-// 	z.Unlock()
-// }
+func (z *Zone) split() {
+	z.Lock()
+	z.isOpen = false
+	for _, user := range z.users {
+		user.LeaveZone()
+
+		zone, err := getOrCreateAvailableZone(user.lat, user.long)
+		if err != nil {
+			panic("Unable to create zone.")
+		}
+
+		user.JoinZone(zone)
+	}
+	z.Unlock()
+}
