@@ -22,9 +22,8 @@ func (ac AuthController) Login(name string, lat float64, long float64) revel.Res
 	}
 
 	if !ok {
-		user, err := chat.NewUser(lat, long, name)
-
-		if err != nil {
+		user := chat.NewUser(lat, long, name)
+		if _, err := user.JoinNextAvailableZone(); err != nil {
 			return ac.RenderError(err)
 		}
 

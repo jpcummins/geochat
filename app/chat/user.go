@@ -2,7 +2,6 @@ package chat
 
 import (
 	"encoding/json"
-	"errors"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -32,24 +31,15 @@ type userJSON struct {
 	Name         string `json:"name"`
 }
 
-var r = rand.New(rand.NewSource(342324))
-
-func NewUser(lat float64, long float64, name string) (*User, error) {
+func NewUser(lat float64, long float64, name string) *User {
 	user := &User{
-		id:           name + strconv.Itoa(r.Intn(1000000)),
+		id:           name + strconv.Itoa(rand.Intn(1000000)),
 		createdAt:    int(time.Now().Unix()),
 		lastActivity: int(time.Now().Unix()),
 		name:         name,
 		connections:  make([]*Connection, 0),
 	}
-
-	zone, err := getOrCreateAvailableZone(lat, long)
-	if err != nil {
-		return nil, err
-	}
-
-	user.Join(zone)
-	return user, err
+	return user
 }
 
 func (u *User) UnmarshalJSON(b []byte) error {
@@ -58,8 +48,9 @@ func (u *User) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	if _, found := UserCache.cacheGet(js.ID); found {
-		panic(errors.New("Attempted to unmarshal a known user: " + js.ID))
+	if user, found := UserCache.cacheGet(js.ID); found {
+		*u = *user
+		return nil
 	}
 
 	u.id = js.ID
@@ -103,13 +94,23 @@ func (u *User) SetOffline() {
 	u.GetZone().Publish(NewEvent(&Offline{User: u}))
 }
 
-func (u *User) Join(z *Zone) {
+func (u *User) JoinNextAvailableZone() (*Zone, error) {
+	zone, err := getOrCreateAvailableZone(u.lat, u.long)
+
+	if err == nil {
+		u.JoinZone(zone)
+	}
+	return zone, err
+}
+
+func (u *User) JoinZone(z *Zone) {
 	u.isOnline = true
 	u.zone = z
 	u.zone.join(u)
+	UserCache.Set(u)
 }
 
-func (u *User) Leave() {
+func (u *User) LeaveZone() {
 	u.isOnline = false
 	u.zone.leave(u)
 	u.zone = nil

@@ -25,7 +25,8 @@ func addBot(args []string, user *User) (string, error) {
 	for i := 0; i < number; i++ {
 		go func(num int) {
 			name := botNames[rand.Intn(len(botNames))]
-			bot, _ := NewUser(user.lat, user.long, name)
+			bot := NewUser(user.lat, user.long, name)
+			bot.JoinZone(user.zone)
 
 			// Bot event handler
 			go func() {
@@ -33,7 +34,7 @@ func addBot(args []string, user *User) (string, error) {
 				for {
 					select {
 					case <-timer.C:
-						bot.Leave()
+						bot.LeaveZone()
 						return
 					}
 				}
