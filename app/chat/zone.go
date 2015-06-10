@@ -43,6 +43,7 @@ type ZoneJSON struct {
 	Boundary *ZoneBoundary    `json:"boundary"`
 	Archive  *Archive         `json:"archive"`
 	Users    map[string]*User `json:"users"`
+	IsOpen   bool             `json:"is_open"`
 }
 
 // Type implements EventType, which is used to provide Event.UnmarshalJSON a
@@ -65,6 +66,7 @@ func (z *Zone) MarshalJSON() ([]byte, error) {
 		Boundary: z.GetBoundary(),
 		Archive:  z.GetArchive(50),
 		Users:    z.GetUsers(),
+		IsOpen:   z.isOpen,
 	}
 	json, err := json.Marshal(js)
 	return json, err
