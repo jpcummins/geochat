@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
-func TestEmptyWorld(t *testing.T) {
-	assert.Equal(t, true, true)
+func TestNewWorld(t *testing.T) {
+	world := newWorld(nil)
+	assert.Equal(t, ":0z", world.root.id)
 }
