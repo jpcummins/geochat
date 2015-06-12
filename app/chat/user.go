@@ -2,144 +2,71 @@ package chat
 
 import (
 	"encoding/json"
-	"errors"
-	"math/rand"
-	"strconv"
-	"strings"
+	"github.com/jpcummins/geochat/app/types"
 	"sync"
 	"time"
 )
 
-type User struct {
-	sync.RWMutex
-	id           string
-	zone         *Zone
-	createdAt    int
-	lastActivity int
-	isOnline     bool
-	name         string
-	lat          float64
-	long         float64
-	connections  []*Connection
-}
-
 type userJSON struct {
-	ID           string `json:"id"`
-	CreatedAt    int    `json:"created_at"`
-	LastActivity int    `json:"last_activity"`
-	IsOnline     bool   `json:"is_online"`
-	ZoneID       string `json:"zone_id"`
-	Name         string `json:"name"`
+	Id           string     `json:"id"`
+	Zone         types.Zone `json:"zone_id"`
+	CreatedAt    int        `json:"created_at"`
+	LastActivity int        `json:"last_activity"`
+	Name         string     `json:"name"`
+	Lat          float64    `json:"lat"`
+	Long         float64    `json:"long"`
 }
 
-var r = rand.New(rand.NewSource(342324))
+type User struct {
+	*userJSON
+	sync.RWMutex
+	connections []*Connection
+	world       *World
+}
 
-func NewUser(world *World, lat float64, long float64, name string) *User {
-	user := &User{
-		id:           name + strconv.Itoa(r.Intn(1000000)),
-		createdAt:    int(time.Now().Unix()),
-		lastActivity: int(time.Now().Unix()),
-		name:         name,
-		connections:  make([]*Connection, 0),
-		lat:          lat,
-		long:         long,
+func newUser(world *World, lat float64, long float64, name string, id string) (*User, error) {
+	u := &User{
+		userJSON: &userJSON{
+			Id:           id,
+			CreatedAt:    int(time.Now().Unix()),
+			LastActivity: int(time.Now().Unix()),
+			Name:         name,
+			Lat:          lat,
+			Long:         long,
+		},
+		connections: make([]*Connection, 0),
+		world:       world,
 	}
-	return user
+	err := world.users.Set(u)
+	return u, err
 }
 
 func (u *User) UnmarshalJSON(b []byte) error {
-	var js userJSON
-	if err := json.Unmarshal(b, &js); err != nil {
-		return err
-	}
-
-	user, err := u.zone.world.users.LocalGet(js.ID)
-
-	if err != nil {
-		panic(err)
-	}
-
-	if user != nil {
-		panic(errors.New("Attempted to unmarshal a known user"))
-	}
-
-	u.id = js.ID
-	u.createdAt = js.CreatedAt
-	u.lastActivity = js.LastActivity
-	u.isOnline = js.IsOnline
-	u.name = js.Name
-
-	// zone, err := GetOrCreateZone(js.ZoneID)
-	// if err != nil {
-	// 	return err
-	// }
-	// u.zone = zone
-	u.zone.world.users.LocalSet(u)
-	return nil
-}
-
-func (u *User) MarshalJSON() ([]byte, error) {
-	userJSON := &userJSON{
-		ID:           u.id,
-		CreatedAt:    u.createdAt,
-		LastActivity: u.lastActivity,
-		IsOnline:     u.isOnline,
-		ZoneID:       u.zone.GetID(),
-		Name:         u.name,
-	}
-
-	return json.Marshal(userJSON)
+	return json.Unmarshal(b, &u.userJSON)
 }
 
 func (u *User) ID() string {
-	return u.id
+	return u.userJSON.Id
 }
 
-// GetZone returns the zone associated to the subscription
-func (u *User) GetZone() *Zone {
-	return u.zone
+func (u *User) Name() string {
+	return u.userJSON.Name
 }
 
-// func (u *User) JoinNextAvailableZone() (*Zone, error) {
-// 	zone, err := getOrCreateAvailableZone(u.lat, u.long)
-//
-// 	if err == nil {
-// 		u.JoinZone(zone)
-// 	}
-// 	return zone, err
-// }
-//
-// func (u *User) JoinZone(z *Zone) {
-// 	u.isOnline = true
-// 	u.zone = z
-// 	u.zone.join(u)
-// 	UserCache.Set(u)
-// }
-//
-// func (u *User) LeaveZone() {
-// 	u.isOnline = false
-// 	u.zone.leave(u)
-// 	u.zone = nil
-// 	UserCache.Set(u)
-// }
-
-// GetID returns the current subscription id
-func (u *User) GetID() string {
-	return u.id
+func (u *User) Zone() types.Zone {
+	return u.userJSON.Zone
 }
 
-func (u *User) Connect() *Connection {
+func (u *User) NewConnection() (types.Connection, error) {
 	c := newConnection(u)
 	u.Lock()
 	u.connections = append(u.connections, c)
 	u.Unlock()
-	return c
+	return c, nil
 }
 
-func (u *User) Disconnect(c *Connection) {
-	close(c.Events)
-	c.Events = nil
-
+func (u *User) Disconnect(c types.Connection) error {
+	close(c.Events())
 	u.Lock()
 	for i, connection := range u.connections {
 		if connection == c {
@@ -150,20 +77,48 @@ func (u *User) Disconnect(c *Connection) {
 		}
 	}
 	u.Unlock()
+	return nil
 }
 
-// ExecuteCommand allows certain subscribers to issue administrative commands.
-func (u *User) ExecuteCommand(command string) (string, error) {
-	args := strings.Split(command, " ")
-	if len(args) == 0 || commands[args[0]] == nil {
-		output, err := json.Marshal(commands)
-		return string(output[:]), err
-	}
-	return commands[args[0]].execute(args[1:], u)
-}
+// func (u *User) JoinZone(z *Zone) {
+// 	u.isOnline = true
+// 	u.zone = z
+// 	u.zone.join(u)
+// 	UserCache.Set(u)
+// }
 
-// UpdateLastActiveTime sets the last active time for the subscriber
-func (u *User) UpdateLastActiveTime() {
-	u.lastActivity = int(time.Now().Unix())
-	u.zone.world.users.Set(u)
-}
+// func (u *User) JoinNextAvailableZone() (*Zone, error) {
+// 	zone, err := getOrCreateAvailableZone(u.lat, u.long)
+//
+// 	if err == nil {
+// 		u.JoinZone(zone)
+// 	}
+// 	return zone, err
+// }
+//
+// func (u *User) LeaveZone() {
+// 	u.isOnline = false
+// 	u.zone.leave(u)
+// 	u.zone = nil
+// 	UserCache.Set(u)
+// }
+//
+
+//
+
+//
+// // ExecuteCommand allows certain subscribers to issue administrative commands.
+// func (u *User) ExecuteCommand(command string) (string, error) {
+// 	args := strings.Split(command, " ")
+// 	if len(args) == 0 || commands[args[0]] == nil {
+// 		output, err := json.Marshal(commands)
+// 		return string(output[:]), err
+// 	}
+// 	return commands[args[0]].execute(args[1:], u)
+// }
+//
+// // UpdateLastActiveTime sets the last active time for the subscriber
+// func (u *User) UpdateLastActiveTime() {
+// 	u.lastActivity = int(time.Now().Unix())
+// 	u.zone.world.users.Set(u)
+// }

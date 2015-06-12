@@ -3,6 +3,7 @@ package chat
 import (
 	// "encoding/json"
 	gh "github.com/TomiHiltunen/geohash-golang"
+	"github.com/jpcummins/geochat/app/types"
 	"strings"
 	"sync"
 )
@@ -86,11 +87,12 @@ func (z *Zone) Users() map[string]*User {
 }
 
 // Broadcast sends an event to all local users in the zone
-func (z *Zone) Broadcast(event *Event) {
+func (z *Zone) Broadcast(event types.Event) {
 	z.RLock()
 	for _, user := range z.users {
 		for _, connection := range user.connections {
-			connection.Events <- event
+			events := connection.Events()
+			events <- event
 		}
 	}
 	z.RUnlock()

@@ -7,19 +7,19 @@ import (
 
 type UserCache struct {
 	sync.RWMutex
-	users      map[string]types.User
-	connection types.Connection
+	users map[string]types.User
+	db    types.DB
 }
 
-func NewUserCache(connection types.Connection) *UserCache {
+func NewUserCache(db types.DB) *UserCache {
 	return &UserCache{
-		users:      make(map[string]types.User),
-		connection: connection,
+		users: make(map[string]types.User),
+		db:    db,
 	}
 }
 
 func (uc *UserCache) Get(id string) (types.User, error) {
-	user, err := uc.LocalGet(id)
+	user, err := uc.localGet(id)
 	if err != nil {
 		return nil, err
 	}
@@ -36,28 +36,36 @@ func (uc *UserCache) Get(id string) (types.User, error) {
 	return user, nil
 }
 
-func (uc *UserCache) Set(user types.User) {
-	uc.LocalSet(user)
-	uc.dbSet(user)
+func (uc *UserCache) Set(user types.User) error {
+	if err := uc.localSet(user); err != nil {
+		return err
+	}
+
+	if err := uc.dbSet(user); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (uc *UserCache) LocalGet(id string) (types.User, error) {
+func (uc *UserCache) localGet(id string) (types.User, error) {
 	uc.RLock()
 	user := uc.users[id]
 	uc.RUnlock()
 	return user, nil
 }
 
-func (uc *UserCache) LocalSet(user types.User) {
+func (uc *UserCache) localSet(user types.User) error {
 	uc.Lock()
 	uc.users[user.ID()] = user
 	uc.Unlock()
+	return nil
 }
 
 func (uc *UserCache) dbGet(id string) (types.User, error) {
-	return uc.connection.GetUser(id)
+	return uc.db.GetUser(id)
 }
 
 func (uc *UserCache) dbSet(user types.User) error {
-	return uc.connection.SetUser(user)
+	return uc.db.SetUser(user)
 }

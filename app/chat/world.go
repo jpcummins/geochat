@@ -3,7 +3,7 @@ package chat
 import (
 	// "errors"
 	// gh "github.com/TomiHiltunen/geohash-golang"
-	"github.com/jpcummins/geochat/app/cache"
+	// "github.com/jpcummins/geochat/app/cache"
 	"github.com/jpcummins/geochat/app/types"
 	// "strings"
 )
@@ -12,11 +12,11 @@ var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 
 type World struct {
 	root      *Zone
-	users     *cache.UserCache
+	users     types.Cache
 	subscribe <-chan types.Event
 }
 
-func newWorld(uc *cache.UserCache) *World {
+func newWorld(uc types.Cache) *World {
 	world := &World{
 		users:     uc,
 		subscribe: make(<-chan types.Event),
@@ -24,6 +24,10 @@ func newWorld(uc *cache.UserCache) *World {
 	world.root = newZone(world, "", '0', 'z', nil, 2)
 	go world.manage()
 	return world
+}
+
+func (w *World) NewUser(lat float64, long float64, name string, id string) (*User, error) {
+	return newUser(w, lat, long, name, id)
 }
 
 func (w *World) manage() { // It's a tough job.

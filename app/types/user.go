@@ -1,11 +1,9 @@
 package types
 
-import (
-	"encoding/json"
-)
-
 type User interface {
 	ID() string
-	json.Marshaler
-	json.Unmarshaler
+	Name() string
+	Zone() Zone
+	NewConnection() (Connection, error)
+	Disconnect(Connection) error
 }
