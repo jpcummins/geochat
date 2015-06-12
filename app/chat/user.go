@@ -53,7 +53,13 @@ func (u *User) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	if _, found := UserCache.cacheGet(js.ID); found {
+	user, err := u.zone.world.users.LocalGet(js.ID)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if user != nil {
 		panic(errors.New("Attempted to unmarshal a known user"))
 	}
 
@@ -63,12 +69,12 @@ func (u *User) UnmarshalJSON(b []byte) error {
 	u.isOnline = js.IsOnline
 	u.name = js.Name
 
-	zone, err := GetOrCreateZone(js.ZoneID)
-	if err != nil {
-		return err
-	}
-	u.zone = zone
-	UserCache.cacheSet(u)
+	// zone, err := GetOrCreateZone(js.ZoneID)
+	// if err != nil {
+	// 	return err
+	// }
+	// u.zone = zone
+	u.zone.world.users.LocalSet(u)
 	return nil
 }
 
@@ -85,33 +91,37 @@ func (u *User) MarshalJSON() ([]byte, error) {
 	return json.Marshal(userJSON)
 }
 
+func (u *User) ID() string {
+	return u.id
+}
+
 // GetZone returns the zone associated to the subscription
 func (u *User) GetZone() *Zone {
 	return u.zone
 }
 
-func (u *User) JoinNextAvailableZone() (*Zone, error) {
-	zone, err := getOrCreateAvailableZone(u.lat, u.long)
-
-	if err == nil {
-		u.JoinZone(zone)
-	}
-	return zone, err
-}
-
-func (u *User) JoinZone(z *Zone) {
-	u.isOnline = true
-	u.zone = z
-	u.zone.join(u)
-	UserCache.Set(u)
-}
-
-func (u *User) LeaveZone() {
-	u.isOnline = false
-	u.zone.leave(u)
-	u.zone = nil
-	UserCache.Set(u)
-}
+// func (u *User) JoinNextAvailableZone() (*Zone, error) {
+// 	zone, err := getOrCreateAvailableZone(u.lat, u.long)
+//
+// 	if err == nil {
+// 		u.JoinZone(zone)
+// 	}
+// 	return zone, err
+// }
+//
+// func (u *User) JoinZone(z *Zone) {
+// 	u.isOnline = true
+// 	u.zone = z
+// 	u.zone.join(u)
+// 	UserCache.Set(u)
+// }
+//
+// func (u *User) LeaveZone() {
+// 	u.isOnline = false
+// 	u.zone.leave(u)
+// 	u.zone = nil
+// 	UserCache.Set(u)
+// }
 
 // GetID returns the current subscription id
 func (u *User) GetID() string {
@@ -155,5 +165,5 @@ func (u *User) ExecuteCommand(command string) (string, error) {
 // UpdateLastActiveTime sets the last active time for the subscriber
 func (u *User) UpdateLastActiveTime() {
 	u.lastActivity = int(time.Now().Unix())
-	UserCache.Set(u)
+	u.zone.world.users.Set(u)
 }

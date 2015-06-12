@@ -12,12 +12,12 @@ func registerCommand(command *command) {
 	commands[command.name] = command
 }
 
-func resetRedis(args []string, user *User) (string, error) {
-	c := Redis.Get()
-	defer c.Close()
-	c.Do("FLUSHALL")
-	return "", nil
-}
+// func resetRedis(args []string, user *User) (string, error) {
+// 	c := Redis.Get()
+// 	defer c.Close()
+// 	c.Do("FLUSHALL")
+// 	return "", nil
+// }
 
 // func join(args []string, subscription *Subscription) (string, error) {
 // 	zone, _ := GetOrCreateAvailableZone(subscription.User.Lat, subscription.User.Long)

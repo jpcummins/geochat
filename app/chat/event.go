@@ -4,19 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jpcummins/geochat/app/events"
+	"github.com/jpcummins/geochat/app/types"
 	"math/rand"
 	"time"
 )
 
-type EventData interface {
-	Type() string
-	OnReceive(*Event, *Zone) error
-}
-
 type Event struct {
-	Type string    `json:"type"`
-	ID   string    `json:"id"`
-	Data EventData `json:"data,omitempty"`
+	Type string          `json:"type"`
+	ID   string          `json:"id"`
+	Data types.EventData `json:"data,omitempty"`
 }
 
 func (e *Event) UnmarshalJSON(b []byte) error {
@@ -34,17 +31,17 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 
 	switch ae.Type {
 	case "message":
-		e.Data = &Message{}
+		e.Data = &events.Message{}
 	case "join":
-		e.Data = &Join{}
+		e.Data = &events.Join{}
 	case "leave":
-		e.Data = &Leave{}
+		e.Data = &events.Leave{}
 	case "online":
-		e.Data = &Online{}
+		e.Data = &events.Online{}
 	case "offline":
-		e.Data = &Offline{}
+		e.Data = &events.Offline{}
 	case "split":
-		e.Data = &Split{}
+		e.Data = &events.Split{}
 	default:
 		return errors.New("Unable to unmarshal command: " + ae.Type)
 	}
@@ -65,6 +62,6 @@ func randomSequence(n int) string {
 	return string(b)
 }
 
-func NewEvent(data EventData) *Event {
+func NewEvent(data types.EventData) *Event {
 	return &Event{Type: data.Type(), Data: data, ID: fmt.Sprintf("%d%s", time.Now().Unix(), randomSequence(4))}
 }
