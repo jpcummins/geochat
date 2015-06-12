@@ -5,14 +5,11 @@ import (
 )
 
 type Split struct {
+	types.BaseEventData
 }
 
 func (s *Split) Type() string {
 	return "split"
-}
-
-func (s *Split) BeforePublish(e types.Event) error {
-	return nil
 }
 
 func (s *Split) OnReceive(e types.Event) error {

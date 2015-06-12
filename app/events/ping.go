@@ -5,12 +5,9 @@ import (
 )
 
 type Ping struct {
+	types.BaseEventData
 }
 
 func (p *Ping) Type() string {
 	return "ping"
-}
-
-func (p *Ping) OnReceive(e types.Event) error {
-	return nil
 }

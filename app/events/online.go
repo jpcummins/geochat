@@ -5,17 +5,10 @@ import (
 )
 
 type Online struct {
+	types.BaseEventData
 	User *types.User `json:"user"`
 }
 
 func (o *Online) Type() string {
 	return "online"
-}
-
-func (o *Online) BeforePublish(e types.Event) error {
-	return nil
-}
-
-func (o *Online) OnReceive(e types.Event) error {
-	return nil
 }

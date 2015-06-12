@@ -6,6 +6,7 @@ import (
 
 // Archive contains the latest events in a zone
 type Archive struct {
+	types.BaseEventData
 	Events []*types.Event `json:"events"`
 }
 
@@ -13,14 +14,6 @@ type Archive struct {
 // to parse Event.Data
 func (a *Archive) Type() string {
 	return "archive"
-}
-
-func (a *Archive) BeforePublish(e types.Event) error {
-	return nil
-}
-
-func (a *Archive) OnReceive(e types.Event) error {
-	return nil
 }
 
 // func newArchive(eventsJSON []string) (a *Archive) {

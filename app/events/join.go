@@ -5,15 +5,12 @@ import (
 )
 
 type Join struct {
+	types.BaseEventData
 	userID string
 }
 
 func (j *Join) Type() string {
 	return "join"
-}
-
-func (j *Join) BeforePublish(e types.Event) error {
-	return nil
 }
 
 func (j *Join) OnReceive(e types.Event) error {
