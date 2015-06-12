@@ -16,18 +16,29 @@ type World struct {
 	subscribe <-chan types.Event
 }
 
-func newWorld(c types.Cache) *World {
+func newWorld(c types.Cache, maxUsersPerZone int) (*World, error) {
 	world := &World{
 		cache:     c,
 		subscribe: make(<-chan types.Event),
 	}
-	world.root = newZone(world, "", '0', 'z', nil, 2)
+
+	root, err := newZone(world, "", '0', 'z', nil, maxUsersPerZone)
+
+	if err != nil {
+		return nil, err
+	}
+
+	world.root = root
 	go world.manage()
-	return world
+	return world, nil
 }
 
 func (w *World) NewUser(lat float64, long float64, name string, id string) (*User, error) {
 	return newUser(w, lat, long, name, id)
+}
+
+func (w *World) NewZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) (*Zone, error) {
+	return newZone(w, geohash, from, to, parent, maxUsers)
 }
 
 func (w *World) manage() { // It's a tough job.

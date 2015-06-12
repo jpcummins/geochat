@@ -20,10 +20,9 @@ type Zone struct {
 	parent   *Zone
 	left     *Zone
 	right    *Zone
-	count    int
 	maxUsers int
 	isOpen   bool
-	users    map[string]*User
+	users    map[string]types.User
 }
 
 // ZoneBoundary provides the lat/long coordinates of the zone
@@ -34,7 +33,7 @@ type ZoneBoundary struct {
 	NorthEastLong float64 `json:"nelong"`
 }
 
-func newZone(world *World, geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zone {
+func newZone(world *World, geohash string, from byte, to byte, parent *Zone, maxUsers int) (*Zone, error) {
 	sw := gh.Decode(geohash + string(from))
 	ne := gh.Decode(geohash + string(to))
 
@@ -51,10 +50,12 @@ func newZone(world *World, geohash string, from byte, to byte, parent *Zone, max
 		to:       to,
 		parent:   parent,
 		maxUsers: maxUsers,
-		users:    make(map[string]*User),
+		users:    make(map[string]types.User),
 		isOpen:   true,
+		world:    world,
 	}
-	return zone
+	err := world.cache.SetZone(zone)
+	return zone, err
 }
 
 func (z *Zone) createChildZones() {
@@ -63,40 +64,62 @@ func (z *Zone) createChildZones() {
 
 	if toI-fromI > 1 {
 		split := (toI - fromI) / 2
-		z.left = newZone(z.world, z.geohash, z.from, geohashmap[fromI+split], z, z.maxUsers)
-		z.right = newZone(z.world, z.geohash, geohashmap[fromI+split+1], z.to, z, z.maxUsers)
+		z.left, _ = newZone(z.world, z.geohash, z.from, geohashmap[fromI+split], z, z.maxUsers)
+		z.right, _ = newZone(z.world, z.geohash, geohashmap[fromI+split+1], z.to, z, z.maxUsers)
 	} else {
-		z.left = newZone(z.world, z.geohash+string(z.from), '0', 'z', z, z.maxUsers)
-		z.right = newZone(z.world, z.geohash+string(z.to), '0', 'z', z, z.maxUsers)
+		z.left, _ = newZone(z.world, z.geohash+string(z.from), '0', 'z', z, z.maxUsers)
+		z.right, _ = newZone(z.world, z.geohash+string(z.to), '0', 'z', z, z.maxUsers)
 	}
 }
 
-// GetID returns the zone identifier
-func (z *Zone) GetID() string {
+func (z *Zone) ID() string {
 	return z.id
 }
 
-func (z *Zone) Users() map[string]*User {
+func (z *Zone) Count() int {
 	z.RLock()
-	users := make(map[string]*User, len(z.users))
-	for k, v := range z.users {
-		users[k] = v
-	}
+	count := len(z.users)
 	z.RUnlock()
-	return users
+	return count
 }
 
-// Broadcast sends an event to all local users in the zone
+func (z *Zone) IsOpen() bool {
+	return z.Count() < z.maxUsers
+}
+
+func (z *Zone) AddUser(user types.User) error {
+	z.Lock()
+	z.users[user.ID()] = user
+	err := z.world.cache.SetZone(z)
+	z.Unlock()
+	return err
+}
+
+func (z *Zone) RemoveUser(id string) error {
+	z.Lock()
+	delete(z.users, id)
+	err := z.world.cache.SetZone(z)
+	z.Unlock()
+	return err
+}
+
 func (z *Zone) Broadcast(event types.Event) {
 	z.RLock()
 	for _, user := range z.users {
-		for _, connection := range user.connections {
-			events := connection.Events()
-			events <- event
-		}
+		user.Broadcast(event)
 	}
 	z.RUnlock()
 }
+
+// func (z *Zone) Users() map[string]*User {
+// 	z.RLock()
+// 	users := make(map[string]*User, len(z.users))
+// 	for k, v := range z.users {
+// 		users[k] = v
+// 	}
+// 	z.RUnlock()
+// 	return users
+// }
 
 // func (z *Zone) split() {
 // 	z.Lock()
