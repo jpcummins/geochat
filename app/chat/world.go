@@ -12,13 +12,13 @@ var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 
 type World struct {
 	root      *Zone
-	users     types.Cache
+	cache     types.Cache
 	subscribe <-chan types.Event
 }
 
-func newWorld(uc types.Cache) *World {
+func newWorld(c types.Cache) *World {
 	world := &World{
-		users:     uc,
+		cache:     c,
 		subscribe: make(<-chan types.Event),
 	}
 	world.root = newZone(world, "", '0', 'z', nil, 2)

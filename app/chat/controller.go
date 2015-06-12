@@ -15,6 +15,6 @@ func Init() {
 	}
 
 	redisConnection := connection.NewRedisConnection(redisServer)
-	userCache := cache.NewUserCache(redisConnection)
-	world = newWorld(userCache)
+	cache := cache.NewCache(redisConnection)
+	world = newWorld(cache)
 }

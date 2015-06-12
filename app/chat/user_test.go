@@ -17,19 +17,18 @@ type UserTestSuite struct {
 
 func (suite *UserTestSuite) SetupTest() {
 	suite.cache = &cache.MockUserCache{}
-	suite.cache.On("Set", mock.Anything).Return(nil)
+	suite.cache.On("SetUser", mock.Anything).Return(nil)
 	suite.world = newWorld(suite.cache)
 
 	u, err := suite.world.NewUser(47.6235616, -122.330341, "test", "testid")
 	suite.user = u
 	assert.NoError(suite.T(), err)
-	suite.cache.AssertCalled(suite.T(), "Set", suite.user)
+	suite.cache.AssertCalled(suite.T(), "SetUser", suite.user)
 }
 
 func (suite *UserTestSuite) TestNewUser() {
 	assert.Equal(suite.T(), "test", suite.user.Name())
 	assert.Equal(suite.T(), "testid", suite.user.ID())
-	assert.Nil(suite.T(), suite.user.Zone())
 }
 
 func (suite *UserTestSuite) TestConnect() {

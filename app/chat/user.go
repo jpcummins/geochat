@@ -8,13 +8,12 @@ import (
 )
 
 type userJSON struct {
-	Id           string     `json:"id"`
-	Zone         types.Zone `json:"zone_id"`
-	CreatedAt    int        `json:"created_at"`
-	LastActivity int        `json:"last_activity"`
-	Name         string     `json:"name"`
-	Lat          float64    `json:"lat"`
-	Long         float64    `json:"long"`
+	Id           string  `json:"id"`
+	CreatedAt    int     `json:"created_at"`
+	LastActivity int     `json:"last_activity"`
+	Name         string  `json:"name"`
+	Lat          float64 `json:"lat"`
+	Long         float64 `json:"long"`
 }
 
 type User struct {
@@ -37,7 +36,7 @@ func newUser(world *World, lat float64, long float64, name string, id string) (*
 		connections: make([]*Connection, 0),
 		world:       world,
 	}
-	err := world.users.Set(u)
+	err := world.cache.SetUser(u)
 	return u, err
 }
 
@@ -51,10 +50,6 @@ func (u *User) ID() string {
 
 func (u *User) Name() string {
 	return u.userJSON.Name
-}
-
-func (u *User) Zone() types.Zone {
-	return u.userJSON.Zone
 }
 
 func (u *User) NewConnection() (types.Connection, error) {
@@ -80,33 +75,6 @@ func (u *User) Disconnect(c types.Connection) error {
 	return nil
 }
 
-// func (u *User) JoinZone(z *Zone) {
-// 	u.isOnline = true
-// 	u.zone = z
-// 	u.zone.join(u)
-// 	UserCache.Set(u)
-// }
-
-// func (u *User) JoinNextAvailableZone() (*Zone, error) {
-// 	zone, err := getOrCreateAvailableZone(u.lat, u.long)
-//
-// 	if err == nil {
-// 		u.JoinZone(zone)
-// 	}
-// 	return zone, err
-// }
-//
-// func (u *User) LeaveZone() {
-// 	u.isOnline = false
-// 	u.zone.leave(u)
-// 	u.zone = nil
-// 	UserCache.Set(u)
-// }
-//
-
-//
-
-//
 // // ExecuteCommand allows certain subscribers to issue administrative commands.
 // func (u *User) ExecuteCommand(command string) (string, error) {
 // 	args := strings.Split(command, " ")
