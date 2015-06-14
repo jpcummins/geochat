@@ -1,5 +1,30 @@
 package chat
 
+import (
+	"github.com/jpcummins/geochat/app/cache"
+	// "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"testing"
+)
+
+type WorldTestSuite struct {
+	suite.Suite
+	cache *cache.MockCache
+	world *World
+}
+
+func (suite *WorldTestSuite) SetupTest() {
+	suite.cache = &cache.MockCache{}
+}
+
+func (suite *WorldTestSuite) TestNewZone() {
+
+}
+
+func TestWorldSuite(t *testing.T) {
+	suite.Run(t, new(WorldTestSuite))
+}
+
 //
 // import (
 // 	"github.com/stretchr/testify/assert"

@@ -20,7 +20,8 @@ func (suite *UserTestSuite) SetupTest() {
 	suite.cache = &cache.MockCache{}
 	suite.cache.On("SetUser", mock.Anything).Return(nil)
 	suite.cache.On("SetZone", mock.Anything).Return(nil)
-	suite.world = newWorld(suite.cache, 1)
+	world, _ = newWorld(suite.cache, 1)
+	suite.world = world
 	suite.user = newUser(47.6235616, -122.330341, "test", "testid")
 }
 

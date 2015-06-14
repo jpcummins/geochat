@@ -2,6 +2,7 @@ package chat
 
 import (
 	"github.com/jpcummins/geochat/app/cache"
+	"github.com/jpcummins/geochat/app/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -11,27 +12,31 @@ type ZoneTestSuite struct {
 	suite.Suite
 	cache *cache.MockCache
 	world *World
-	root  *Zone
+	root  types.Zone
 }
 
 func (suite *ZoneTestSuite) SetupTest() {
 	suite.cache = &cache.MockCache{}
-	suite.world = newWorld(suite.cache, 2)
-	suite.root = suite.world.root
+
+	world, err := newWorld(suite.cache, 2)
+	assert.NoError(suite.T(), err)
+
+	suite.world = world
+	suite.root = world.root
 }
 
 func (suite *ZoneTestSuite) TestNewZone() {
 	assert.Equal(suite.T(), ":0z", suite.root.ID())
-	assert.Equal(suite.T(), float64(90), suite.root.boundary.NorthEastLat)
-	assert.Equal(suite.T(), float64(180), suite.root.boundary.NorthEastLong)
-	assert.Equal(suite.T(), float64(-90), suite.root.boundary.SouthWestLat)
-	assert.Equal(suite.T(), float64(-180), suite.root.boundary.SouthWestLong)
-	assert.Equal(suite.T(), "", suite.root.geohash)
-	assert.Equal(suite.T(), byte('0'), suite.root.from)
-	assert.Equal(suite.T(), byte('z'), suite.root.to)
-	assert.Nil(suite.T(), suite.root.parent)
-	assert.Nil(suite.T(), suite.root.left)
-	assert.Nil(suite.T(), suite.root.right)
+	assert.Equal(suite.T(), float64(90), suite.root.NorthEast().Lat())
+	assert.Equal(suite.T(), float64(180), suite.root.NorthEast().Lng())
+	assert.Equal(suite.T(), float64(-90), suite.root.SouthWest().Lat())
+	assert.Equal(suite.T(), float64(-180), suite.root.SouthWest().Lng())
+	assert.Equal(suite.T(), "", suite.root.Geohash())
+	assert.Equal(suite.T(), byte('0'), suite.root.From())
+	assert.Equal(suite.T(), byte('z'), suite.root.To())
+	assert.Nil(suite.T(), suite.root.Parent())
+	assert.Nil(suite.T(), suite.root.Left())
+	assert.Nil(suite.T(), suite.root.Right())
 	assert.Equal(suite.T(), 0, suite.root.Count())
 	assert.True(suite.T(), suite.root.IsOpen())
 }
@@ -107,7 +112,7 @@ func (suite *ZoneTestSuite) TestMarshalJSON() {
 	suite.root.AddUser(user2)
 
 	b, err := suite.root.MarshalJSON()
-	assert.Equal(suite.T(), "{\"id\":\":0z\",\"user_ids\":[\"user1\",\"user2\"]}", string(b))
+	assert.Equal(suite.T(), "{\"id\":\":0z\",\"user_ids\":[\"user1\",\"user2\"],\"is_open\":false}", string(b))
 	assert.NoError(suite.T(), err)
 }
 

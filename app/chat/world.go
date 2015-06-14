@@ -11,20 +11,27 @@ import (
 var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 
 type World struct {
-	root      *Zone
-	cache     types.Cache
-	subscribe <-chan types.Event
+	root            types.Zone
+	cache           types.Cache
+	maxUsersPerZone int
+	subscribe       <-chan types.Event
 }
 
-func newWorld(c types.Cache, maxUsersPerZone int) *World {
+func newWorld(cache types.Cache, maxUsersPerZone int) (*World, error) {
 	world := &World{
-		cache:     c,
-		subscribe: make(<-chan types.Event),
-		root:      newZone("", '0', 'z', nil, maxUsersPerZone),
+		cache:           cache,
+		maxUsersPerZone: maxUsersPerZone,
+		subscribe:       make(<-chan types.Event),
 	}
 
+	root, err := world.GetOrCreateZone(":0z")
+	if err != nil {
+		return nil, err
+	}
+
+	world.root = root
 	go world.manage()
-	return world
+	return world, nil
 }
 
 func (w *World) manage() { // It's a tough job.
@@ -34,6 +41,26 @@ func (w *World) manage() { // It's a tough job.
 			event.Data().OnReceive(event)
 		}
 	}
+}
+
+func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
+	zone, err := w.cache.Zone(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if zone == nil {
+		zone, err = newZone(id, world.maxUsersPerZone)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := w.cache.SetZone(zone); err != nil {
+			return nil, err
+		}
+	}
+
+	return zone, nil
 }
 
 //
