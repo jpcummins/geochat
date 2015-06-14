@@ -5,6 +5,6 @@ type Zone interface {
 	Count() int
 	IsOpen() bool
 	Broadcast(Event)
-	AddUser(User) error
-	RemoveUser(string) error
+	AddUser(User)
+	RemoveUser(string)
 }

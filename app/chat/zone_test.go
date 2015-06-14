@@ -3,7 +3,6 @@ package chat
 import (
 	"github.com/jpcummins/geochat/app/cache"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -17,21 +16,16 @@ type ZoneTestSuite struct {
 
 func (suite *ZoneTestSuite) SetupTest() {
 	suite.cache = &cache.MockCache{}
-	suite.cache.On("SetZone", mock.Anything).Return(nil)
-
-	world, err := newWorld(suite.cache, 2) // SetZone called for cache
-	assert.NoError(suite.T(), err)
-	suite.world = world
-	suite.root = world.root
-	suite.cache.AssertCalled(suite.T(), "SetZone", suite.world.root)
+	suite.world = newWorld(suite.cache, 2)
+	suite.root = suite.world.root
 }
 
 func (suite *ZoneTestSuite) TestNewZone() {
 	assert.Equal(suite.T(), ":0z", suite.root.ID())
-	assert.Equal(suite.T(), 90, suite.root.boundary.NorthEastLat)
-	assert.Equal(suite.T(), 180, suite.root.boundary.NorthEastLong)
-	assert.Equal(suite.T(), -90, suite.root.boundary.SouthWestLat)
-	assert.Equal(suite.T(), -180, suite.root.boundary.SouthWestLong)
+	assert.Equal(suite.T(), float64(90), suite.root.boundary.NorthEastLat)
+	assert.Equal(suite.T(), float64(180), suite.root.boundary.NorthEastLong)
+	assert.Equal(suite.T(), float64(-90), suite.root.boundary.SouthWestLat)
+	assert.Equal(suite.T(), float64(-180), suite.root.boundary.SouthWestLong)
 	assert.Equal(suite.T(), "", suite.root.geohash)
 	assert.Equal(suite.T(), byte('0'), suite.root.from)
 	assert.Equal(suite.T(), byte('z'), suite.root.to)
@@ -48,7 +42,6 @@ func (suite *ZoneTestSuite) TestAddUser() {
 	suite.root.AddUser(user)
 	assert.Equal(suite.T(), 1, suite.root.Count())
 	assert.True(suite.T(), suite.root.IsOpen())
-	suite.cache.AssertNumberOfCalls(suite.T(), "SetZone", 2)
 }
 
 func (suite *ZoneTestSuite) TestMaxUsersClosesRoom() {
@@ -60,7 +53,6 @@ func (suite *ZoneTestSuite) TestMaxUsersClosesRoom() {
 	suite.root.AddUser(user2) // SetZone called for cache
 	assert.Equal(suite.T(), 2, suite.root.Count())
 	assert.False(suite.T(), suite.root.IsOpen())
-	suite.cache.AssertNumberOfCalls(suite.T(), "SetZone", 3)
 }
 
 func (suite *ZoneTestSuite) TestRemoveUser() {
@@ -71,7 +63,6 @@ func (suite *ZoneTestSuite) TestRemoveUser() {
 	assert.Equal(suite.T(), 1, suite.root.Count())
 	suite.root.RemoveUser("user1") // SetZone called
 	assert.Equal(suite.T(), 0, suite.root.Count())
-	suite.cache.AssertNumberOfCalls(suite.T(), "SetZone", 3)
 }
 
 func (suite *ZoneTestSuite) TestRemoveUserOpensRoom() {
@@ -85,7 +76,6 @@ func (suite *ZoneTestSuite) TestRemoveUserOpensRoom() {
 	suite.root.RemoveUser("user1") // SetZone called
 	assert.True(suite.T(), suite.root.IsOpen())
 	assert.Equal(suite.T(), 1, suite.root.Count())
-	suite.cache.AssertNumberOfCalls(suite.T(), "SetZone", 4)
 }
 
 func (suite *ZoneTestSuite) TestBroadcast() {
@@ -105,6 +95,20 @@ func (suite *ZoneTestSuite) TestBroadcast() {
 
 	user1.AssertCalled(suite.T(), "Broadcast", event)
 	user2.AssertCalled(suite.T(), "Broadcast", event)
+}
+
+func (suite *ZoneTestSuite) TestMarshalJSON() {
+	user1 := &mockUser{}
+	user1.On("ID").Return("user1")
+	suite.root.AddUser(user1)
+
+	user2 := &mockUser{}
+	user2.On("ID").Return("user2")
+	suite.root.AddUser(user2)
+
+	b, err := suite.root.MarshalJSON()
+	assert.Equal(suite.T(), "{\"id\":\":0z\",\"user_ids\":[\"user1\",\"user2\"]}", string(b))
+	assert.NoError(suite.T(), err)
 }
 
 func TestZoneTestSuit(t *testing.T) {

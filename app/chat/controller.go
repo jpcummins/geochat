@@ -16,11 +16,5 @@ func Init() {
 
 	redisConnection := connection.NewRedisConnection(redisServer)
 	cache := cache.NewCache(redisConnection)
-	w, err := newWorld(cache, 10)
-
-	if err != nil {
-		panic(err)
-	}
-
-	world = w
+	world = newWorld(cache, 10)
 }

@@ -20,14 +20,8 @@ func (suite *UserTestSuite) SetupTest() {
 	suite.cache = &cache.MockCache{}
 	suite.cache.On("SetUser", mock.Anything).Return(nil)
 	suite.cache.On("SetZone", mock.Anything).Return(nil)
-	world, err := newWorld(suite.cache, 1)
-	assert.NoError(suite.T(), err)
-	suite.world = world
-
-	u, err := suite.world.NewUser(47.6235616, -122.330341, "test", "testid")
-	suite.user = u
-	assert.NoError(suite.T(), err)
-	suite.cache.AssertCalled(suite.T(), "SetUser", suite.user)
+	suite.world = newWorld(suite.cache, 1)
+	suite.user = newUser(47.6235616, -122.330341, "test", "testid")
 }
 
 func (suite *UserTestSuite) TestNewUser() {

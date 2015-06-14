@@ -1,22 +1,25 @@
 package chat
 
 import (
-	// "encoding/json"
+	"encoding/json"
 	gh "github.com/TomiHiltunen/geohash-golang"
 	"github.com/jpcummins/geochat/app/types"
 	"strings"
 	"sync"
 )
 
-// Zone represesnts a chat zone
+type zoneJSON struct {
+	ID      string   `json:"id"`
+	UserIDs []string `json:"user_ids"`
+}
+
 type Zone struct {
 	sync.RWMutex
-	id       string
+	*zoneJSON
 	boundary *ZoneBoundary
 	geohash  string
 	from     byte
 	to       byte
-	world    *World
 	parent   *Zone
 	left     *Zone
 	right    *Zone
@@ -25,7 +28,6 @@ type Zone struct {
 	users    map[string]types.User
 }
 
-// ZoneBoundary provides the lat/long coordinates of the zone
 type ZoneBoundary struct {
 	SouthWestLat  float64 `json:"swlat"`
 	SouthWestLong float64 `json:"swlong"`
@@ -33,12 +35,24 @@ type ZoneBoundary struct {
 	NorthEastLong float64 `json:"nelong"`
 }
 
-func newZone(world *World, geohash string, from byte, to byte, parent *Zone, maxUsers int) (*Zone, error) {
+func (z *Zone) MarshalJSON() ([]byte, error) {
+	z.RLock()
+	z.zoneJSON.UserIDs = make([]string, 0, len(z.users))
+	for id, _ := range z.users {
+		z.zoneJSON.UserIDs = append(z.zoneJSON.UserIDs, id)
+	}
+	z.RUnlock()
+	return json.Marshal(z.zoneJSON)
+}
+
+func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zone {
 	sw := gh.Decode(geohash + string(from))
 	ne := gh.Decode(geohash + string(to))
 
 	zone := &Zone{
-		id:      geohash + ":" + string(from) + string(to),
+		zoneJSON: &zoneJSON{
+			ID: geohash + ":" + string(from) + string(to),
+		},
 		geohash: geohash,
 		boundary: &ZoneBoundary{
 			SouthWestLat:  sw.SouthWest().Lat(),
@@ -52,10 +66,8 @@ func newZone(world *World, geohash string, from byte, to byte, parent *Zone, max
 		maxUsers: maxUsers,
 		users:    make(map[string]types.User),
 		isOpen:   true,
-		world:    world,
 	}
-	err := world.cache.SetZone(zone)
-	return zone, err
+	return zone
 }
 
 func (z *Zone) createChildZones() {
@@ -64,16 +76,16 @@ func (z *Zone) createChildZones() {
 
 	if toI-fromI > 1 {
 		split := (toI - fromI) / 2
-		z.left, _ = newZone(z.world, z.geohash, z.from, geohashmap[fromI+split], z, z.maxUsers)
-		z.right, _ = newZone(z.world, z.geohash, geohashmap[fromI+split+1], z.to, z, z.maxUsers)
+		z.left = newZone(z.geohash, z.from, geohashmap[fromI+split], z, z.maxUsers)
+		z.right = newZone(z.geohash, geohashmap[fromI+split+1], z.to, z, z.maxUsers)
 	} else {
-		z.left, _ = newZone(z.world, z.geohash+string(z.from), '0', 'z', z, z.maxUsers)
-		z.right, _ = newZone(z.world, z.geohash+string(z.to), '0', 'z', z, z.maxUsers)
+		z.left = newZone(z.geohash+string(z.from), '0', 'z', z, z.maxUsers)
+		z.right = newZone(z.geohash+string(z.to), '0', 'z', z, z.maxUsers)
 	}
 }
 
 func (z *Zone) ID() string {
-	return z.id
+	return z.zoneJSON.ID
 }
 
 func (z *Zone) Count() int {
@@ -87,20 +99,16 @@ func (z *Zone) IsOpen() bool {
 	return z.Count() < z.maxUsers
 }
 
-func (z *Zone) AddUser(user types.User) error {
+func (z *Zone) AddUser(user types.User) {
 	z.Lock()
 	z.users[user.ID()] = user
-	err := z.world.cache.SetZone(z)
 	z.Unlock()
-	return err
 }
 
-func (z *Zone) RemoveUser(id string) error {
+func (z *Zone) RemoveUser(id string) {
 	z.Lock()
 	delete(z.users, id)
-	err := z.world.cache.SetZone(z)
 	z.Unlock()
-	return err
 }
 
 func (z *Zone) Broadcast(event types.Event) {

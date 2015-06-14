@@ -23,7 +23,7 @@ type User struct {
 	world       *World
 }
 
-func newUser(world *World, lat float64, long float64, name string, id string) (*User, error) {
+func newUser(lat float64, long float64, name string, id string) *User {
 	u := &User{
 		userJSON: &userJSON{
 			ID:           id,
@@ -36,8 +36,7 @@ func newUser(world *World, lat float64, long float64, name string, id string) (*
 		connections: make([]types.Connection, 0),
 		world:       world,
 	}
-	err := world.cache.SetUser(u)
-	return u, err
+	return u
 }
 
 func (u *User) UnmarshalJSON(b []byte) error {
