@@ -143,13 +143,7 @@ func (z *Zone) AddUser(user types.User) {
 func (z *Zone) RemoveUser(id string) {
 	z.Lock()
 	delete(z.users, id)
-	count := len(z.users)
 	z.Unlock()
-
-	// TODO: use SetIsOpen(bool) instead
-	if count < z.MaxUsers() {
-		z.zoneJSON.IsOpen = true
-	}
 }
 
 func (z *Zone) Broadcast(event types.Event) {
