@@ -3,10 +3,11 @@ package chat
 import (
 	"github.com/jpcummins/geochat/app/cache"
 	"github.com/jpcummins/geochat/app/connection"
+	"github.com/jpcummins/geochat/app/types"
 	"os"
 )
 
-var world *World
+var world types.World
 
 func Init() {
 	redisServer := os.Getenv("REDISTOGO_URL")
@@ -16,7 +17,9 @@ func Init() {
 
 	redisConnection := connection.NewRedisConnection(redisServer)
 	cache := cache.NewCache(redisConnection)
-	w, err := newWorld(cache, 10)
+
+	factory := &Factory{}
+	w, err := factory.NewWorld(cache, 10)
 
 	if err != nil {
 		panic(err)

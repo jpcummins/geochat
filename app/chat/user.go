@@ -20,7 +20,6 @@ type User struct {
 	*userJSON
 	sync.RWMutex
 	connections []types.Connection
-	world       *World
 }
 
 func newUser(lat float64, long float64, name string, id string) *User {
@@ -34,7 +33,6 @@ func newUser(lat float64, long float64, name string, id string) *User {
 			Long:         long,
 		},
 		connections: make([]types.Connection, 0),
-		world:       world,
 	}
 	return u
 }

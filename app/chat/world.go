@@ -13,13 +13,15 @@ var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 type World struct {
 	root            types.Zone
 	cache           types.Cache
+	factory         types.Factory
 	maxUsersPerZone int
 	subscribe       <-chan types.Event
 }
 
-func newWorld(cache types.Cache, maxUsersPerZone int) (*World, error) {
+func newWorld(cache types.Cache, factory types.Factory, maxUsersPerZone int) (*World, error) {
 	world := &World{
 		cache:           cache,
+		factory:         factory,
 		maxUsersPerZone: maxUsersPerZone,
 		subscribe:       make(<-chan types.Event),
 	}
@@ -43,6 +45,14 @@ func (w *World) manage() { // It's a tough job.
 	}
 }
 
+func (w *World) Factory() types.Factory {
+	return w.factory
+}
+
+func (w *World) MaxUsersForNewZones() int {
+	return w.maxUsersPerZone
+}
+
 func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	zone, err := w.cache.Zone(id)
 	if err != nil {
@@ -50,7 +60,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	}
 
 	if zone == nil {
-		zone, err = newZone(id, world.maxUsersPerZone)
+		zone, err = w.factory.NewZone(w, id)
 		if err != nil {
 			return nil, err
 		}

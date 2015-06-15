@@ -15,9 +15,9 @@ type Zone interface {
 	Left() Zone
 	Right() Zone
 	MaxUsers() int
-
 	Count() int
 	IsOpen() bool
+	SetIsOpen(bool)
 	Broadcast(Event)
 	AddUser(User)
 	RemoveUser(string)

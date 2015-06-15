@@ -1,24 +1,146 @@
 package chat
 
 import (
-	"github.com/jpcummins/geochat/app/cache"
-	// "github.com/stretchr/testify/assert"
+	"errors"
+	"github.com/jpcummins/geochat/app/mocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
 
 type WorldTestSuite struct {
 	suite.Suite
-	cache *cache.MockCache
-	world *World
+	cache   *mocks.Cache
+	factory *mocks.Factory
 }
 
 func (suite *WorldTestSuite) SetupTest() {
-	suite.cache = &cache.MockCache{}
+	suite.cache = &mocks.Cache{}
+	suite.factory = &mocks.Factory{}
 }
 
-func (suite *WorldTestSuite) TestNewZone() {
+func (suite *WorldTestSuite) TestNewWorld() {
+	mockZone := &mocks.Zone{}
+	suite.cache.On("Zone", ":0z").Return(mockZone, nil)
 
+	world, err := newWorld(suite.cache, suite.factory, 2)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), mockZone, world.root)
+	assert.Equal(suite.T(), suite.cache, world.cache)
+	assert.Equal(suite.T(), 2, world.maxUsersPerZone)
+}
+
+func (suite *WorldTestSuite) TestNewWorldReturnsError() {
+	worldErr := errors.New("err")
+	suite.cache.On("Zone", ":0z").Return(nil, worldErr)
+	world, err := newWorld(suite.cache, suite.factory, 2)
+	assert.Equal(suite.T(), err, worldErr)
+	assert.Nil(suite.T(), world)
+}
+
+func (suite *WorldTestSuite) TestNewWorldErrorOnCreation() {
+	err := errors.New("test error")
+	suite.cache.On("Zone", ":0z").Return(nil, err)
+
+	world, err := newWorld(suite.cache, suite.factory, 2)
+	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), world)
+}
+
+func (suite *WorldTestSuite) TestGetOrCreateZone() {
+	world := &World{
+		cache:           suite.cache,
+		maxUsersPerZone: 1,
+	}
+
+	zone := &mocks.Zone{}
+	suite.cache.On("Zone", ":0z").Return(zone, nil)
+
+	z, err := world.GetOrCreateZone(":0z")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), zone, z)
+}
+
+func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
+	zone := &mocks.Zone{}
+	suite.cache.On("Zone", ":0z").Return(nil, nil)
+	suite.cache.On("SetZone", zone).Return(nil)
+
+	world := &World{
+		cache:           suite.cache,
+		factory:         suite.factory,
+		maxUsersPerZone: 22,
+	}
+
+	suite.factory.On("NewZone", world, ":0z").Return(zone, nil)
+
+	z, err := world.GetOrCreateZone(":0z")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), zone, z)
+
+	suite.cache.AssertCalled(suite.T(), "Zone", ":0z")
+	suite.cache.AssertCalled(suite.T(), "SetZone", zone)
+	suite.factory.AssertCalled(suite.T(), "NewZone", world, ":0z")
+}
+
+func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
+	newZoneErr := errors.New("err")
+	suite.cache.On("Zone", ":0z").Return(nil, nil)
+
+	world := &World{
+		cache:           suite.cache,
+		factory:         suite.factory,
+		maxUsersPerZone: 22,
+	}
+
+	suite.factory.On("NewZone", world, ":0z").Return(nil, newZoneErr)
+
+	z, err := world.GetOrCreateZone(":0z")
+	assert.Nil(suite.T(), z)
+	assert.Equal(suite.T(), newZoneErr, err)
+
+	suite.cache.AssertCalled(suite.T(), "Zone", ":0z")
+	suite.factory.AssertCalled(suite.T(), "NewZone", world, ":0z")
+}
+
+func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
+	zone := &mocks.Zone{}
+	setZoneErr := errors.New("err")
+	suite.cache.On("Zone", ":0z").Return(nil, nil)
+	suite.cache.On("SetZone", zone).Return(setZoneErr)
+
+	world := &World{
+		cache:           suite.cache,
+		factory:         suite.factory,
+		maxUsersPerZone: 22,
+	}
+
+	suite.factory.On("NewZone", world, ":0z").Return(zone, nil)
+
+	z, err := world.GetOrCreateZone(":0z")
+	assert.Nil(suite.T(), z)
+	assert.Equal(suite.T(), setZoneErr, err)
+
+	suite.cache.AssertCalled(suite.T(), "Zone", ":0z")
+	suite.cache.AssertCalled(suite.T(), "SetZone", zone)
+	suite.factory.AssertCalled(suite.T(), "NewZone", world, ":0z")
+}
+
+func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRoot() {
+	zone := &mocks.Zone{}
+	suite.cache.On("Zone", ":0z").Return(zone, nil)
+
+	world1, err1 := newWorld(suite.cache, nil, 1)
+	world2, err2 := newWorld(suite.cache, nil, 1)
+	world3, err3 := newWorld(suite.cache, nil, 1)
+
+	assert.Equal(suite.T(), zone, world1.root)
+	assert.Equal(suite.T(), zone, world2.root)
+	assert.Equal(suite.T(), zone, world3.root)
+
+	assert.NoError(suite.T(), err1)
+	assert.NoError(suite.T(), err2)
+	assert.NoError(suite.T(), err3)
 }
 
 func TestWorldSuite(t *testing.T) {

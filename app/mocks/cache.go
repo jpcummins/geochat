@@ -1,35 +1,40 @@
-package cache
+package mocks
 
 import (
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/stretchr/testify/mock"
 )
 
-type MockCache struct {
+type Cache struct {
 	mock.Mock
 }
 
-func (m *MockCache) User(id string) (types.User, error) {
+func (m *Cache) User(id string) (types.User, error) {
 	args := m.Called(id)
 	return args.Get(0).(types.User), args.Error(1)
 }
 
-func (m *MockCache) SetUser(user types.User) error {
+func (m *Cache) SetUser(user types.User) error {
 	args := m.Called(user)
 	return args.Error(0)
 }
 
-func (m *MockCache) Zone(id string) (types.Zone, error) {
+func (m *Cache) Zone(id string) (types.Zone, error) {
 	args := m.Called(id)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
 	return args.Get(0).(types.Zone), args.Error(1)
 }
 
-func (m *MockCache) SetZone(zone types.Zone) error {
-	args := m.Called(zone)
+func (m *Cache) SetZone(z types.Zone) error {
+	args := m.Called(z)
 	return args.Error(0)
 }
 
-func (m *MockCache) GetZoneForUser(id string) (types.Zone, error) {
+func (m *Cache) GetZoneForUser(id string) (types.Zone, error) {
 	args := m.Called(id)
 	return args.Get(0).(types.Zone), args.Error(1)
 }

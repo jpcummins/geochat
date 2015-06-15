@@ -1,7 +1,7 @@
 package chat
 
 import (
-	"github.com/jpcummins/geochat/app/cache"
+	"github.com/jpcummins/geochat/app/mocks"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -11,17 +11,14 @@ import (
 
 type UserTestSuite struct {
 	suite.Suite
-	cache *cache.MockCache
-	world *World
+	cache *mocks.Cache
 	user  *User
 }
 
 func (suite *UserTestSuite) SetupTest() {
-	suite.cache = &cache.MockCache{}
+	suite.cache = &mocks.Cache{}
 	suite.cache.On("SetUser", mock.Anything).Return(nil)
 	suite.cache.On("SetZone", mock.Anything).Return(nil)
-	world, _ = newWorld(suite.cache, 1)
-	suite.world = world
 	suite.user = newUser(47.6235616, -122.330341, "test", "testid")
 }
 
@@ -31,19 +28,19 @@ func (suite *UserTestSuite) TestNewUser() {
 }
 
 func (suite *UserTestSuite) TestAddConnection() {
-	connection := &mockConnection{}
+	connection := &mocks.Connection{}
 	suite.user.AddConnection(connection)
 	assert.Equal(suite.T(), 1, len(suite.user.connections))
 }
 
 func (suite *UserTestSuite) TestMultipleConnections() {
-	suite.user.AddConnection(&mockConnection{})
-	suite.user.AddConnection(&mockConnection{})
+	suite.user.AddConnection(&mocks.Connection{})
+	suite.user.AddConnection(&mocks.Connection{})
 	assert.Equal(suite.T(), 2, len(suite.user.connections))
 }
 
 func (suite *UserTestSuite) TestDisconnect() {
-	c1 := &mockConnection{}
+	c1 := &mocks.Connection{}
 	suite.user.AddConnection(c1)
 	assert.Equal(suite.T(), 1, len(suite.user.connections))
 	suite.user.RemoveConnection(c1)
@@ -51,9 +48,9 @@ func (suite *UserTestSuite) TestDisconnect() {
 }
 
 func (suite *UserTestSuite) TestDisconnectWithMultipleConnections() {
-	connection1 := &mockConnection{}
-	connection2 := &mockConnection{}
-	connection3 := &mockConnection{}
+	connection1 := &mocks.Connection{}
+	connection2 := &mocks.Connection{}
+	connection3 := &mocks.Connection{}
 
 	suite.user.AddConnection(connection1)
 	suite.user.AddConnection(connection2)
@@ -67,15 +64,15 @@ func (suite *UserTestSuite) TestDisconnectWithMultipleConnections() {
 }
 
 func (suite *UserTestSuite) TestBroadcast() {
-	connection1 := &mockConnection{}
+	connection1 := &mocks.Connection{}
 	ch1 := make(chan types.Event, 1)
 	connection1.On("Events").Return(ch1)
 
-	connection2 := &mockConnection{}
+	connection2 := &mocks.Connection{}
 	ch2 := make(chan types.Event, 1)
 	connection2.On("Events").Return(ch2)
 
-	connection3 := &mockConnection{}
+	connection3 := &mocks.Connection{}
 	ch3 := make(chan types.Event, 1)
 	connection3.On("Events").Return(ch3)
 
@@ -83,7 +80,7 @@ func (suite *UserTestSuite) TestBroadcast() {
 	suite.user.AddConnection(connection2)
 	suite.user.AddConnection(connection3)
 
-	event := &mockEvent{}
+	event := &mocks.Event{}
 	suite.user.Broadcast(event)
 
 	connection1.AssertCalled(suite.T(), "Events")

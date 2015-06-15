@@ -31,7 +31,7 @@ type Zone struct {
 	users     map[string]types.User
 }
 
-func newZone(id string, maxUsers int) (*Zone, error) {
+func newZone(world types.World, id string) (*Zone, error) {
 	geohash, from, to, err := validateZoneID(id)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func newZone(id string, maxUsers int) (*Zone, error) {
 		zoneJSON: &zoneJSON{
 			ID:       geohash + ":" + string(from) + string(to),
 			IsOpen:   true,
-			MaxUsers: maxUsers,
+			MaxUsers: world.MaxUsersForNewZones(),
 		},
 		southWest: gh.Decode(geohash + string(from)).SouthWest(),
 		northEast: gh.Decode(geohash + string(to)).NorthEast(),
@@ -130,16 +130,14 @@ func (z *Zone) IsOpen() bool {
 	return z.zoneJSON.IsOpen
 }
 
+func (z *Zone) SetIsOpen(isOpen bool) {
+	z.zoneJSON.IsOpen = isOpen
+}
+
 func (z *Zone) AddUser(user types.User) {
 	z.Lock()
 	z.users[user.ID()] = user
-	count := len(z.users)
 	z.Unlock()
-
-	// TODO: use SetIsOpen(bool) instead
-	if count >= z.MaxUsers() {
-		z.zoneJSON.IsOpen = false
-	}
 }
 
 func (z *Zone) RemoveUser(id string) {
