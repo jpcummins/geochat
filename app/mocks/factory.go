@@ -28,3 +28,8 @@ func (f *Factory) NewUser(id string, name string, location types.LatLng) (types.
 	args := f.Called(id, name, location)
 	return args.Get(0).(types.User), args.Error(1)
 }
+
+func (f *Factory) NewEvent(id string, world types.World, data types.EventData) (types.Event, error) {
+	args := f.Called(id, world, data)
+	return args.Get(0).(types.Event), args.Error(1)
+}

@@ -20,7 +20,7 @@ type Event struct {
 	data types.EventData
 }
 
-func newEvent(id string, world types.World, data types.EventData) *Event {
+func newEvent(id string, world types.World, data types.EventData) (*Event, error) {
 	return &Event{
 		eventJSON: &eventJSON{
 			ID:      id,
@@ -28,7 +28,7 @@ func newEvent(id string, world types.World, data types.EventData) *Event {
 			WorldID: world.ID(),
 		},
 		data: data,
-	}
+	}, nil
 }
 
 func (e *Event) ID() string {

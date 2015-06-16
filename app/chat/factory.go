@@ -17,3 +17,7 @@ func (f *Factory) NewZone(id string, maxUsers int) (types.Zone, error) {
 func (f *Factory) NewUser(id string, name string, location types.LatLng) (types.User, error) {
 	return newUser(id, name, location), nil
 }
+
+func (f *Factory) NewEvent(id string, world types.World, data types.EventData) (types.Event, error) {
+	return newEvent(id, world, data)
+}
