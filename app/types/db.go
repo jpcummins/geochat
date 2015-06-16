@@ -2,7 +2,7 @@ package types
 
 type DB interface {
 	Publish(Event) error
-	Subscribe(Zone) <-chan Event
+	Subscribe(World) <-chan Event
 
 	GetUser(string) (User, error)
 	SetUser(User) error

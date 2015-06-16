@@ -46,7 +46,7 @@ func (r *Redis) Publish(event types.Event) error {
 	return nil
 }
 
-func (r *Redis) Subscribe(zone types.Zone) <-chan types.Event {
+func (r *Redis) Subscribe(world types.World) <-chan types.Event {
 	return make(<-chan types.Event)
 }
 

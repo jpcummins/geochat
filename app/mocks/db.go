@@ -14,8 +14,8 @@ func (m *DB) Publish(event types.Event) error {
 
 	return r0
 }
-func (m *DB) Subscribe(zone types.Zone) <-chan types.Event {
-	ret := m.Called(zone)
+func (m *DB) Subscribe(world types.World) <-chan types.Event {
+	ret := m.Called(world)
 
 	var r0 <-chan types.Event
 	if ret.Get(0) != nil {
