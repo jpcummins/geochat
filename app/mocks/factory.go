@@ -9,8 +9,8 @@ type Factory struct {
 	mock.Mock
 }
 
-func (f *Factory) NewWorld(cache types.Cache) (types.World, error) {
-	args := f.Called(cache)
+func (f *Factory) NewWorld(id string, cache types.Cache) (types.World, error) {
+	args := f.Called(id, cache)
 	return args.Get(0).(types.World), args.Error(1)
 }
 

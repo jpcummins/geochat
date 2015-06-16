@@ -10,10 +10,36 @@ import (
 	"time"
 )
 
-type Event struct {
-	Type string          `json:"type"`
+type eventJSON struct {
 	ID   string          `json:"id"`
+	Type string          `json:"type"`
 	Data types.EventData `json:"data,omitempty"`
+}
+
+type Event struct {
+	*eventJSON
+	world types.World
+	zone  types.Zone
+}
+
+func (e *Event) ID() string {
+	return e.eventJSON.ID
+}
+
+func (e *Event) Type() string {
+	return e.eventJSON.Type
+}
+
+func (e *Event) World() types.World {
+	return e.world
+}
+
+func (e *Event) Zone() types.Zone {
+	return e.zone
+}
+
+func (e *Event) Data() types.EventData {
+	return e.eventJSON.Data
 }
 
 func (e *Event) UnmarshalJSON(b []byte) error {
@@ -62,6 +88,10 @@ func randomSequence(n int) string {
 	return string(b)
 }
 
-func NewEvent(data types.EventData) *Event {
-	return &Event{Type: data.Type(), Data: data, ID: fmt.Sprintf("%d%s", time.Now().Unix(), randomSequence(4))}
+func newEvent(data types.EventData) *Event {
+	return &Event{
+		Type: data.Type(),
+		Data: data,
+		ID:   fmt.Sprintf("%s:%d%s", data.World().ID(), time.Now().Unix(), randomSequence(4)),
+	}
 }

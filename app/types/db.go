@@ -1,12 +1,12 @@
 package types
 
 type DB interface {
-	Publish(event Event) error
-	Subscribe(zone Zone) <-chan Event
+	Publish(Event) error
+	Subscribe(Zone) <-chan Event
 
-	GetUser(id string) (User, error)
-	SetUser(user User) error
+	GetUser(string) (User, error)
+	SetUser(User) error
 
-	GetZone(id string) (Zone, error)
-	SetZone(zone Zone) error
+	GetZone(string) (Zone, error)
+	SetZone(Zone) error
 }

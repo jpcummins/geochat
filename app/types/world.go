@@ -1,6 +1,7 @@
 package types
 
 type World interface {
-	GetOrCreateZone(id string) (Zone, error)
-	GetOrCreateZoneForUser(user User) (Zone, error)
+	ID() string
+	GetOrCreateZone(string) (Zone, error)
+	GetOrCreateZoneForUser(User) (Zone, error)
 }

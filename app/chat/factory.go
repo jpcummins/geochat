@@ -6,8 +6,8 @@ import (
 
 type Factory struct{}
 
-func (f *Factory) NewWorld(cache types.Cache) (types.World, error) {
-	return newWorld(cache, f, 3)
+func (f *Factory) NewWorld(id string, cache types.Cache) (types.World, error) {
+	return newWorld(id, cache, f, 3)
 }
 
 func (f *Factory) NewZone(id string, maxUsers int) (types.Zone, error) {

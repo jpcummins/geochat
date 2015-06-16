@@ -9,6 +9,11 @@ type World struct {
 	mock.Mock
 }
 
+func (m *World) ID() string {
+	args := m.Called()
+	return args.String(0)
+}
+
 func (m *World) GetOrCreateZone(id string) (types.Zone, error) {
 	args := m.Called(id)
 	return args.Get(0).(types.Zone), args.Error(1)

@@ -28,3 +28,25 @@ func (m *Event) Data() types.EventData {
 	args := m.Called()
 	return args.Get(0).(types.EventData)
 }
+
+type EventData struct {
+	mock.Mock
+}
+
+func (m *EventData) Type() string {
+	ret := m.Called()
+	r0 := ret.Get(0).(string)
+	return r0
+}
+
+func (m *EventData) BeforePublish(_a0 types.Event) error {
+	ret := m.Called(_a0)
+	r0 := ret.Error(0)
+	return r0
+}
+
+func (m *EventData) OnReceive(_a0 types.Event) error {
+	ret := m.Called(_a0)
+	r0 := ret.Error(0)
+	return r0
+}

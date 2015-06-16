@@ -7,6 +7,7 @@ import (
 )
 
 type World struct {
+	id              string
 	root            types.Zone
 	cache           types.Cache
 	factory         types.Factory
@@ -14,8 +15,9 @@ type World struct {
 	subscribe       <-chan types.Event
 }
 
-func newWorld(cache types.Cache, factory types.Factory, maxUsersPerZone int) (*World, error) {
+func newWorld(id string, cache types.Cache, factory types.Factory, maxUsersPerZone int) (*World, error) {
 	world := &World{
+		id:              id,
 		cache:           cache,
 		factory:         factory,
 		maxUsersPerZone: maxUsersPerZone,
@@ -39,6 +41,10 @@ func (w *World) manage() { // It's a tough job.
 			event.Data().OnReceive(event)
 		}
 	}
+}
+
+func (w *World) ID() string {
+	return w.id
 }
 
 func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
