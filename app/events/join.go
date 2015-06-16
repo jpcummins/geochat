@@ -9,6 +9,13 @@ type Join struct {
 	userID string
 }
 
+func JoinEventData(userID string) (*Join, error) {
+	j := &Join{
+		userID: userID,
+	}
+	return j, nil
+}
+
 func (j *Join) Type() string {
 	return "join"
 }

@@ -18,20 +18,25 @@ type WorldTestSuite struct {
 	suite.Suite
 	cache   *mocks.Cache
 	factory *mocks.Factory
+	pubsub  *mocks.PubSub
+	err     error
 }
 
 func (suite *WorldTestSuite) SetupTest() {
 	suite.cache = &mocks.Cache{}
 	suite.factory = &mocks.Factory{}
+	suite.pubsub = &mocks.PubSub{}
+
+	ch := make(chan types.Event)
+	suite.pubsub.On("Subscribe").Return(ch)
 }
 
 func (suite *WorldTestSuite) TestNewWorld() {
-	mockZone := &mocks.Zone{}
-	suite.cache.On("Zone", ":0z").Return(mockZone, nil)
-
-	world, err := newWorld("", suite.cache, suite.factory, 2)
+	zone := &mocks.Zone{}
+	suite.cache.On("Zone", ":0z").Return(zone, nil)
+	world, err := newWorld("", suite.cache, suite.factory, suite.pubsub, 2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), mockZone, world.root)
+	assert.Equal(suite.T(), zone, world.root)
 	assert.Equal(suite.T(), suite.cache, world.cache)
 	assert.Equal(suite.T(), 2, world.maxUsersPerZone)
 }
@@ -39,18 +44,10 @@ func (suite *WorldTestSuite) TestNewWorld() {
 func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 	worldErr := errors.New("err")
 	suite.cache.On("Zone", ":0z").Return(nil, worldErr)
-	world, err := newWorld("", suite.cache, suite.factory, 2)
-	assert.Equal(suite.T(), err, worldErr)
+	world, err := newWorld("", suite.cache, suite.factory, suite.pubsub, 2)
 	assert.Nil(suite.T(), world)
-}
-
-func (suite *WorldTestSuite) TestNewWorldErrorOnCreation() {
-	err := errors.New("test error")
-	suite.cache.On("Zone", ":0z").Return(nil, err)
-
-	world, err := newWorld("", suite.cache, suite.factory, 2)
 	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), world)
+	assert.Equal(suite.T(), worldErr, err)
 }
 
 func (suite *WorldTestSuite) TestGetOrCreateZone() {
@@ -139,9 +136,9 @@ func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRo
 	zone := &mocks.Zone{}
 	suite.cache.On("Zone", ":0z").Return(zone, nil)
 
-	world1, err1 := newWorld("", suite.cache, nil, 1)
-	world2, err2 := newWorld("", suite.cache, nil, 1)
-	world3, err3 := newWorld("", suite.cache, nil, 1)
+	world1, err1 := newWorld("", suite.cache, nil, suite.pubsub, 1)
+	world2, err2 := newWorld("", suite.cache, nil, suite.pubsub, 1)
+	world3, err3 := newWorld("", suite.cache, nil, suite.pubsub, 1)
 
 	assert.Equal(suite.T(), zone, world1.root)
 	assert.Equal(suite.T(), zone, world2.root)
@@ -425,6 +422,84 @@ func (suite *WorldTestSuite) TestIntegration2() {
 		}
 		assert.Equal(suite.T(), test+":0z", zone.ID())
 	}
+}
+
+func (suite *WorldTestSuite) TestPublishCallsBeforePublish() {
+	event := &mocks.Event{}
+	data := &mocks.EventData{}
+	pubsub := &mocks.PubSub{}
+	event.On("Data").Return(data)
+	data.On("BeforePublish", event).Return(nil)
+	pubsub.On("Publish", event).Return(nil)
+	world := &World{pubsub: pubsub}
+	err := world.Publish(event)
+	assert.NoError(suite.T(), err)
+	data.AssertCalled(suite.T(), "BeforePublish", event)
+}
+
+func (suite *WorldTestSuite) TestPublishReturnsBeforePublishError() {
+	err := errors.New("err")
+	event := &mocks.Event{}
+	data := &mocks.EventData{}
+	pubsub := &mocks.PubSub{}
+	event.On("Data").Return(data)
+	data.On("BeforePublish", event).Return(err)
+	world := &World{pubsub: pubsub}
+	publishError := world.Publish(event)
+	data.AssertCalled(suite.T(), "BeforePublish", event)
+	assert.Equal(suite.T(), err, publishError)
+}
+
+func (suite *WorldTestSuite) TestPublishReturnsPubSubError() {
+	err := errors.New("err")
+	event := &mocks.Event{}
+	data := &mocks.EventData{}
+	pubsub := &mocks.PubSub{}
+	event.On("Data").Return(data)
+	data.On("BeforePublish", event).Return(nil)
+	pubsub.On("Publish", event).Return(err)
+	world := &World{pubsub: pubsub}
+	publishError := world.Publish(event)
+	assert.Equal(suite.T(), err, publishError)
+}
+
+func (suite *WorldTestSuite) TestNewWorldCallsSubscribe() {
+	zone := &mocks.Zone{}
+	suite.cache.On("Zone", ":0z").Return(zone, nil)
+	suite.pubsub.On("Subscribe").Return(make(chan types.Event))
+	_, err := newWorld("123", suite.cache, suite.factory, suite.pubsub, 2)
+	assert.NoError(suite.T(), err)
+	suite.pubsub.AssertCalled(suite.T(), "Subscribe")
+}
+
+// This is really gross :-(
+func (suite *WorldTestSuite) TestIncomingEventsCallOnReceive() {
+	zone := &mocks.Zone{}
+	suite.cache.On("Zone", ":0z").Return(zone, nil)
+
+	ch := make(chan types.Event, 1)
+
+	mockPubSub := &mocks.PubSub{}
+	mockPubSub.On("Subscribe").Return(ch)
+
+	_, err := newWorld("123", suite.cache, suite.factory, mockPubSub, 2)
+	assert.NoError(suite.T(), err)
+
+	mockEvent := &mocks.Event{}
+	mockEventData := &mocks.EventData{}
+
+	done := make(chan bool)
+	mockEventData.On("OnReceive", mockEvent).Return(nil).Run(func(args mock.Arguments) {
+		assert.Equal(suite.T(), mockEvent, args.Get(0))
+		done <- true
+	})
+
+	mockEvent.On("Data").Return(mockEventData)
+	mockEventData.AssertNotCalled(suite.T(), "OnReceive", mockEvent)
+	ch <- mockEvent
+	<-done
+	mockPubSub.AssertCalled(suite.T(), "Subscribe")
+	mockEventData.AssertCalled(suite.T(), "OnReceive", mockEvent)
 }
 
 func TestWorldSuite(t *testing.T) {

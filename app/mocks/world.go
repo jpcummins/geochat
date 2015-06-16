@@ -23,3 +23,8 @@ func (m *World) GetOrCreateZoneForUser(user types.User) (types.Zone, error) {
 	args := m.Called(user)
 	return args.Get(0).(types.Zone), args.Error(1)
 }
+
+func (m *World) Publish(event types.Event) error {
+	args := m.Called(event)
+	return args.Error(0)
+}

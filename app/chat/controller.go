@@ -14,11 +14,16 @@ func Init(redisServer, worldID string) error {
 	// 	redisServer = "redis://localhost:6379"
 	// }
 
-	redisConnection := db.NewRedisConnection(redisServer)
+	redisConnection := db.NewRedisDB(redisServer)
 	cache := cache.NewCache(redisConnection)
+	pubsub, err := db.NewRedisPubSub(worldID, redisConnection)
+
+	if err != nil {
+		return err
+	}
 
 	factory := &Factory{}
-	w, err := factory.NewWorld(worldID, cache)
+	w, err := factory.NewWorld(worldID, cache, pubsub)
 
 	world = w
 	return err

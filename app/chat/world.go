@@ -11,17 +11,19 @@ type World struct {
 	root            types.Zone
 	cache           types.Cache
 	factory         types.Factory
+	pubsub          types.PubSub
 	maxUsersPerZone int
 	subscribe       <-chan types.Event
 }
 
-func newWorld(id string, cache types.Cache, factory types.Factory, maxUsersPerZone int) (*World, error) {
+func newWorld(id string, cache types.Cache, factory types.Factory, pubsub types.PubSub, maxUsersPerZone int) (*World, error) {
 	world := &World{
 		id:              id,
 		cache:           cache,
 		factory:         factory,
+		pubsub:          pubsub,
 		maxUsersPerZone: maxUsersPerZone,
-		subscribe:       make(<-chan types.Event),
+		subscribe:       pubsub.Subscribe(),
 	}
 
 	root, err := world.GetOrCreateZone(":0z")
@@ -30,11 +32,11 @@ func newWorld(id string, cache types.Cache, factory types.Factory, maxUsersPerZo
 	}
 
 	world.root = root
-	go world.manage()
+	go world.manage() // It's a tough job.
 	return world, nil
 }
 
-func (w *World) manage() { // It's a tough job.
+func (w *World) manage() {
 	for {
 		select {
 		case event := <-w.subscribe:
@@ -102,4 +104,11 @@ func (w *World) GetOrCreateZoneForUser(user types.User) (types.Zone, error) {
 	}
 
 	return root, nil
+}
+
+func (w *World) Publish(event types.Event) error {
+	if err := event.Data().BeforePublish(event); err != nil {
+		return err
+	}
+	return w.pubsub.Publish(event)
 }
