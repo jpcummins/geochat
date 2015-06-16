@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"github.com/jpcummins/geochat/app/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -8,6 +9,19 @@ import (
 
 type EventTestSuite struct {
 	suite.Suite
+}
+
+func (suite *EventTestSuite) TestNewEvent() {
+	world := &mocks.World{}
+	world.On("ID").Return("worldid")
+
+	data := &mocks.EventData{}
+	data.On("Type").Return("test")
+
+	e := newEvent("eventid", world, data)
+	assert.Equal(suite.T(), "eventid", e.ID())
+	assert.Equal(suite.T(), "test", e.Type())
+	assert.Equal(suite.T(), data, e.Data())
 }
 
 func (suite *EventTestSuite) TestUnmarshalMessage() {

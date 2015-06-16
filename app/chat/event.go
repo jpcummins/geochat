@@ -3,11 +3,9 @@ package chat
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/jpcummins/geochat/app/events"
 	"github.com/jpcummins/geochat/app/types"
 	"math/rand"
-	"time"
 )
 
 type eventJSON struct {
@@ -22,13 +20,14 @@ type Event struct {
 	data types.EventData
 }
 
-func newEvent(world types.World, data types.EventData) *Event {
+func newEvent(id string, world types.World, data types.EventData) *Event {
 	return &Event{
 		eventJSON: &eventJSON{
-			ID:      fmt.Sprintf("%d:%s", time.Now().UnixNano(), randomSequence(4)),
+			ID:      id,
 			Type:    data.Type(),
 			WorldID: world.ID(),
 		},
+		data: data,
 	}
 }
 
