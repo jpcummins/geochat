@@ -73,12 +73,13 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
 	suite.cache.On("SetZone", zone).Return(nil)
 
 	world := &World{
+		id:              "test",
 		cache:           suite.cache,
 		factory:         suite.factory,
 		maxUsersPerZone: 22,
 	}
 
-	suite.factory.On("NewZone", ":0z", 22).Return(zone, nil)
+	suite.factory.On("NewZone", ":0z", "test", 22).Return(zone, nil)
 
 	z, err := world.GetOrCreateZone(":0z")
 	assert.NoError(suite.T(), err)
@@ -86,7 +87,7 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
 
 	suite.cache.AssertCalled(suite.T(), "Zone", ":0z")
 	suite.cache.AssertCalled(suite.T(), "SetZone", zone)
-	suite.factory.AssertCalled(suite.T(), "NewZone", ":0z", 22)
+	suite.factory.AssertCalled(suite.T(), "NewZone", ":0z", "test", 22)
 }
 
 func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
@@ -94,19 +95,20 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
 	suite.cache.On("Zone", ":0z").Return(nil, nil)
 
 	world := &World{
+		id:              "test",
 		cache:           suite.cache,
 		factory:         suite.factory,
 		maxUsersPerZone: 22,
 	}
 
-	suite.factory.On("NewZone", ":0z", 22).Return(nil, newZoneErr)
+	suite.factory.On("NewZone", ":0z", "test", 22).Return(nil, newZoneErr)
 
 	z, err := world.GetOrCreateZone(":0z")
 	assert.Nil(suite.T(), z)
 	assert.Equal(suite.T(), newZoneErr, err)
 
 	suite.cache.AssertCalled(suite.T(), "Zone", ":0z")
-	suite.factory.AssertCalled(suite.T(), "NewZone", ":0z", 22)
+	suite.factory.AssertCalled(suite.T(), "NewZone", ":0z", "test", 22)
 }
 
 func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
@@ -116,12 +118,13 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
 	suite.cache.On("SetZone", zone).Return(setZoneErr)
 
 	world := &World{
+		id:              "test",
 		cache:           suite.cache,
 		factory:         suite.factory,
 		maxUsersPerZone: 22,
 	}
 
-	suite.factory.On("NewZone", ":0z", 22).Return(zone, nil)
+	suite.factory.On("NewZone", ":0z", "test", 22).Return(zone, nil)
 
 	z, err := world.GetOrCreateZone(":0z")
 	assert.Nil(suite.T(), z)
@@ -129,7 +132,7 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
 
 	suite.cache.AssertCalled(suite.T(), "Zone", ":0z")
 	suite.cache.AssertCalled(suite.T(), "SetZone", zone)
-	suite.factory.AssertCalled(suite.T(), "NewZone", ":0z", 22)
+	suite.factory.AssertCalled(suite.T(), "NewZone", ":0z", "test", 22)
 }
 
 func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRoot() {

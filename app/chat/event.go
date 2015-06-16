@@ -20,12 +20,12 @@ type Event struct {
 	data types.EventData
 }
 
-func newEvent(id string, world types.World, data types.EventData) (*Event, error) {
+func newEvent(id string, worldID string, data types.EventData) (*Event, error) {
 	return &Event{
 		eventJSON: &eventJSON{
 			ID:      id,
 			Type:    data.Type(),
-			WorldID: world.ID(),
+			WorldID: worldID,
 		},
 		data: data,
 	}, nil

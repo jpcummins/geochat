@@ -54,7 +54,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	}
 
 	if zone == nil {
-		zone, err = w.factory.NewZone(id, w.maxUsersPerZone)
+		zone, err = w.factory.NewZone(id, w.id, w.maxUsersPerZone)
 		if err != nil {
 			return nil, err
 		}

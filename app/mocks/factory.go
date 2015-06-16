@@ -14,8 +14,8 @@ func (f *Factory) NewWorld(id string, cache types.Cache) (types.World, error) {
 	return args.Get(0).(types.World), args.Error(1)
 }
 
-func (f *Factory) NewZone(id string, maxUsers int) (types.Zone, error) {
-	args := f.Called(id, maxUsers)
+func (f *Factory) NewZone(id string, worldID string, maxUsers int) (types.Zone, error) {
+	args := f.Called(id, worldID, maxUsers)
 
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -29,7 +29,7 @@ func (f *Factory) NewUser(id string, name string, location types.LatLng) (types.
 	return args.Get(0).(types.User), args.Error(1)
 }
 
-func (f *Factory) NewEvent(id string, world types.World, data types.EventData) (types.Event, error) {
-	args := f.Called(id, world, data)
+func (f *Factory) NewEvent(id string, worldID string, data types.EventData) (types.Event, error) {
+	args := f.Called(id, worldID, data)
 	return args.Get(0).(types.Event), args.Error(1)
 }

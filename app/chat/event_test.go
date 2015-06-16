@@ -12,17 +12,15 @@ type EventTestSuite struct {
 }
 
 func (suite *EventTestSuite) TestNewEvent() {
-	world := &mocks.World{}
-	world.On("ID").Return("worldid")
-
 	data := &mocks.EventData{}
 	data.On("Type").Return("test")
 
-	e, err := newEvent("eventid", world, data)
+	e, err := newEvent("eventid", "worldid", data)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "eventid", e.ID())
 	assert.Equal(suite.T(), "test", e.Type())
 	assert.Equal(suite.T(), data, e.Data())
+	assert.Equal(suite.T(), "worldid", e.WorldID())
 }
 
 func (suite *EventTestSuite) TestUnmarshalMessage() {
