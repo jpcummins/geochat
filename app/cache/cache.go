@@ -31,7 +31,7 @@ func (c *Cache) User(id string) (types.User, error) {
 		return user, nil
 	}
 
-	user, err = c.dbUser(id)
+	user, err = c.db.GetUser(id)
 	if err != nil {
 		return nil, err
 	}
@@ -40,11 +40,11 @@ func (c *Cache) User(id string) (types.User, error) {
 }
 
 func (c *Cache) SetUser(user types.User) error {
-	if err := c.localSetUser(user); err != nil {
+	if err := c.db.SetUser(user); err != nil {
 		return err
 	}
 
-	if err := c.dbSetUser(user); err != nil {
+	if err := c.localSetUser(user); err != nil {
 		return err
 	}
 
@@ -65,14 +65,6 @@ func (c *Cache) localSetUser(user types.User) error {
 	return nil
 }
 
-func (c *Cache) dbUser(id string) (types.User, error) {
-	return c.db.GetUser(id)
-}
-
-func (c *Cache) dbSetUser(user types.User) error {
-	return c.db.SetUser(user)
-}
-
 func (c *Cache) Zone(id string) (types.Zone, error) {
 	zone, err := c.localZone(id)
 	if err != nil {
@@ -83,7 +75,7 @@ func (c *Cache) Zone(id string) (types.Zone, error) {
 		return zone, nil
 	}
 
-	zone, err = c.dbZone(id)
+	zone, err = c.db.GetZone(id)
 	if err != nil {
 		return nil, err
 	}
@@ -92,19 +84,15 @@ func (c *Cache) Zone(id string) (types.Zone, error) {
 }
 
 func (c *Cache) SetZone(zone types.Zone) error {
+	if err := c.db.SetZone(zone); err != nil {
+		return err
+	}
+
 	if err := c.localSetZone(zone); err != nil {
 		return err
 	}
 
-	if err := c.dbSetZone(zone); err != nil {
-		return err
-	}
-
 	return nil
-}
-
-func (c *Cache) GetZoneForUser(id string) (types.Zone, error) {
-	return nil, nil
 }
 
 func (c *Cache) localZone(id string) (types.Zone, error) {
@@ -121,10 +109,6 @@ func (c *Cache) localSetZone(zone types.Zone) error {
 	return nil
 }
 
-func (c *Cache) dbZone(id string) (types.Zone, error) {
-	return c.db.GetZone(id)
-}
-
-func (c *Cache) dbSetZone(zone types.Zone) error {
-	return c.db.SetZone(zone)
+func (c *Cache) GetZoneForUser(id string) (types.Zone, error) {
+	return nil, nil
 }
