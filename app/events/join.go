@@ -14,7 +14,5 @@ func (j *Join) Type() string {
 }
 
 func (j *Join) OnReceive(e types.Event) error {
-	// e.Zone().AddUser(j.user)
-	e.Zone().Broadcast(e)
 	return nil
 }

@@ -29,7 +29,7 @@ func (suite *WorldTestSuite) TestNewWorld() {
 	mockZone := &mocks.Zone{}
 	suite.cache.On("Zone", ":0z").Return(mockZone, nil)
 
-	world, err := newWorld(suite.cache, suite.factory, 2)
+	world, err := newWorld("", suite.cache, suite.factory, 2)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), mockZone, world.root)
 	assert.Equal(suite.T(), suite.cache, world.cache)
@@ -39,7 +39,7 @@ func (suite *WorldTestSuite) TestNewWorld() {
 func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 	worldErr := errors.New("err")
 	suite.cache.On("Zone", ":0z").Return(nil, worldErr)
-	world, err := newWorld(suite.cache, suite.factory, 2)
+	world, err := newWorld("", suite.cache, suite.factory, 2)
 	assert.Equal(suite.T(), err, worldErr)
 	assert.Nil(suite.T(), world)
 }
@@ -48,7 +48,7 @@ func (suite *WorldTestSuite) TestNewWorldErrorOnCreation() {
 	err := errors.New("test error")
 	suite.cache.On("Zone", ":0z").Return(nil, err)
 
-	world, err := newWorld(suite.cache, suite.factory, 2)
+	world, err := newWorld("", suite.cache, suite.factory, 2)
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), world)
 }
@@ -136,9 +136,9 @@ func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRo
 	zone := &mocks.Zone{}
 	suite.cache.On("Zone", ":0z").Return(zone, nil)
 
-	world1, err1 := newWorld(suite.cache, nil, 1)
-	world2, err2 := newWorld(suite.cache, nil, 1)
-	world3, err3 := newWorld(suite.cache, nil, 1)
+	world1, err1 := newWorld("", suite.cache, nil, 1)
+	world2, err2 := newWorld("", suite.cache, nil, 1)
+	world3, err3 := newWorld("", suite.cache, nil, 1)
 
 	assert.Equal(suite.T(), zone, world1.root)
 	assert.Equal(suite.T(), zone, world2.root)

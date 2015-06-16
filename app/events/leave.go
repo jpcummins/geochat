@@ -14,7 +14,5 @@ func (m *Leave) Type() string {
 }
 
 func (l *Leave) OnReceive(e types.Event) error {
-	e.Zone().RemoveUser(l.UserID)
-	e.Zone().Broadcast(e)
 	return nil
 }

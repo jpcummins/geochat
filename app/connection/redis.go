@@ -1,7 +1,7 @@
 package connection
 
 import (
-	"encoding/json"
+	// "encoding/json"
 	"github.com/garyburd/redigo/redis"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/soveran/redisurl"
@@ -36,13 +36,13 @@ func NewRedisConnection(redisServer string) *Redis {
 }
 
 func (r *Redis) Publish(event types.Event) error {
-	eventJSON, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-	if _, err := r.connection.Do("PUBLISH", "zone_"+event.Zone().ID(), eventJSON); err != nil {
-		return err
-	}
+	// eventJSON, err := json.Marshal(event)
+	// if err != nil {
+	// 	return err
+	// }
+	// if _, err := r.connection.Do("PUBLISH", "zone_"+event.Zone().ID(), eventJSON); err != nil {
+	// 	return err
+	// }
 	return nil
 }
 

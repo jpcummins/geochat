@@ -13,6 +13,5 @@ func (s *Split) Type() string {
 }
 
 func (s *Split) OnReceive(e types.Event) error {
-	e.Zone().Broadcast(e)
 	return nil
 }

@@ -19,14 +19,19 @@ func (m *Event) Type() string {
 	return args.String(0)
 }
 
-func (m *Event) Zone() types.Zone {
+func (m *Event) WorldID() string {
 	args := m.Called()
-	return args.Get(0).(types.Zone)
+	return args.String(0)
 }
 
 func (m *Event) Data() types.EventData {
 	args := m.Called()
 	return args.Get(0).(types.EventData)
+}
+
+func (m *Event) UnmarshalJSON(b []byte) error {
+	args := m.Called(b)
+	return args.Error(0)
 }
 
 type EventData struct {

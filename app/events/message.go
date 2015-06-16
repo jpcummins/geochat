@@ -15,6 +15,5 @@ func (m *Message) Type() string {
 }
 
 func (m *Message) OnReceive(e types.Event) error {
-	e.Zone().Broadcast(e)
 	return nil
 }
