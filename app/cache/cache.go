@@ -39,7 +39,10 @@ func (c *Cache) User(id string) (types.User, error) {
 		return nil, err
 	}
 
-	err = c.localSetUser(user)
+	if user != nil {
+		err = c.localSetUser(user)
+	}
+
 	return user, err
 }
 
@@ -84,7 +87,10 @@ func (c *Cache) Zone(id string) (types.Zone, error) {
 		return nil, err
 	}
 
-	err = c.localSetZone(zone)
+	if zone != nil {
+		err = c.localSetZone(zone)
+	}
+
 	return zone, err
 }
 
@@ -129,7 +135,10 @@ func (c *Cache) World(id string) (types.World, error) {
 		return nil, err
 	}
 
-	err = c.localSetWorld(world)
+	if world != nil {
+		err = c.localSetWorld(world)
+	}
+
 	return world, err
 }
 

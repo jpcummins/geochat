@@ -370,6 +370,7 @@ func (suite *WorldTestSuite) TestIntegration() {
 	db.On("SetZone", mock.Anything).Return(nil)
 
 	world := &World{
+		id:              "test",
 		cache:           cache.NewCache(db),
 		factory:         &Factory{},
 		maxUsersPerZone: 1,
