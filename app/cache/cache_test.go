@@ -28,8 +28,22 @@ func (suite *CacheTestSuite) TestNewCache() {
 
 func (suite *CacheTestSuite) TestUserCallsDB() {
 	user := &mocks.User{}
+	user.On("ID").Return("userid")
 	suite.db.On("GetUser", "123").Return(user, nil)
 	cachedUser, err := suite.cache.User("123")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), user, cachedUser)
+}
+
+func (suite *CacheTestSuite) TestUserCallsDBAndSetsLocal() {
+	user := &mocks.User{}
+	user.On("ID").Return("userid")
+	suite.db.On("GetUser", "123").Return(user, nil)
+	cachedUser, err := suite.cache.User("123")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), user, cachedUser)
+	suite.db.On("GetUser", "123").Return(nil, errors.New("err"))
+	cachedUser, err = suite.cache.User("123")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), user, cachedUser)
 }
@@ -75,8 +89,22 @@ func (suite *CacheTestSuite) TestSetUserDBError() {
 
 func (suite *CacheTestSuite) TestZoneCallsDB() {
 	zone := &mocks.Zone{}
+	zone.On("ID").Return("zoneid")
 	suite.db.On("GetZone", "123").Return(zone, nil)
 	cachedZone, err := suite.cache.Zone("123")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), zone, cachedZone)
+}
+
+func (suite *CacheTestSuite) TestZoneCallsDBAndSetsLocal() {
+	zone := &mocks.Zone{}
+	zone.On("ID").Return("zoneid")
+	suite.db.On("GetZone", "123").Return(zone, nil)
+	cachedZone, err := suite.cache.Zone("123")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), zone, cachedZone)
+	suite.db.On("GetZone", "123").Return(nil, errors.New("err"))
+	cachedZone, err = suite.cache.Zone("123")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), zone, cachedZone)
 }
@@ -122,8 +150,22 @@ func (suite *CacheTestSuite) TestSetZoneDBError() {
 
 func (suite *CacheTestSuite) TestWorldCallsDB() {
 	world := &mocks.World{}
+	world.On("ID").Return("123")
 	suite.db.On("GetWorld", "123").Return(world, nil)
 	cachedWorld, err := suite.cache.World("123")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), world, cachedWorld)
+}
+
+func (suite *CacheTestSuite) TestWorldCallsDBAndSetsLocal() {
+	world := &mocks.World{}
+	world.On("ID").Return("worldid")
+	suite.db.On("GetWorld", "123").Return(world, nil)
+	cachedWorld, err := suite.cache.World("123")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), world, cachedWorld)
+	suite.db.On("GetWorld", "123").Return(nil, errors.New("err"))
+	cachedWorld, err = suite.cache.World("123")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), world, cachedWorld)
 }
