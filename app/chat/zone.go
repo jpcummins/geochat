@@ -42,7 +42,7 @@ func newZone(id string, worldID string, maxUsers int) (*Zone, error) {
 
 	zone := &Zone{
 		zoneJSON: &zoneJSON{
-			ID:       geohash + ":" + from + to,
+			ID:       id,
 			WorldID:  worldID,
 			IsOpen:   true,
 			MaxUsers: maxUsers,
