@@ -9,4 +9,7 @@ type DB interface {
 
 	GetZone(string) (Zone, error)
 	SetZone(Zone) error
+
+	GetWorld(string) (World, error)
+	SetWorld(World) error
 }

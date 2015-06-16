@@ -120,6 +120,53 @@ func (suite *CacheTestSuite) TestSetZoneDBError() {
 	assert.Equal(suite.T(), 0, len(suite.cache.zones))
 }
 
+func (suite *CacheTestSuite) TestWorldCallsDB() {
+	world := &mocks.World{}
+	suite.db.On("GetWorld", "123").Return(world, nil)
+	cachedWorld, err := suite.cache.World("123")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), world, cachedWorld)
+}
+
+func (suite *CacheTestSuite) TestWorldCallsDBAndReturnsError() {
+	err := errors.New("bla")
+	world := &mocks.World{}
+	suite.db.On("GetWorld", "123").Return(world, err)
+	cachedWorld, cachedErr := suite.cache.World("123")
+	assert.Nil(suite.T(), cachedWorld)
+	assert.Equal(suite.T(), err, cachedErr)
+}
+
+func (suite *CacheTestSuite) TestWorldRetrievesFromLocalCache() {
+	mockWorld := &mocks.World{}
+	suite.cache.worlds["123"] = mockWorld
+
+	world, err := suite.cache.World("123")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), mockWorld, world)
+	suite.db.AssertNotCalled(suite.T(), "GetWorld", mock.Anything)
+}
+
+func (suite *CacheTestSuite) TestSetWorldCachesAndCallsDB() {
+	mockWorld := &mocks.World{}
+	mockWorld.On("ID").Return("123")
+	suite.db.On("SetWorld", mockWorld).Return(nil)
+	err := suite.cache.SetWorld(mockWorld)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), mockWorld, suite.cache.worlds["123"])
+}
+
+func (suite *CacheTestSuite) TestSetWorldDBError() {
+	err := errors.New("err")
+	mockWorld := &mocks.World{}
+	mockWorld.On("ID").Return("123")
+	suite.db.On("SetWorld", mockWorld).Return(err)
+	cachedError := suite.cache.SetWorld(mockWorld)
+	assert.Error(suite.T(), cachedError)
+	assert.Equal(suite.T(), err, cachedError)
+	assert.Equal(suite.T(), 0, len(suite.cache.worlds))
+}
+
 func TestCacheTestSuite(t *testing.T) {
 	suite.Run(t, new(CacheTestSuite))
 }

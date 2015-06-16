@@ -7,5 +7,6 @@ type Cache interface {
 	Zone(id string) (Zone, error)
 	SetZone(zone Zone) error
 
-	GetZoneForUser(id string) (Zone, error)
+	World(id string) (World, error)
+	SetWorld(world World) error
 }

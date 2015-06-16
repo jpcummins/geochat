@@ -34,7 +34,17 @@ func (m *Cache) SetZone(z types.Zone) error {
 	return args.Error(0)
 }
 
-func (m *Cache) GetZoneForUser(id string) (types.Zone, error) {
+func (m *Cache) World(id string) (types.World, error) {
 	args := m.Called(id)
-	return args.Get(0).(types.Zone), args.Error(1)
+
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(types.World), args.Error(1)
+}
+
+func (m *Cache) SetWorld(z types.World) error {
+	args := m.Called(z)
+	return args.Error(0)
 }

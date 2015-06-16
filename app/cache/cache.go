@@ -6,18 +6,21 @@ import (
 )
 
 type Cache struct {
-	userMutex sync.RWMutex
-	zoneMutex sync.RWMutex
-	users     map[string]types.User
-	zones     map[string]types.Zone
-	db        types.DB
+	userMutex  sync.RWMutex
+	zoneMutex  sync.RWMutex
+	worldMutex sync.RWMutex
+	users      map[string]types.User
+	zones      map[string]types.Zone
+	worlds     map[string]types.World
+	db         types.DB
 }
 
 func NewCache(db types.DB) *Cache {
 	return &Cache{
-		users: make(map[string]types.User),
-		zones: make(map[string]types.Zone),
-		db:    db,
+		users:  make(map[string]types.User),
+		zones:  make(map[string]types.Zone),
+		worlds: make(map[string]types.World),
+		db:     db,
 	}
 }
 
@@ -109,6 +112,46 @@ func (c *Cache) localSetZone(zone types.Zone) error {
 	return nil
 }
 
-func (c *Cache) GetZoneForUser(id string) (types.Zone, error) {
-	return nil, nil
+func (c *Cache) World(id string) (types.World, error) {
+	world, err := c.localWorld(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if world != nil {
+		return world, nil
+	}
+
+	world, err = c.db.GetWorld(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return world, nil
+}
+
+func (c *Cache) SetWorld(world types.World) error {
+	if err := c.db.SetWorld(world); err != nil {
+		return err
+	}
+
+	if err := c.localSetWorld(world); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Cache) localWorld(id string) (types.World, error) {
+	c.worldMutex.RLock()
+	world := c.worlds[id]
+	c.worldMutex.RUnlock()
+	return world, nil
+}
+
+func (c *Cache) localSetWorld(world types.World) error {
+	c.worldMutex.Lock()
+	c.worlds[world.ID()] = world
+	c.worldMutex.Unlock()
+	return nil
 }

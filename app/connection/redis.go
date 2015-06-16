@@ -66,6 +66,14 @@ func (r *Redis) SetZone(types.Zone) error {
 	return nil
 }
 
+func (r *Redis) GetWorld(id string) (types.World, error) {
+	return nil, nil
+}
+
+func (r *Redis) SetWorld(types.World) error {
+	return nil
+}
+
 // func (u *UserCache) redisGet(id string) (types.User, bool) {
 // 	c := Redis.Get()
 // 	defer c.Close()

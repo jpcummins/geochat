@@ -58,3 +58,23 @@ func (m *DB) SetZone(zone types.Zone) error {
 
 	return r0
 }
+
+func (m *DB) GetWorld(id string) (types.World, error) {
+	ret := m.Called(id)
+
+	if ret.Get(0) == nil {
+		return nil, ret.Error(1)
+	}
+
+	r0 := ret.Get(0).(types.World)
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
+func (m *DB) SetWorld(zone types.World) error {
+	ret := m.Called(zone)
+
+	r0 := ret.Error(0)
+
+	return r0
+}
