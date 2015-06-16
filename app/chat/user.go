@@ -8,12 +8,11 @@ import (
 )
 
 type userJSON struct {
-	ID           string  `json:"id"`
-	CreatedAt    int     `json:"created_at"`
-	LastActivity int     `json:"last_activity"`
-	Name         string  `json:"name"`
-	Lat          float64 `json:"lat"`
-	Long         float64 `json:"long"`
+	ID           string       `json:"id"`
+	CreatedAt    int          `json:"created_at"`
+	LastActivity int          `json:"last_activity"`
+	Name         string       `json:"name"`
+	Location     types.LatLng `json:"location"`
 }
 
 type User struct {
@@ -22,15 +21,14 @@ type User struct {
 	connections []types.Connection
 }
 
-func newUser(lat float64, long float64, name string, id string) *User {
+func newUser(id string, name string, location types.LatLng) *User {
 	u := &User{
 		userJSON: &userJSON{
 			ID:           id,
 			CreatedAt:    int(time.Now().Unix()),
 			LastActivity: int(time.Now().Unix()),
 			Name:         name,
-			Lat:          lat,
-			Long:         long,
+			Location:     location,
 		},
 		connections: make([]types.Connection, 0),
 	}
@@ -47,6 +45,10 @@ func (u *User) ID() string {
 
 func (u *User) Name() string {
 	return u.userJSON.Name
+}
+
+func (u *User) Location() types.LatLng {
+	return u.userJSON.Location
 }
 
 func (u *User) Broadcast(e types.Event) {

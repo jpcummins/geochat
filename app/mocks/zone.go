@@ -29,29 +29,29 @@ func (z *Zone) Geohash() string {
 	return args.String(0)
 }
 
-func (z *Zone) From() byte {
+func (z *Zone) From() string {
 	args := z.Called()
-	return args.Get(0).(byte)
+	return args.String(0)
 }
 
-func (z *Zone) To() byte {
+func (z *Zone) To() string {
 	args := z.Called()
-	return args.Get(0).(byte)
+	return args.Get(0).(string)
 }
 
-func (z *Zone) Parent() types.Zone {
+func (z *Zone) ParentZoneID() string {
 	args := z.Called()
-	return args.Get(0).(types.Zone)
+	return args.String(0)
 }
 
-func (z *Zone) Left() types.Zone {
+func (z *Zone) LeftZoneID() string {
 	args := z.Called()
-	return args.Get(0).(types.Zone)
+	return args.String(0)
 }
 
-func (z *Zone) Right() types.Zone {
+func (z *Zone) RightZoneID() string {
 	args := z.Called()
-	return args.Get(0).(types.Zone)
+	return args.String(0)
 }
 
 func (z *Zone) MaxUsers() int {

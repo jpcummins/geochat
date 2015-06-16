@@ -1,7 +1,7 @@
 package types
 
 type Factory interface {
-	NewWorld(cache Cache, maxUsersForNewZones int) (World, error)
-	NewZone(world World, id string) (Zone, error)
-	NewUser(lat float64, long float64, name string, id string) (User, error)
+	NewWorld(cache Cache) (World, error)
+	NewZone(id string, maxUsers int) (Zone, error)
+	NewUser(id string, name string, location LatLng) (User, error)
 }

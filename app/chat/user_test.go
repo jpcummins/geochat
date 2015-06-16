@@ -19,7 +19,9 @@ func (suite *UserTestSuite) SetupTest() {
 	suite.cache = &mocks.Cache{}
 	suite.cache.On("SetUser", mock.Anything).Return(nil)
 	suite.cache.On("SetZone", mock.Anything).Return(nil)
-	suite.user = newUser(47.6235616, -122.330341, "test", "testid")
+
+	location := &LatLng{47.6235616, -122.330341, "c23nb"}
+	suite.user = newUser("testid", "test", location)
 }
 
 func (suite *UserTestSuite) TestNewUser() {

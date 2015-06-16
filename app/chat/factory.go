@@ -6,14 +6,14 @@ import (
 
 type Factory struct{}
 
-func (f *Factory) NewWorld(cache types.Cache, maxUsersForNewZones int) (types.World, error) {
-	return newWorld(cache, f, maxUsersForNewZones)
+func (f *Factory) NewWorld(cache types.Cache) (types.World, error) {
+	return newWorld(cache, f, 3)
 }
 
-func (f *Factory) NewZone(world types.World, id string) (types.Zone, error) {
-	return newZone(world, id)
+func (f *Factory) NewZone(id string, maxUsers int) (types.Zone, error) {
+	return newZone(id, maxUsers)
 }
 
-func (f *Factory) NewUser(lat float64, long float64, name string, id string) (types.User, error) {
-	return newUser(lat, long, name, id), nil
+func (f *Factory) NewUser(id string, name string, location types.LatLng) (types.User, error) {
+	return newUser(id, name, location), nil
 }

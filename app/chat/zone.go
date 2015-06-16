@@ -10,6 +10,8 @@ import (
 	"sync"
 )
 
+var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
+
 type zoneJSON struct {
 	ID       string   `json:"id"`
 	UserIDs  []string `json:"user_ids"`
@@ -20,18 +22,18 @@ type zoneJSON struct {
 type Zone struct {
 	sync.RWMutex
 	*zoneJSON
-	southWest types.LatLng
-	northEast types.LatLng
-	geohash   string
-	from      byte
-	to        byte
-	parent    *Zone
-	left      *Zone
-	right     *Zone
-	users     map[string]types.User
+	southWest    types.LatLng
+	northEast    types.LatLng
+	geohash      string
+	from         string
+	to           string
+	parentZoneID string
+	leftZoneID   string
+	rightZoneID  string
+	users        map[string]types.User
 }
 
-func newZone(world types.World, id string) (*Zone, error) {
+func newZone(id string, maxUsers int) (*Zone, error) {
 	geohash, from, to, err := validateZoneID(id)
 	if err != nil {
 		return nil, err
@@ -39,22 +41,34 @@ func newZone(world types.World, id string) (*Zone, error) {
 
 	zone := &Zone{
 		zoneJSON: &zoneJSON{
-			ID:       geohash + ":" + string(from) + string(to),
+			ID:       geohash + ":" + from + to,
 			IsOpen:   true,
-			MaxUsers: world.MaxUsersForNewZones(),
+			MaxUsers: maxUsers,
 		},
-		southWest: gh.Decode(geohash + string(from)).SouthWest(),
-		northEast: gh.Decode(geohash + string(to)).NorthEast(),
+		southWest: newLatLng(gh.Decode(geohash + from).SouthWest()),
+		northEast: newLatLng(gh.Decode(geohash + to).NorthEast()),
 		geohash:   geohash,
 		from:      from,
 		to:        to,
-		parent:    nil, // parent,
 		users:     make(map[string]types.User),
 	}
+
+	// Calculate left, right, and parent IDs
+	fromI := strings.Index(geohashmap, from)
+	toI := strings.Index(geohashmap, to)
+	if toI-fromI > 1 {
+		split := (toI - fromI) / 2
+		zone.leftZoneID = geohash + ":" + from + string(geohashmap[fromI+split])
+		zone.rightZoneID = geohash + ":" + string(geohashmap[fromI+split+1]) + to
+	} else {
+		zone.leftZoneID = geohash + from + ":0z"
+		zone.rightZoneID = geohash + to + ":0z"
+	}
+
 	return zone, nil
 }
 
-func validateZoneID(id string) (geohash string, from byte, to byte, err error) {
+func validateZoneID(id string) (geohash string, from string, to string, err error) {
 	split := strings.Split(id, ":")
 
 	if len(split) != 2 || len(split[1]) != 2 {
@@ -63,15 +77,15 @@ func validateZoneID(id string) (geohash string, from byte, to byte, err error) {
 
 	// TODO: Additional validation needed
 	geohash = split[0]
-	from = split[1][0]
-	to = split[1][1]
+	from = string(split[1][0])
+	to = string(split[1][1])
 	return
 }
 
 func (z *Zone) MarshalJSON() ([]byte, error) {
 	z.RLock()
 	z.zoneJSON.UserIDs = make([]string, 0, len(z.users))
-	for id, _ := range z.users {
+	for id := range z.users {
 		z.zoneJSON.UserIDs = append(z.zoneJSON.UserIDs, id)
 	}
 	z.RUnlock()
@@ -95,24 +109,24 @@ func (z *Zone) Geohash() string {
 	return z.geohash
 }
 
-func (z *Zone) From() byte {
+func (z *Zone) From() string {
 	return z.from
 }
 
-func (z *Zone) To() byte {
+func (z *Zone) To() string {
 	return z.to
 }
 
-func (z *Zone) Parent() types.Zone {
-	return z.parent
+func (z *Zone) ParentZoneID() string {
+	return z.parentZoneID
 }
 
-func (z *Zone) Left() types.Zone {
-	return z.left
+func (z *Zone) LeftZoneID() string {
+	return z.leftZoneID
 }
 
-func (z *Zone) Right() types.Zone {
-	return z.right
+func (z *Zone) RightZoneID() string {
+	return z.rightZoneID
 }
 
 func (z *Zone) MaxUsers() int {
@@ -153,17 +167,3 @@ func (z *Zone) Broadcast(event types.Event) {
 	}
 	z.RUnlock()
 }
-
-// func (z *Zone) createChildZones() {
-// 	fromI := strings.Index(geohashmap, string(z.from))
-// 	toI := strings.Index(geohashmap, string(z.to))
-//
-// 	if toI-fromI > 1 {
-// 		split := (toI - fromI) / 2
-// 		z.left = newZone(z.geohash, z.from, geohashmap[fromI+split], z, z.maxUsers)
-// 		z.right = newZone(z.geohash, geohashmap[fromI+split+1], z.to, z, z.maxUsers)
-// 	} else {
-// 		z.left = newZone(z.geohash+string(z.from), '0', 'z', z, z.maxUsers)
-// 		z.right = newZone(z.geohash+string(z.to), '0', 'z', z, z.maxUsers)
-// 	}
-// }

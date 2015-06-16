@@ -2,7 +2,6 @@ package chat
 
 import (
 	"github.com/jpcummins/geochat/app/mocks"
-	"github.com/jpcummins/geochat/app/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -10,22 +9,10 @@ import (
 
 type ZoneTestSuite struct {
 	suite.Suite
-	cache   types.Cache
-	factory types.Factory
-	world   types.World
-}
-
-func (suite *ZoneTestSuite) SetupTest() {
-	mockWorld := &mocks.World{}
-	mockWorld.On("MaxUsersForNewZones").Return(2)
-
-	suite.cache = &mocks.Cache{}
-	suite.factory = &mocks.Factory{}
-	suite.world = mockWorld
 }
 
 func (suite *ZoneTestSuite) TestNewZone() {
-	zone, err := newZone(suite.world, ":0z")
+	zone, err := newZone(":0z", 2)
 	assert.NoError(suite.T(), err)
 
 	assert.Equal(suite.T(), ":0z", zone.ID())
@@ -34,11 +21,11 @@ func (suite *ZoneTestSuite) TestNewZone() {
 	assert.Equal(suite.T(), float64(-90), zone.SouthWest().Lat())
 	assert.Equal(suite.T(), float64(-180), zone.SouthWest().Lng())
 	assert.Equal(suite.T(), "", zone.Geohash())
-	assert.Equal(suite.T(), byte('0'), zone.From())
-	assert.Equal(suite.T(), byte('z'), zone.To())
-	assert.Nil(suite.T(), zone.Parent())
-	assert.Nil(suite.T(), zone.Left())
-	assert.Nil(suite.T(), zone.Right())
+	assert.Equal(suite.T(), "0", zone.From())
+	assert.Equal(suite.T(), "z", zone.To())
+	// assert.Nil(suite.T(), zone.ParentZoneID())
+	assert.Equal(suite.T(), ":0g", zone.LeftZoneID())
+	assert.Equal(suite.T(), ":hz", zone.RightZoneID())
 	assert.Equal(suite.T(), 0, zone.Count())
 	assert.True(suite.T(), zone.IsOpen())
 }
@@ -47,7 +34,7 @@ func (suite *ZoneTestSuite) TestAddUser() {
 	user := &mocks.User{}
 	user.On("ID").Return("user1")
 
-	zone, err := newZone(suite.world, ":0z")
+	zone, err := newZone(":0z", 2)
 	assert.NoError(suite.T(), err)
 
 	zone.AddUser(user)
@@ -56,7 +43,7 @@ func (suite *ZoneTestSuite) TestAddUser() {
 }
 
 func (suite *ZoneTestSuite) TestSetIsOpen() {
-	zone, err := newZone(suite.world, ":0z")
+	zone, err := newZone(":0z", 2)
 	assert.NoError(suite.T(), err)
 
 	assert.True(suite.T(), zone.IsOpen())
@@ -70,7 +57,7 @@ func (suite *ZoneTestSuite) TestRemoveUser() {
 	user1 := &mocks.User{}
 	user1.On("ID").Return("user1")
 
-	zone, err := newZone(suite.world, ":0z")
+	zone, err := newZone(":0z", 2)
 	assert.NoError(suite.T(), err)
 
 	assert.Equal(suite.T(), 0, zone.Count())
@@ -91,7 +78,7 @@ func (suite *ZoneTestSuite) TestBroadcast() {
 	user2.On("ID").Return("user2")
 	user2.On("Broadcast", event).Return(nil)
 
-	zone, err := newZone(suite.world, ":0z")
+	zone, err := newZone(":0z", 2)
 	assert.NoError(suite.T(), err)
 
 	zone.AddUser(user1)
@@ -103,7 +90,7 @@ func (suite *ZoneTestSuite) TestBroadcast() {
 }
 
 func (suite *ZoneTestSuite) TestMarshalJSON() {
-	zone, err := newZone(suite.world, ":0z")
+	zone, err := newZone(":0z", 2)
 	assert.NoError(suite.T(), err)
 
 	user1 := &mocks.User{}

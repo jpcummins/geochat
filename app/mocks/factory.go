@@ -9,13 +9,13 @@ type Factory struct {
 	mock.Mock
 }
 
-func (f *Factory) NewWorld(cache types.Cache, maxUsersForNewZones int) (types.World, error) {
-	args := f.Called(cache, maxUsersForNewZones)
+func (f *Factory) NewWorld(cache types.Cache) (types.World, error) {
+	args := f.Called(cache)
 	return args.Get(0).(types.World), args.Error(1)
 }
 
-func (f *Factory) NewZone(world types.World, id string) (types.Zone, error) {
-	args := f.Called(world, id)
+func (f *Factory) NewZone(id string, maxUsers int) (types.Zone, error) {
+	args := f.Called(id, maxUsers)
 
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -24,7 +24,7 @@ func (f *Factory) NewZone(world types.World, id string) (types.Zone, error) {
 	return args.Get(0).(types.Zone), args.Error(1)
 }
 
-func (f *Factory) NewUser(lat float64, long float64, name string, id string) (types.User, error) {
-	args := f.Called(lat, long, name, id)
+func (f *Factory) NewUser(id string, name string, location types.LatLng) (types.User, error) {
+	args := f.Called(id, name, location)
 	return args.Get(0).(types.User), args.Error(1)
 }

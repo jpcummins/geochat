@@ -1,14 +1,10 @@
 package chat
 
 import (
-	// "errors"
-	// gh "github.com/TomiHiltunen/geohash-golang"
-	// "github.com/jpcummins/geochat/app/cache"
+	"errors"
 	"github.com/jpcummins/geochat/app/types"
-	// "strings"
+	"strings"
 )
-
-var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 
 type World struct {
 	root            types.Zone
@@ -45,14 +41,6 @@ func (w *World) manage() { // It's a tough job.
 	}
 }
 
-func (w *World) Factory() types.Factory {
-	return w.factory
-}
-
-func (w *World) MaxUsersForNewZones() int {
-	return w.maxUsersPerZone
-}
-
 func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	zone, err := w.cache.Zone(id)
 	if err != nil {
@@ -60,7 +48,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	}
 
 	if zone == nil {
-		zone, err = w.factory.NewZone(w, id)
+		zone, err = w.factory.NewZone(id, w.maxUsersPerZone)
 		if err != nil {
 			return nil, err
 		}
@@ -73,123 +61,39 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	return zone, nil
 }
 
-//
-// func getOrCreateAvailableZone(lat float64, long float64) (*Zone, error) {
-// 	geohash := gh.EncodeWithPrecision(lat, long, 6)
-// 	ch := make(chan interface{})
-// 	world.getAvailableZone <- ch
-// 	ch <- geohash
-// 	zone := (<-ch).(*Zone)
-// 	err := <-ch
-// 	close(ch)
-//
-// 	if err != nil {
-// 		return nil, err.(error)
-// 	}
-// 	return zone, nil
-// }
-//
-// func GetOrCreateZone(id string) (*Zone, error) {
-// 	ch := make(chan interface{})
-// 	world.getZone <- ch
-// 	ch <- id
-// 	zone := (<-ch).(*Zone)
-// 	err := <-ch
-// 	close(ch)
-//
-// 	if err != nil {
-// 		return nil, err.(error)
-// 	}
-//
-// 	return zone, nil
-// }
-//
-// func getOrCreateZone(id string) (*Zone, error) {
-// 	// This algorithm is gross. I apologize if you have to read this.
-// 	split := strings.Split(id, ":")
-//
-// 	// TODO: Validate string
-// 	if len(split) != 2 || len(split[1]) != 2 {
-// 		return nil, errors.New("Invalid id")
-// 	}
-//
-// 	geohash := split[0]
-// 	to := split[1][1]
-//
-// 	geohashLength := len(geohash)
-// 	zone := world.root
-//
-// 	for {
-// 		if zone.id == id {
-// 			return zone, nil
-// 		}
-// 		zonegeohashLength := len(zone.geohash)
-// 		if geohashLength > zonegeohashLength {
-// 			if zone.left == nil || zone.right == nil {
-// 				zone.createChildZones()
-// 			}
-//
-// 			from_i := strings.Index(geohashmap, string(zone.from))
-// 			to_i := strings.Index(geohashmap, string(zone.to))
-// 			if to_i-from_i == 1 {
-// 				if geohash[len(zone.geohash)] == zone.from {
-// 					zone = zone.left
-// 				} else {
-// 					zone = zone.right
-// 				}
-// 				continue
-// 			}
-//
-// 			if geohash[len(zone.geohash)] < zone.right.from {
-// 				zone = zone.left
-// 			} else {
-// 				zone = zone.right
-// 			}
-// 		}
-//
-// 		if geohashLength == zonegeohashLength {
-// 			if zone.left == nil || zone.right == nil {
-// 				zone.createChildZones()
-// 			}
-// 			if to < zone.right.from {
-// 				zone = zone.left
-// 			} else {
-// 				zone = zone.right
-// 			}
-// 		}
-//
-// 		if geohashLength < zonegeohashLength {
-// 			return nil, errors.New("Error locating geohash: " + geohash)
-// 		}
-// 	}
-// }
-//
-// func findChatZone(root *Zone, geohash string) (*Zone, error) {
-// 	if root.left == nil && root.right == nil {
-// 		root.createChildZones()
-// 	}
-//
-// 	if root.isOpen {
-// 		return root, nil
-// 	}
-//
-// 	suffix := strings.TrimPrefix(geohash, root.geohash)
-//
-// 	if len(suffix) == 0 {
-// 		return root, errors.New("Room full")
-// 	}
-//
-// 	if root.geohash == root.right.geohash {
-// 		if suffix[0] < root.right.from {
-// 			return findChatZone(root.left, geohash)
-// 		} else {
-// 			return findChatZone(root.right, geohash)
-// 		}
-// 	} else {
-// 		if suffix[0] < root.right.geohash[len(root.right.geohash)-1] {
-// 			return findChatZone(root.left, geohash)
-// 		} else {
-// 			return findChatZone(root.right, geohash)
-// 		}
-// 	}
-// }
+func (w *World) GetOrCreateZoneForUser(user types.User) (types.Zone, error) {
+	root := w.root
+	for !root.IsOpen() {
+		suffix := strings.TrimPrefix(user.Location().Geohash(), root.Geohash())
+
+		if len(suffix) == 0 {
+			return nil, errors.New("Unable to find zone")
+		}
+
+		rightZone, err := w.GetOrCreateZone(root.RightZoneID())
+		if err != nil {
+			return nil, err
+		}
+
+		leftZone, err := w.GetOrCreateZone(root.LeftZoneID())
+		if err != nil {
+			return nil, err
+		}
+
+		if rightZone.Geohash() == root.Geohash() {
+			if suffix[0] < rightZone.From()[0] {
+				root = leftZone
+			} else {
+				root = rightZone
+			}
+		} else {
+			if suffix[0] < rightZone.Geohash()[len(rightZone.Geohash())-1] {
+				root = leftZone
+			} else {
+				root = rightZone
+			}
+		}
+	}
+
+	return root, nil
+}

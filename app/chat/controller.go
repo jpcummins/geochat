@@ -19,7 +19,7 @@ func Init() {
 	cache := cache.NewCache(redisConnection)
 
 	factory := &Factory{}
-	w, err := factory.NewWorld(cache, 10)
+	w, err := factory.NewWorld(cache)
 
 	if err != nil {
 		panic(err)

@@ -19,6 +19,11 @@ func (m *User) Name() string {
 	return args.String(0)
 }
 
+func (m *User) Location() types.LatLng {
+	args := m.Called()
+	return args.Get(0).(types.LatLng)
+}
+
 func (m *User) Broadcast(e types.Event) {
 	m.Called(e)
 }

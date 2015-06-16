@@ -9,11 +9,11 @@ type Zone interface {
 	SouthWest() LatLng
 	NorthEast() LatLng
 	Geohash() string
-	From() byte
-	To() byte
-	Parent() Zone
-	Left() Zone
-	Right() Zone
+	From() string
+	To() string
+	ParentZoneID() string
+	LeftZoneID() string
+	RightZoneID() string
 	MaxUsers() int
 	Count() int
 	IsOpen() bool
