@@ -2,7 +2,7 @@ package chat
 
 import (
 	"github.com/jpcummins/geochat/app/cache"
-	"github.com/jpcummins/geochat/app/connection"
+	"github.com/jpcummins/geochat/app/db"
 	"github.com/jpcummins/geochat/app/types"
 )
 
@@ -14,7 +14,7 @@ func Init(redisServer, worldID string) error {
 	// 	redisServer = "redis://localhost:6379"
 	// }
 
-	redisConnection := connection.NewRedisConnection(redisServer)
+	redisConnection := db.NewRedisConnection(redisServer)
 	cache := cache.NewCache(redisConnection)
 
 	factory := &Factory{}
