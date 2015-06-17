@@ -38,6 +38,7 @@ func (suite *WorldTestSuite) TestNewWorld() {
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
 	suite.pubsub.On("Subscribe").Return(ch)
+
 	world, err := newWorld("worldid", suite.chat, 1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "worldid", world.id)
@@ -53,6 +54,7 @@ func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.cache.On("Zone", ":0z").Return(nil, worldErr)
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
+
 	world, err := newWorld("", suite.chat, 1)
 	assert.Nil(suite.T(), world)
 	assert.Error(suite.T(), err)
@@ -63,6 +65,7 @@ func (suite *WorldTestSuite) TestGetOrCreateZone() {
 	world := &World{chat: suite.chat}
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+
 	z, err := world.GetOrCreateZone(":0z")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), suite.zone, z)
@@ -73,6 +76,7 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.cache.On("Zone", ":0z").Return(nil, nil)
 	suite.cache.On("SetZone", mock.Anything).Return(nil)
+
 	z, err := world.GetOrCreateZone(":0z")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), ":0z", z.ID())
@@ -82,6 +86,7 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
 	world := &World{chat: suite.chat}
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.cache.On("Zone", invalidZoneID).Return(nil, nil)
+
 	z, err := world.GetOrCreateZone(invalidZoneID)
 	assert.Nil(suite.T(), z)
 	assert.Equal(suite.T(), "Invalid id", err.Error())
@@ -150,12 +155,13 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsError() {
 	err1 := errors.New("invalid")
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+	suite.cache.On("Zone", ":0g").Return(&mocks.Zone{}, nil)
 	suite.cache.On("Zone", invalidZoneID).Return(nil, err1)
 	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.zone.On("IsOpen").Return(false)
 	suite.zone.On("Geohash").Return("")
 	suite.user.On("Location").Return(rome)
-	suite.zone.On("RightZoneID").Return("0g")
+	suite.zone.On("RightZoneID").Return(":0g")
 	suite.zone.On("LeftZoneID").Return(invalidZoneID)
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
 
