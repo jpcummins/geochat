@@ -1,42 +1,49 @@
 package chat
 
-// import (
-// 	"errors"
-// 	// "github.com/jpcummins/geochat/app/cache"
-// 	"github.com/jpcummins/geochat/app/mocks"
-// 	"github.com/jpcummins/geochat/app/types"
-// 	"github.com/stretchr/testify/assert"
-// 	// "github.com/stretchr/testify/mock"
-// 	"github.com/stretchr/testify/suite"
-// 	"testing"
-// )
-//
-// var seattle = &LatLng{47.6235616, -122.330341, "c23nb"}
-// var rome = &LatLng{41.9, 12.5, "sr2yk"}
-//
-// type WorldTestSuite struct {
-// 	suite.Suite
-// 	cache  *mocks.Cache
-// 	chat   *mocks.Chat
-// 	pubsub *mocks.PubSub
-// 	err    error
-// }
-//
-// func (suite *WorldTestSuite) SetupTest() {
-// 	suite.chat = &mocks.Chat{}
-//
-// 	ch := make(chan types.Event)
-// 	suite.pubsub.On("Subscribe").Return(ch)
-// }
-//
-// func (suite *WorldTestSuite) TestNewWorld() {
-// 	zone := &mocks.Zone{}
-// 	suite.cache.On("Zone", ":0z").Return(zone, nil)
-// 	world, err := newWorld("", suite.chat, 1)
-// 	assert.NoError(suite.T(), err)
-// 	assert.Equal(suite.T(), zone, world.root)
-// }
-//
+import (
+	// "errors"
+	// "github.com/jpcummins/geochat/app/cache"
+	"github.com/jpcummins/geochat/app/mocks"
+	"github.com/jpcummins/geochat/app/types"
+	"github.com/stretchr/testify/assert"
+	// "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+	// "testing"
+)
+
+var seattle = &LatLng{47.6235616, -122.330341, "c23nb"}
+var rome = &LatLng{41.9, 12.5, "sr2yk"}
+
+type WorldTestSuite struct {
+	suite.Suite
+	chat   *mocks.Chat
+	cache  *mocks.Cache
+	zone   *mocks.Zone
+	pubsub *mocks.PubSub
+}
+
+func (suite *WorldTestSuite) SetupTest() {
+	suite.chat = &mocks.Chat{}
+	suite.cache = &mocks.Cache{}
+	suite.zone = &mocks.Zone{}
+	suite.pubsub = &mocks.PubSub{}
+}
+
+func (suite *WorldTestSuite) TestNewWorld() {
+	ch := make(<-chan types.Event)
+	suite.cache.On("Zone", ":0z").Return(suite.zone)
+	suite.pubsub.On("Subscribe").Return(ch)
+
+	world, err := newWorld("worldid", suite.chat, 1)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "worldid", world.id)
+	assert.Equal(suite.T(), suite.zone, world.root)
+	assert.Equal(suite.T(), suite.chat, world.chat)
+	assert.Equal(suite.T(), 1, world.maxUsersPerZone)
+	assert.Equal(suite.T(), ch, world.subscribe)
+
+}
+
 // func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 // 	worldErr := errors.New("err")
 // 	suite.cache.On("Zone", ":0z").Return(nil, worldErr)
