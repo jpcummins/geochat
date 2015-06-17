@@ -82,23 +82,22 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
 	assert.Nil(suite.T(), z)
 }
 
-//
-// func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRoot() {
-// 	zone := &mocks.Zone{}
-// 	suite.cache.On("Zone", ":0z").Return(zone, nil)
-//
-// 	world1, err1 := newWorld("", suite.cache, nil, suite.pubsub, 1)
-// 	world2, err2 := newWorld("", suite.cache, nil, suite.pubsub, 1)
-// 	world3, err3 := newWorld("", suite.cache, nil, suite.pubsub, 1)
-//
-// 	assert.Equal(suite.T(), zone, world1.root)
-// 	assert.Equal(suite.T(), zone, world2.root)
-// 	assert.Equal(suite.T(), zone, world3.root)
-//
-// 	assert.NoError(suite.T(), err1)
-// 	assert.NoError(suite.T(), err2)
-// 	assert.NoError(suite.T(), err3)
-// }
+func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRoot() {
+	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+
+	world1, err1 := newWorld("", suite.chat, 1)
+	world2, err2 := newWorld("", suite.chat, 1)
+	world3, err3 := newWorld("", suite.chat, 1)
+
+	assert.Equal(suite.T(), suite.zone, world1.root)
+	assert.Equal(suite.T(), suite.zone, world2.root)
+	assert.Equal(suite.T(), suite.zone, world3.root)
+
+	assert.NoError(suite.T(), err1)
+	assert.NoError(suite.T(), err2)
+	assert.NoError(suite.T(), err3)
+}
+
 //
 // func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_EmptyWorld() {
 // 	root := &mocks.Zone{}
