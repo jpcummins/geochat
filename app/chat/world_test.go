@@ -1,7 +1,7 @@
 package chat
 
 import (
-	// "errors"
+	"errors"
 	// "github.com/jpcummins/geochat/app/cache"
 	"github.com/jpcummins/geochat/app/mocks"
 	"github.com/jpcummins/geochat/app/types"
@@ -44,14 +44,15 @@ func (suite *WorldTestSuite) TestNewWorld() {
 
 }
 
-// func (suite *WorldTestSuite) TestNewWorldReturnsError() {
-// 	worldErr := errors.New("err")
-// 	suite.cache.On("Zone", ":0z").Return(nil, worldErr)
-// 	world, err := newWorld("", suite.chat, 1)
-// 	assert.Nil(suite.T(), world)
-// 	assert.Error(suite.T(), err)
-// 	assert.Equal(suite.T(), worldErr, err)
-// }
+func (suite *WorldTestSuite) TestNewWorldReturnsError() {
+	worldErr := errors.New("err")
+	suite.cache.On("Zone", ":0z").Return(nil, worldErr)
+	world, err := newWorld("", suite.chat, 1)
+	assert.Nil(suite.T(), world)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), worldErr, err)
+}
+
 //
 // func (suite *WorldTestSuite) TestGetOrCreateZone() {
 // 	world := &World{}
