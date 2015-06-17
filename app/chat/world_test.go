@@ -129,13 +129,20 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_EmptyWorld() {
 }
 
 func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_RightZoneReturnsError() {
+	err1 := errors.New("invalid")
+	suite.chat.On("Cache").Return(suite.cache)
 	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+	suite.cache.On("Zone", invalidZoneID).Return(nil, err1)
+	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.zone.On("IsOpen").Return(false)
+	suite.zone.On("Geohash").Return("")
 	suite.user.On("Location").Return(seattle)
 	suite.zone.On("RightZoneID").Return(invalidZoneID)
-	world, err := newWorld("", suite.chat, 1)
-	zone, err := world.GetOrCreateZoneForUser(suite.user)
-	assert.Equal(suite.T(), "Invalid id", err)
+	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
+
+	world, _ := newWorld("", suite.chat, 1)
+	zone, err2 := world.GetOrCreateZoneForUser(suite.user)
+	assert.Equal(suite.T(), err1, err2)
 	assert.Nil(suite.T(), zone)
 }
 
