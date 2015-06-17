@@ -45,6 +45,14 @@ func (suite *EventTestSuite) TestNewEventError() {
 	assert.Nil(suite.T(), testE)
 }
 
+func (suite *EventTestSuite) TestNewEventError2() {
+	suite.chat.On("World", "error_world").Return(nil, nil)
+
+	testE, testErr := newEvent("eventid", "error_world", &mocks.EventData{})
+	assert.Equal(suite.T(), "Unable to find world: error_world", testErr.Error())
+	assert.Nil(suite.T(), testE)
+}
+
 func (suite *EventTestSuite) TestUnmarshalMessage() {
 	event := &Event{}
 	err := event.UnmarshalJSON(generateMockEventBytes("message"))
