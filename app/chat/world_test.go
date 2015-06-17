@@ -128,16 +128,17 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_EmptyWorld() {
 	assert.Equal(suite.T(), world.root, zone)
 }
 
-// func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_RightZoneReturnsError() {
-// 	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
-// 	suite.zone.On("IsOpen").Return(false)
-// 	suite.user.On("Location").Return(seattle)
-// 	suite.zone.On("RightZoneID").Return(invalidZoneID)
-// 	world, err := newWorld("", suite.chat, 1)
-// 	zone, err := world.GetOrCreateZoneForUser(suite.user)
-// 	assert.Equal(suite.T(), "Invalid id", err)
-// 	assert.Nil(suite.T(), zone)
-// }
+func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_RightZoneReturnsError() {
+	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+	suite.zone.On("IsOpen").Return(false)
+	suite.user.On("Location").Return(seattle)
+	suite.zone.On("RightZoneID").Return(invalidZoneID)
+	world, err := newWorld("", suite.chat, 1)
+	zone, err := world.GetOrCreateZoneForUser(suite.user)
+	assert.Equal(suite.T(), "Invalid id", err)
+	assert.Nil(suite.T(), zone)
+}
+
 //
 // func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsError() {
 // 	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
