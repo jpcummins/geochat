@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/jpcummins/geochat/app/events"
 	"github.com/jpcummins/geochat/app/types"
-	"math/rand"
 )
 
 type eventJSON struct {
@@ -93,14 +92,4 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 	}
 
 	return json.Unmarshal(e.eventJSON.Data, e.data)
-}
-
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-
-func randomSequence(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
 }
