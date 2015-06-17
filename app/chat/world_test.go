@@ -122,18 +122,53 @@ func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRo
 	assert.NoError(suite.T(), err3)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_EmptyWorld() {
-	world := &World{chat: suite.chat, root: suite.zone}
-	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
-	suite.chat.On("Cache").Return(suite.cache)
-	suite.zone.On("IsOpen").Return(true)
+func TestWorldSuite(t *testing.T) {
+	suite.Run(t, new(WorldTestSuite))
+}
 
+type CreateZoneForUserSuite struct {
+	suite.Suite
+	chat   *mocks.Chat
+	cache  *mocks.Cache
+	zone   *mocks.Zone
+	pubsub *mocks.PubSub
+	user   *mocks.User
+	left   *mocks.Zone
+	right  *mocks.Zone
+}
+
+func (suite *CreateZoneForUserSuite) SetupTest() {
+	suite.chat = &mocks.Chat{}
+	suite.cache = &mocks.Cache{}
+	suite.zone = &mocks.Zone{}
+	suite.pubsub = &mocks.PubSub{}
+	suite.user = &mocks.User{}
+	suite.left = &mocks.Zone{}
+	suite.right = &mocks.Zone{}
+
+	suite.chat.On("Cache").Return(suite.cache)
+	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+	suite.cache.On("Zone", ":0g").Return(suite.left, nil)
+	suite.cache.On("Zone", ":hz").Return(suite.right, nil)
+	suite.chat.On("PubSub").Return(suite.pubsub)
+	suite.zone.On("IsOpen").Return(false)
+	suite.zone.On("Geohash").Return("")
+	suite.user.On("Location").Return(seattle)
+	suite.zone.On("LeftZoneID").Return(":0g")
+	suite.zone.On("RightZoneID").Return(":hz")
+	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
+	suite.right.On("Geohash").Return("")
+	suite.right.On("From").Return("h")
+}
+
+func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_EmptyWorld() {
+	world, _ := newWorld("", suite.chat, 1)
 	zone, err := world.GetOrCreateZoneForUser(&User{})
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), world.root, zone)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_RightZoneReturnsError() {
+func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_RightZoneReturnsError() {
 	err1 := errors.New("invalid")
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
@@ -151,7 +186,7 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_RightZoneReturnsError() 
 	assert.Nil(suite.T(), zone)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsError() {
+func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsError() {
 	err1 := errors.New("invalid")
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
@@ -171,7 +206,7 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsError() {
 	assert.Nil(suite.T(), zone)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone() {
+func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone() {
 	left := &mocks.Zone{}
 	right := &mocks.Zone{}
 	suite.chat.On("Cache").Return(suite.cache)
@@ -193,6 +228,10 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone() {
 	zone, err := world.GetOrCreateZoneForUser(suite.user)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), left, zone)
+}
+
+func TestCreateZoneForUserSuite(t *testing.T) {
+	suite.Run(t, new(CreateZoneForUserSuite))
 }
 
 //
@@ -494,6 +533,3 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone() {
 // 	assert.Equal(suite.T(), err, zerr)
 // }
 //
-func TestWorldSuite(t *testing.T) {
-	suite.Run(t, new(WorldTestSuite))
-}
