@@ -74,7 +74,7 @@ func validateZoneID(id string) (geohash string, from string, to string, err erro
 	split := strings.Split(id, ":")
 
 	if len(split) != 2 || len(split[1]) != 2 {
-		err = errors.New("Invalid id")
+		return "", "", "", errors.New("Invalid id")
 	}
 
 	// TODO: Additional validation needed

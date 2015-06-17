@@ -17,9 +17,9 @@ func (m *PubSub) Publish(_a0 types.Event) error {
 func (m *PubSub) Subscribe() <-chan types.Event {
 	ret := m.Called()
 
-	var r0 chan types.Event
+	var r0 <-chan types.Event
 	if ret.Get(0) != nil {
-		r0 = ret.Get(0).(chan types.Event)
+		r0 = ret.Get(0).(<-chan types.Event)
 	}
 
 	return r0
