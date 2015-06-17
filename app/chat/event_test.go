@@ -31,6 +31,7 @@ func (suite *EventTestSuite) TestNewEvent() {
 	assert.Equal(suite.T(), "eventid", e.ID())
 	assert.Equal(suite.T(), "test", e.Type())
 	assert.Equal(suite.T(), data, e.Data())
+	assert.Equal(suite.T(), suite.world, e.World())
 	assert.Equal(suite.T(), suite.world.ID(), e.eventJSON.WorldID)
 }
 
