@@ -9,27 +9,29 @@ import (
 
 type EventTestSuite struct {
 	suite.Suite
-	mockChat *mocks.Chat
+	chat  *mocks.Chat
+	world *mocks.World
 }
 
 func (suite *EventTestSuite) SetupTest() {
-	suite.mockChat = &mocks.Chat{}
-	chat = suite.mockChat
+	suite.chat = &mocks.Chat{}
+	chat = suite.chat
 
-	world := &mocks.World{}
-	suite.mockChat.On("World", "wid").Return(world, nil)
+	suite.world = &mocks.World{}
+	suite.chat.On("World", "wid").Return(suite.world, nil)
+	suite.world.On("ID").Return("wid")
 }
 
 func (suite *EventTestSuite) TestNewEvent() {
 	data := &mocks.EventData{}
 	data.On("Type").Return("test")
 
-	e, err := newEvent("eventid", "wid", data)
+	e, err := newEvent("eventid", suite.world.ID(), data)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "eventid", e.ID())
 	assert.Equal(suite.T(), "test", e.Type())
 	assert.Equal(suite.T(), data, e.Data())
-	assert.Equal(suite.T(), "wid", e.eventJSON.WorldID)
+	assert.Equal(suite.T(), suite.world.ID(), e.eventJSON.WorldID)
 }
 
 func (suite *EventTestSuite) TestUnmarshalMessage() {
