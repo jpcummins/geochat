@@ -17,7 +17,8 @@ type eventJSON struct {
 
 type Event struct {
 	*eventJSON
-	data types.EventData
+	data  types.EventData
+	world types.World
 }
 
 func newEvent(id string, worldID string, data types.EventData) (*Event, error) {
@@ -27,7 +28,8 @@ func newEvent(id string, worldID string, data types.EventData) (*Event, error) {
 			Type:    data.Type(),
 			WorldID: worldID,
 		},
-		data: data,
+		data:  data,
+		world: factory.GetOrCreateWorld(worldID),
 	}, nil
 }
 
@@ -43,8 +45,8 @@ func (e *Event) Data() types.EventData {
 	return e.data
 }
 
-func (e *Event) WorldID() string {
-	return e.eventJSON.WorldID
+func (e *Event) World() types.World {
+	return e.world
 }
 
 func (e *Event) UnmarshalJSON(b []byte) error {

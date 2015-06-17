@@ -6,7 +6,7 @@ import (
 
 type Event interface {
 	ID() string
-	WorldID() string
+	World() World
 	Type() string
 	Data() EventData
 	json.Unmarshaler

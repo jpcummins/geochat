@@ -10,17 +10,15 @@ type World struct {
 	id              string
 	root            types.Zone
 	cache           types.Cache
-	factory         types.Factory
 	pubsub          types.PubSub
 	maxUsersPerZone int
 	subscribe       <-chan types.Event
 }
 
-func newWorld(id string, cache types.Cache, factory types.Factory, pubsub types.PubSub, maxUsersPerZone int) (*World, error) {
+func newWorld(id string, cache types.Cache, pubsub types.PubSub, maxUsersPerZone int) (*World, error) {
 	world := &World{
 		id:              id,
 		cache:           cache,
-		factory:         factory,
 		pubsub:          pubsub,
 		maxUsersPerZone: maxUsersPerZone,
 		subscribe:       pubsub.Subscribe(),
@@ -64,7 +62,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	}
 
 	if zone == nil {
-		zone, err = w.factory.NewZone(id, w.id, w.maxUsersPerZone)
+		zone, err = w.NewZone(id, w.id, w.maxUsersPerZone)
 		if err != nil {
 			return nil, err
 		}
