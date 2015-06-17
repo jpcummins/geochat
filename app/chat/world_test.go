@@ -66,27 +66,13 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
 	assert.Equal(suite.T(), ":0z", z.ID())
 }
 
-//
-// func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
-// 	newZoneErr := errors.New("err")
-// 	suite.cache.On("Zone", ":0z").Return(nil, nil)
-//
-// 	world := &World{
-// 		id:              "test",
-// 		cache:           suite.cache,
-// 		factory:         suite.factory,
-// 		maxUsersPerZone: 22,
-// 	}
-//
-// 	suite.factory.On("NewZone", ":0z", "test", 22).Return(nil, newZoneErr)
-//
-// 	z, err := world.GetOrCreateZone(":0z")
-// 	assert.Nil(suite.T(), z)
-// 	assert.Equal(suite.T(), newZoneErr, err)
-//
-// 	suite.cache.AssertCalled(suite.T(), "Zone", ":0z")
-// 	suite.factory.AssertCalled(suite.T(), "NewZone", ":0z", "test", 22)
-// }
+func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
+	suite.cache.On("Zone", "::::::").Return(nil, nil)
+	z, err := (&World{}).GetOrCreateZone("::::::")
+	assert.Nil(suite.T(), z)
+	assert.Equal(suite.T(), "Invalid id", err.Error())
+}
+
 //
 // func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
 // 	zone := &mocks.Zone{}
