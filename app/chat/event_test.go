@@ -17,7 +17,6 @@ type EventTestSuite struct {
 func (suite *EventTestSuite) SetupTest() {
 	suite.chat = &mocks.Chat{}
 	chat = suite.chat
-
 	suite.world = &mocks.World{}
 	suite.chat.On("World", "wid").Return(suite.world, nil)
 	suite.world.On("ID").Return("wid")
@@ -26,7 +25,6 @@ func (suite *EventTestSuite) SetupTest() {
 func (suite *EventTestSuite) TestNewEvent() {
 	data := &mocks.EventData{}
 	data.On("Type").Return("test")
-
 	e, err := newEvent("eventid", suite.world.ID(), data)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "eventid", e.ID())
@@ -39,7 +37,6 @@ func (suite *EventTestSuite) TestNewEvent() {
 func (suite *EventTestSuite) TestNewEventError() {
 	err := errors.New("error")
 	suite.chat.On("World", "error_world").Return(nil, err)
-
 	testE, testErr := newEvent("eventid", "error_world", &mocks.EventData{})
 	assert.Equal(suite.T(), err, testErr)
 	assert.Nil(suite.T(), testE)
@@ -47,7 +44,6 @@ func (suite *EventTestSuite) TestNewEventError() {
 
 func (suite *EventTestSuite) TestNewEventError2() {
 	suite.chat.On("World", "error_world").Return(nil, nil)
-
 	testE, testErr := newEvent("eventid", "error_world", &mocks.EventData{})
 	assert.Equal(suite.T(), "Unable to find world: error_world", testErr.Error())
 	assert.Nil(suite.T(), testE)
@@ -73,7 +69,6 @@ func (suite *EventTestSuite) TestEventUnmarshalError() {
 func (suite *EventTestSuite) TestEventUnmarshalError2() {
 	err := errors.New("error")
 	suite.chat.On("World", "error_world").Return(nil, err)
-
 	event := &Event{}
 	testErr := event.UnmarshalJSON(generateMockEventBytes("bad", "error_world"))
 	assert.Equal(suite.T(), err, testErr)
@@ -81,7 +76,6 @@ func (suite *EventTestSuite) TestEventUnmarshalError2() {
 
 func (suite *EventTestSuite) TestEventUnmarshalError3() {
 	suite.chat.On("World", "error_world").Return(nil, nil)
-
 	event := &Event{}
 	testErr := event.UnmarshalJSON(generateMockEventBytes("bad", "error_world"))
 	assert.Equal(suite.T(), "Unable to find world: error_world", testErr.Error())
