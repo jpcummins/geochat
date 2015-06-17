@@ -1,40 +1,61 @@
 package mocks
 
-import (
-	"github.com/jpcummins/geochat/app/types"
-	"github.com/stretchr/testify/mock"
-)
+import "github.com/jpcummins/geochat/app/types"
+import "github.com/stretchr/testify/mock"
 
 type World struct {
 	mock.Mock
 }
 
 func (m *World) ID() string {
-	args := m.Called()
-	return args.String(0)
-}
+	ret := m.Called()
 
-func (m *World) SetZone(zone types.Zone) error {
-	args := m.Called(zone)
-	return args.Error(0)
-}
+	r0 := ret.Get(0).(string)
 
-func (m *World) SetUser(user types.User) error {
-	args := m.Called(user)
-	return args.Error(0)
+	return r0
 }
+func (m *World) Zone(_a0 string) (types.Zone, error) {
+	ret := m.Called(_a0)
 
-func (m *World) GetOrCreateZone(id string) (types.Zone, error) {
-	args := m.Called(id)
-	return args.Get(0).(types.Zone), args.Error(1)
+	r0 := ret.Get(0).(types.Zone)
+	r1 := ret.Error(1)
+
+	return r0, r1
 }
+func (m *World) SetZone(_a0 types.Zone) error {
+	ret := m.Called(_a0)
 
-func (m *World) GetOrCreateZoneForUser(user types.User) (types.Zone, error) {
-	args := m.Called(user)
-	return args.Get(0).(types.Zone), args.Error(1)
+	r0 := ret.Error(0)
+
+	return r0
 }
+func (m *World) GetOrCreateZone(_a0 string) (types.Zone, error) {
+	ret := m.Called(_a0)
 
-func (m *World) Publish(event types.Event) error {
-	args := m.Called(event)
-	return args.Error(0)
+	r0 := ret.Get(0).(types.Zone)
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
+func (m *World) GetOrCreateZoneForUser(_a0 types.User) (types.Zone, error) {
+	ret := m.Called(_a0)
+
+	r0 := ret.Get(0).(types.Zone)
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
+func (m *World) SetUser(_a0 types.User) error {
+	ret := m.Called(_a0)
+
+	r0 := ret.Error(0)
+
+	return r0
+}
+func (m *World) Publish(_a0 types.Event) error {
+	ret := m.Called(_a0)
+
+	r0 := ret.Error(0)
+
+	return r0
 }

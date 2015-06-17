@@ -1,37 +1,39 @@
 package mocks
 
-import (
-	"github.com/jpcummins/geochat/app/types"
-	"github.com/stretchr/testify/mock"
-)
+import "github.com/jpcummins/geochat/app/types"
+import "github.com/stretchr/testify/mock"
 
 type Event struct {
 	mock.Mock
 }
 
 func (m *Event) ID() string {
-	args := m.Called()
-	return args.String(0)
-}
+	ret := m.Called()
 
+	r0 := ret.Get(0).(string)
+
+	return r0
+}
+func (m *Event) World() types.World {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.World)
+
+	return r0
+}
 func (m *Event) Type() string {
-	args := m.Called()
-	return args.String(0)
-}
+	ret := m.Called()
 
-func (m *Event) WorldID() string {
-	args := m.Called()
-	return args.String(0)
-}
+	r0 := ret.Get(0).(string)
 
+	return r0
+}
 func (m *Event) Data() types.EventData {
-	args := m.Called()
-	return args.Get(0).(types.EventData)
-}
+	ret := m.Called()
 
-func (m *Event) UnmarshalJSON(b []byte) error {
-	args := m.Called(b)
-	return args.Error(0)
+	r0 := ret.Get(0).(types.EventData)
+
+	return r0
 }
 
 type EventData struct {

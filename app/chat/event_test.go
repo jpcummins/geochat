@@ -2,7 +2,6 @@ package chat
 
 import (
 	"github.com/jpcummins/geochat/app/mocks"
-	"github.com/jpcummins/geochat/app/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -10,19 +9,27 @@ import (
 
 type EventTestSuite struct {
 	suite.Suite
-	chat types.Chat
+	mockChat *mocks.Chat
+}
+
+func (suite *EventTestSuite) SetupTest() {
+	suite.mockChat = &mocks.Chat{}
+	chat = suite.mockChat
+
+	world := &mocks.World{}
+	suite.mockChat.On("World", "wid").Return(world, nil)
 }
 
 func (suite *EventTestSuite) TestNewEvent() {
 	data := &mocks.EventData{}
 	data.On("Type").Return("test")
 
-	e, err := newEvent("eventid", "worldid", data)
+	e, err := newEvent("eventid", "wid", data)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "eventid", e.ID())
 	assert.Equal(suite.T(), "test", e.Type())
 	assert.Equal(suite.T(), data, e.Data())
-	assert.Equal(suite.T(), "worldid", e.eventJSON.WorldID)
+	assert.Equal(suite.T(), "wid", e.eventJSON.WorldID)
 }
 
 func (suite *EventTestSuite) TestUnmarshalMessage() {
@@ -31,10 +38,11 @@ func (suite *EventTestSuite) TestUnmarshalMessage() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "eventid", event.ID())
 	assert.Equal(suite.T(), "message", event.Type())
-	assert.Equal(suite.T(), "worldid", event.eventJSON.WorldID)
+	assert.Equal(suite.T(), "wid", event.eventJSON.WorldID)
 }
 
 func (suite *EventTestSuite) TestEventUnmarshalError() {
+
 	event := &Event{}
 	err := event.UnmarshalJSON(generateMockEventBytes("bad"))
 	assert.Error(suite.T(), err)
@@ -42,7 +50,7 @@ func (suite *EventTestSuite) TestEventUnmarshalError() {
 }
 
 func generateMockEventBytes(eventType string) []byte {
-	return []byte("{\"id\":\"eventid\",\"type\":\"" + eventType + "\",\"world_id\":\"worldid\",\"data\":{}}")
+	return []byte("{\"id\":\"eventid\",\"type\":\"" + eventType + "\",\"world_id\":\"wid\",\"data\":{}}")
 }
 
 func TestEventSuite(t *testing.T) {

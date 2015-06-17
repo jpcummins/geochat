@@ -7,6 +7,20 @@ type Chat struct {
 	mock.Mock
 }
 
+func (m *Chat) PubSub() types.PubSub {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.PubSub)
+
+	return r0
+}
+func (m *Chat) Cache() types.Cache {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.Cache)
+
+	return r0
+}
 func (m *Chat) World(id string) (types.World, error) {
 	ret := m.Called(id)
 

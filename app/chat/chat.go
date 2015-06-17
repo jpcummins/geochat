@@ -14,6 +14,14 @@ func newChat(cache types.Cache, pubsub types.PubSub, maxUsersForNewZones int) (t
 	return &Chat{cache, pubsub, maxUsersForNewZones}, nil
 }
 
+func (c *Chat) PubSub() types.PubSub {
+	return c.pubsub
+}
+
+func (c *Chat) Cache() types.Cache {
+	return c.cache
+}
+
 func (c *Chat) World(id string) (types.World, error) {
 	return nil, nil
 }

@@ -1,7 +1,7 @@
 package types
 
 import (
-	"encoding/json"
+// "encoding/json"
 )
 
 type Event interface {
@@ -9,7 +9,7 @@ type Event interface {
 	World() World
 	Type() string
 	Data() EventData
-	json.Unmarshaler
+	// json.Unmarshaler
 }
 
 type EventData interface {

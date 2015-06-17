@@ -7,17 +7,19 @@ import (
 )
 
 type World struct {
-	id        string
-	root      types.Zone
-	chat      *Chat
-	subscribe <-chan types.Event
+	id              string
+	root            types.Zone
+	chat            types.Chat
+	maxUsersPerZone int
+	subscribe       <-chan types.Event
 }
 
-func newWorld(id string, chat *Chat) (*World, error) {
+func newWorld(id string, chat types.Chat, maxUsersPerZone int) (*World, error) {
 	world := &World{
-		id:        id,
-		chat:      chat,
-		subscribe: chat.pubsub.Subscribe(),
+		id:              id,
+		chat:            chat,
+		maxUsersPerZone: maxUsersPerZone,
+		subscribe:       chat.PubSub().Subscribe(),
 	}
 
 	root, err := world.GetOrCreateZone(":0z")
@@ -44,15 +46,15 @@ func (w *World) ID() string {
 }
 
 func (w *World) Zone(id string) (types.Zone, error) {
-	return w.chat.cache.Zone(id)
+	return w.chat.Cache().Zone(id)
 }
 
 func (w *World) SetZone(zone types.Zone) error {
-	return w.chat.cache.SetZone(zone)
+	return w.chat.Cache().SetZone(zone)
 }
 
 func (w *World) SetUser(user types.User) error {
-	return w.chat.cache.SetUser(user)
+	return w.chat.Cache().SetUser(user)
 }
 
 func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
@@ -62,7 +64,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	}
 
 	if zone == nil {
-		zone, err = newZone(id, w.id, w.chat.maxUsersForNewZones)
+		zone, err = newZone(id, w.ID(), w.maxUsersPerZone)
 		if err != nil {
 			return nil, err
 		}
@@ -116,5 +118,5 @@ func (w *World) Publish(event types.Event) error {
 	if err := event.Data().BeforePublish(event); err != nil {
 		return err
 	}
-	return w.chat.pubsub.Publish(event)
+	return w.chat.PubSub().Publish(event)
 }
