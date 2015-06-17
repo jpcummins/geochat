@@ -22,6 +22,16 @@ type Event struct {
 }
 
 func newEvent(id string, worldID string, data types.EventData) (*Event, error) {
+	world, err := chat.World(worldID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if world == nil {
+		return nil, errors.New("Unable to find world: " + worldID)
+	}
+
 	return &Event{
 		eventJSON: &eventJSON{
 			ID:      id,
@@ -29,7 +39,7 @@ func newEvent(id string, worldID string, data types.EventData) (*Event, error) {
 			WorldID: worldID,
 		},
 		data:  data,
-		world: factory.GetOrCreateWorld(worldID),
+		world: world,
 	}, nil
 }
 
@@ -52,6 +62,15 @@ func (e *Event) World() types.World {
 func (e *Event) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &e.eventJSON); err != nil {
 		return err
+	}
+
+	world, err := chat.World(e.eventJSON.WorldID)
+	if err != nil {
+		return err
+	}
+
+	if world == nil {
+		return errors.New("Unable to find world: " + e.eventJSON.WorldID)
 	}
 
 	switch e.Type() {

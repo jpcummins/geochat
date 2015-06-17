@@ -16,16 +16,14 @@ var rome = &LatLng{41.9, 12.5, "sr2yk"}
 
 type WorldTestSuite struct {
 	suite.Suite
-	cache   *mocks.Cache
-	factory *mocks.Factory
-	pubsub  *mocks.PubSub
-	err     error
+	cache  *mocks.Cache
+	chat   *mocks.Chat
+	pubsub *mocks.PubSub
+	err    error
 }
 
 func (suite *WorldTestSuite) SetupTest() {
-	suite.cache = &mocks.Cache{}
-	suite.factory = &mocks.Factory{}
-	suite.pubsub = &mocks.PubSub{}
+	suite.chat = &mocks.Chat{}
 
 	ch := make(chan types.Event)
 	suite.pubsub.On("Subscribe").Return(ch)
@@ -34,17 +32,15 @@ func (suite *WorldTestSuite) SetupTest() {
 func (suite *WorldTestSuite) TestNewWorld() {
 	zone := &mocks.Zone{}
 	suite.cache.On("Zone", ":0z").Return(zone, nil)
-	world, err := newWorld("", suite.cache, suite.factory, suite.pubsub, 2)
+	world, err := newWorld("", suite.chat)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), zone, world.root)
-	assert.Equal(suite.T(), suite.cache, world.cache)
-	assert.Equal(suite.T(), 2, world.maxUsersPerZone)
 }
 
 func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 	worldErr := errors.New("err")
 	suite.cache.On("Zone", ":0z").Return(nil, worldErr)
-	world, err := newWorld("", suite.cache, suite.factory, suite.pubsub, 2)
+	world, err := newWorld("", suite.chat)
 	assert.Nil(suite.T(), world)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), worldErr, err)

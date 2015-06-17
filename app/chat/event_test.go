@@ -2,6 +2,7 @@ package chat
 
 import (
 	"github.com/jpcummins/geochat/app/mocks"
+	"github.com/jpcummins/geochat/app/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -9,6 +10,7 @@ import (
 
 type EventTestSuite struct {
 	suite.Suite
+	chat types.Chat
 }
 
 func (suite *EventTestSuite) TestNewEvent() {
@@ -20,7 +22,7 @@ func (suite *EventTestSuite) TestNewEvent() {
 	assert.Equal(suite.T(), "eventid", e.ID())
 	assert.Equal(suite.T(), "test", e.Type())
 	assert.Equal(suite.T(), data, e.Data())
-	assert.Equal(suite.T(), "worldid", e.WorldID())
+	assert.Equal(suite.T(), "worldid", e.eventJSON.WorldID)
 }
 
 func (suite *EventTestSuite) TestUnmarshalMessage() {
@@ -29,7 +31,7 @@ func (suite *EventTestSuite) TestUnmarshalMessage() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "eventid", event.ID())
 	assert.Equal(suite.T(), "message", event.Type())
-	assert.Equal(suite.T(), "worldid", event.WorldID())
+	assert.Equal(suite.T(), "worldid", event.eventJSON.WorldID)
 }
 
 func (suite *EventTestSuite) TestEventUnmarshalError() {
