@@ -49,6 +49,14 @@ func (w *World) ID() string {
 	return w.id
 }
 
+func (w *World) SetZone(zone types.Zone) error {
+	return w.cache.SetZone(zone)
+}
+
+func (w *World) SetUser(user types.User) error {
+	return w.cache.SetUser(user)
+}
+
 func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	zone, err := w.cache.Zone(id)
 	if err != nil {

@@ -502,6 +502,50 @@ func (suite *WorldTestSuite) TestIncomingEventsCallOnReceive() {
 	mockEventData.AssertCalled(suite.T(), "OnReceive", mockEvent)
 }
 
+func (suite *WorldTestSuite) TestSetZone() {
+	zone := &mocks.Zone{}
+	cache := &mocks.Cache{}
+	cache.On("SetZone", zone).Return(nil)
+	w := &World{cache: cache}
+	err := w.SetZone(zone)
+	assert.NoError(suite.T(), err)
+	cache.AssertCalled(suite.T(), "SetZone", zone)
+}
+
+func (suite *WorldTestSuite) TestSetZoneReturnsError() {
+	err := errors.New("sdfsd")
+	zone := &mocks.Zone{}
+	cache := &mocks.Cache{}
+	cache.On("SetZone", zone).Return(err)
+	w := &World{cache: cache}
+	zerr := w.SetZone(zone)
+	assert.Error(suite.T(), zerr)
+	cache.AssertCalled(suite.T(), "SetZone", zone)
+	assert.Equal(suite.T(), err, zerr)
+}
+
+func (suite *WorldTestSuite) TestSetUser() {
+	user := &mocks.User{}
+	cache := &mocks.Cache{}
+	cache.On("SetUser", user).Return(nil)
+	w := &World{cache: cache}
+	err := w.SetUser(user)
+	assert.NoError(suite.T(), err)
+	cache.AssertCalled(suite.T(), "SetUser", user)
+}
+
+func (suite *WorldTestSuite) TestSetUserReturnsError() {
+	err := errors.New("sdfsd")
+	user := &mocks.User{}
+	cache := &mocks.Cache{}
+	cache.On("SetUser", user).Return(err)
+	w := &World{cache: cache}
+	zerr := w.SetUser(user)
+	assert.Error(suite.T(), zerr)
+	cache.AssertCalled(suite.T(), "SetUser", user)
+	assert.Equal(suite.T(), err, zerr)
+}
+
 func TestWorldSuite(t *testing.T) {
 	suite.Run(t, new(WorldTestSuite))
 }

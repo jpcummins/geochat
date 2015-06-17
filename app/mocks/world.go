@@ -14,6 +14,16 @@ func (m *World) ID() string {
 	return args.String(0)
 }
 
+func (m *World) SetZone(zone types.Zone) error {
+	args := m.Called(zone)
+	return args.Error(0)
+}
+
+func (m *World) SetUser(user types.User) error {
+	args := m.Called(user)
+	return args.Error(0)
+}
+
 func (m *World) GetOrCreateZone(id string) (types.Zone, error) {
 	args := m.Called(id)
 	return args.Get(0).(types.Zone), args.Error(1)
