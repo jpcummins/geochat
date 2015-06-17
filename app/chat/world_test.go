@@ -13,6 +13,7 @@ import (
 
 var seattle = &LatLng{47.6235616, -122.330341, "c23nb"}
 var rome = &LatLng{41.9, 12.5, "sr2yk"}
+var invalidZoneID = ":::::::"
 
 type WorldTestSuite struct {
 	suite.Suite
@@ -20,6 +21,7 @@ type WorldTestSuite struct {
 	cache  *mocks.Cache
 	zone   *mocks.Zone
 	pubsub *mocks.PubSub
+	user   *mocks.User
 }
 
 func (suite *WorldTestSuite) SetupTest() {
@@ -27,6 +29,7 @@ func (suite *WorldTestSuite) SetupTest() {
 	suite.cache = &mocks.Cache{}
 	suite.zone = &mocks.Zone{}
 	suite.pubsub = &mocks.PubSub{}
+	suite.user = &mocks.User{}
 }
 
 func (suite *WorldTestSuite) TestNewWorld() {
@@ -67,8 +70,8 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
 }
 
 func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
-	suite.cache.On("Zone", "::::::").Return(nil, nil)
-	z, err := (&World{}).GetOrCreateZone("::::::")
+	suite.cache.On("Zone", invalidZoneID).Return(nil, nil)
+	z, err := (&World{}).GetOrCreateZone(invalidZoneID)
 	assert.Nil(suite.T(), z)
 	assert.Equal(suite.T(), "Invalid id", err.Error())
 }
@@ -98,48 +101,25 @@ func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRo
 	assert.NoError(suite.T(), err3)
 }
 
-//
-// func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_EmptyWorld() {
-// 	root := &mocks.Zone{}
-// 	root.On("IsOpen").Return(true)
-//
-// 	user := &mocks.User{}
-// 	user.On("Location").Return(seattle)
-//
-// 	world := &World{
-// 		cache:           suite.cache,
-// 		root:            root,
-// 		maxUsersPerZone: 2,
-// 	}
-//
-// 	zone, err := world.GetOrCreateZoneForUser(user)
-// 	assert.NoError(suite.T(), err)
-// 	assert.Equal(suite.T(), root, zone)
-// }
-//
-// func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_RightZoneReturnsError() {
-// 	err := errors.New("err")
-//
-// 	root := &mocks.Zone{}
-// 	root.On("IsOpen").Return(false)
-// 	root.On("Geohash").Return("")
-// 	root.On("RightZoneID").Return(":hz")
-//
-// 	suite.cache.On("Zone", ":hz").Return(nil, err)
-//
-// 	user := &mocks.User{}
-// 	user.On("Location").Return(seattle)
-//
-// 	world := &World{
-// 		cache:           suite.cache,
-// 		root:            root,
-// 		maxUsersPerZone: 2,
-// 	}
-//
-// 	zone, err := world.GetOrCreateZoneForUser(user)
-// 	assert.Error(suite.T(), err)
-// 	assert.Nil(suite.T(), zone)
-// }
+func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_EmptyWorld() {
+	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+	world := &World{}
+	zone, err := world.GetOrCreateZoneForUser(&User{})
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), world.root, zone)
+}
+
+func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_RightZoneReturnsError() {
+	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+	suite.zone.On("IsOpen").Return(false)
+	suite.user.On("Location").Return(seattle)
+	suite.zone.On("RightZoneID").Return(invalidZoneID)
+	world, err := newWorld("", suite.chat, 1)
+	zone, err := world.GetOrCreateZoneForUser(suite.user)
+	assert.Equal(suite.T(), "Invalid id", err)
+	assert.Nil(suite.T(), zone)
+}
+
 //
 // func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsError() {
 // 	err := errors.New("err")
