@@ -73,6 +73,8 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 		return errors.New("Unable to find world: " + e.eventJSON.WorldID)
 	}
 
+	e.world = world
+
 	switch e.Type() {
 	case "message":
 		e.data = &events.Message{}

@@ -55,23 +55,40 @@ func (suite *EventTestSuite) TestNewEventError2() {
 
 func (suite *EventTestSuite) TestUnmarshalMessage() {
 	event := &Event{}
-	err := event.UnmarshalJSON(generateMockEventBytes("message"))
+	err := event.UnmarshalJSON(generateMockEventBytes("message", "wid"))
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "eventid", event.ID())
 	assert.Equal(suite.T(), "message", event.Type())
+	assert.Equal(suite.T(), suite.world, event.World())
 	assert.Equal(suite.T(), "wid", event.eventJSON.WorldID)
 }
 
 func (suite *EventTestSuite) TestEventUnmarshalError() {
-
 	event := &Event{}
-	err := event.UnmarshalJSON(generateMockEventBytes("bad"))
+	err := event.UnmarshalJSON(generateMockEventBytes("bad", "wid"))
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "Unable to unmarshal command: bad", err.Error())
 }
 
-func generateMockEventBytes(eventType string) []byte {
-	return []byte("{\"id\":\"eventid\",\"type\":\"" + eventType + "\",\"world_id\":\"wid\",\"data\":{}}")
+func (suite *EventTestSuite) TestEventUnmarshalError2() {
+	err := errors.New("error")
+	suite.chat.On("World", "error_world").Return(nil, err)
+
+	event := &Event{}
+	testErr := event.UnmarshalJSON(generateMockEventBytes("bad", "error_world"))
+	assert.Equal(suite.T(), err, testErr)
+}
+
+func (suite *EventTestSuite) TestEventUnmarshalError3() {
+	suite.chat.On("World", "error_world").Return(nil, nil)
+
+	event := &Event{}
+	testErr := event.UnmarshalJSON(generateMockEventBytes("bad", "error_world"))
+	assert.Equal(suite.T(), "Unable to find world: error_world", testErr.Error())
+}
+
+func generateMockEventBytes(eventType string, worldID string) []byte {
+	return []byte("{\"id\":\"eventid\",\"type\":\"" + eventType + "\",\"world_id\":\"" + worldID + "\",\"data\":{}}")
 }
 
 func TestEventSuite(t *testing.T) {
