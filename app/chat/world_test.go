@@ -131,37 +131,24 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsError() {
 	assert.Nil(suite.T(), zone)
 }
 
-//
-// func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone() {
-// 	root := &mocks.Zone{}
-// 	root.On("IsOpen").Return(false)
-// 	root.On("Geohash").Return("")
-// 	root.On("RightZoneID").Return(":hz")
-// 	root.On("LeftZoneID").Return(":0g")
-//
-// 	leftZone := &mocks.Zone{}
-// 	leftZone.On("IsOpen").Return(true)
-//
-// 	rightZone := &mocks.Zone{}
-// 	rightZone.On("Geohash").Return("")
-// 	rightZone.On("From").Return("h")
-//
-// 	suite.cache.On("Zone", ":0g").Return(leftZone, nil)
-// 	suite.cache.On("Zone", ":hz").Return(rightZone, nil)
-//
-// 	user := &mocks.User{}
-// 	user.On("Location").Return(seattle)
-//
-// 	world := &World{
-// 		cache:           suite.cache,
-// 		root:            root,
-// 		maxUsersPerZone: 2,
-// 	}
-//
-// 	zone, err := world.GetOrCreateZoneForUser(user)
-// 	assert.NoError(suite.T(), err)
-// 	assert.Equal(suite.T(), leftZone, zone)
-// }
+func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone() {
+	leftZone := &mocks.Zone{}
+	leftZone.On("IsOpen").Return(true)
+
+	rightZone := &mocks.Zone{}
+	rightZone.On("Geohash").Return("")
+	rightZone.On("From").Return("h")
+
+	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+	suite.cache.On("Zone", ":0g").Return(leftZone, nil)
+	suite.cache.On("Zone", ":hz").Return(rightZone, nil)
+
+	world, _ := newWorld("", suite.chat, 1)
+	zone, zoneErr := world.GetOrCreateZoneForUser(suite.user)
+	assert.NoError(suite.T(), zoneErr)
+	assert.Equal(suite.T(), leftZone, zone)
+}
+
 //
 // func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsRightZone() {
 // 	root := &mocks.Zone{}
