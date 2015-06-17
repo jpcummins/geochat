@@ -24,6 +24,10 @@ func (m *Chat) Cache() types.Cache {
 func (m *Chat) World(id string) (types.World, error) {
 	ret := m.Called(id)
 
+	if ret.Get(0) == nil {
+		return nil, ret.Error(1)
+	}
+
 	r0 := ret.Get(0).(types.World)
 	r1 := ret.Error(1)
 
