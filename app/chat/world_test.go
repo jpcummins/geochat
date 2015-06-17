@@ -53,16 +53,14 @@ func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 	assert.Equal(suite.T(), worldErr, err)
 }
 
-//
-// func (suite *WorldTestSuite) TestGetOrCreateZone() {
-// 	world := &World{}
-// 	zone := &mocks.Zone{}
-// 	suite.cache.On("Zone", ":0z").Return(zone, nil)
-//
-// 	z, err := world.GetOrCreateZone(":0z")
-// 	assert.NoError(suite.T(), err)
-// 	assert.Equal(suite.T(), zone, z)
-// }
+func (suite *WorldTestSuite) TestGetOrCreateZone() {
+	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+
+	z, err := (&World{}).GetOrCreateZone(":0z")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), suite.zone, z)
+}
+
 //
 // func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
 // 	zone := &mocks.Zone{}
