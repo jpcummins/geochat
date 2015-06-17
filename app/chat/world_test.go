@@ -6,7 +6,7 @@ import (
 	"github.com/jpcummins/geochat/app/mocks"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/stretchr/testify/assert"
-	// "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	// "testing"
 )
@@ -33,7 +33,6 @@ func (suite *WorldTestSuite) TestNewWorld() {
 	ch := make(<-chan types.Event)
 	suite.cache.On("Zone", ":0z").Return(suite.zone)
 	suite.pubsub.On("Subscribe").Return(ch)
-
 	world, err := newWorld("worldid", suite.chat, 1)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "worldid", world.id)
@@ -41,7 +40,6 @@ func (suite *WorldTestSuite) TestNewWorld() {
 	assert.Equal(suite.T(), suite.chat, world.chat)
 	assert.Equal(suite.T(), 1, world.maxUsersPerZone)
 	assert.Equal(suite.T(), ch, world.subscribe)
-
 }
 
 func (suite *WorldTestSuite) TestNewWorldReturnsError() {
@@ -55,27 +53,18 @@ func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 
 func (suite *WorldTestSuite) TestGetOrCreateZone() {
 	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
-
 	z, err := (&World{}).GetOrCreateZone(":0z")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), suite.zone, z)
 }
 
-//
-// func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
-// 	zone := &mocks.Zone{}
-// 	suite.cache.On("Zone", ":0z").Return(nil, nil)
-// 	suite.cache.On("SetZone", zone).Return(nil)
-//
-// 	world := &World{}
-//
-// 	z, err := world.GetOrCreateZone(":0z")
-// 	assert.NoError(suite.T(), err)
-// 	assert.Equal(suite.T(), zone, z)
-//
-// 	suite.cache.AssertCalled(suite.T(), "Zone", ":0z")
-// 	suite.cache.AssertCalled(suite.T(), "SetZone", zone)
-// }
+func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
+	suite.cache.On("Zone", ":0z").Return(nil, nil)
+	suite.cache.On("SetZone", mock.Anything).Return(nil)
+	z, err := (&World{}).GetOrCreateZone(":0z")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), ":0z", z.ID())
+}
 
 //
 // func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
