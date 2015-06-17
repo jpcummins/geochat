@@ -73,30 +73,15 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
 	assert.Equal(suite.T(), "Invalid id", err.Error())
 }
 
-//
-// func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
-// 	zone := &mocks.Zone{}
-// 	setZoneErr := errors.New("err")
-// 	suite.cache.On("Zone", ":0z").Return(nil, nil)
-// 	suite.cache.On("SetZone", zone).Return(setZoneErr)
-//
-// 	world := &World{
-// 		id:              "test",
-// 		cache:           suite.cache,
-// 		factory:         suite.factory,
-// 		maxUsersPerZone: 22,
-// 	}
-//
-// 	suite.factory.On("NewZone", ":0z", "test", 22).Return(zone, nil)
-//
-// 	z, err := world.GetOrCreateZone(":0z")
-// 	assert.Nil(suite.T(), z)
-// 	assert.Equal(suite.T(), setZoneErr, err)
-//
-// 	suite.cache.AssertCalled(suite.T(), "Zone", ":0z")
-// 	suite.cache.AssertCalled(suite.T(), "SetZone", zone)
-// 	suite.factory.AssertCalled(suite.T(), "NewZone", ":0z", "test", 22)
-// }
+func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
+	err := errors.New("err")
+	suite.cache.On("Zone", ":0z").Return(nil, nil)
+	suite.cache.On("SetZone", mock.Anything).Return(err)
+	z, zerr := (&World{}).GetOrCreateZone(":0z")
+	assert.Equal(suite.T(), err, zerr)
+	assert.Nil(suite.T(), z)
+}
+
 //
 // func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRoot() {
 // 	zone := &mocks.Zone{}
