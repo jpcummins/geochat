@@ -252,60 +252,27 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsRightZone
 	assert.Equal(suite.T(), right, zone)
 }
 
+func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ErrorOnNoOpenRooms() {
+	root := &mocks.Zone{}
+	root.On("IsOpen").Return(false)
+	suite.cache.On("Zone", ":0g").Return(suite.left, nil)
+	suite.cache.On("Zone", ":hz").Return(suite.right, nil)
+	suite.left.On("IsOpen").Return(false)
+	suite.right.On("IsOpen").Return(false)
+	latlng := &mocks.LatLng{}
+	latlng.On("Geohash").Return("")
+	suite.user.On("Location").Return(latlng)
+
+	world, _ := newWorld("", suite.chat, 1)
+	zone, err := world.GetOrCreateZoneForUser(suite.user)
+	assert.Nil(suite.T(), zone)
+	assert.Equal(suite.T(), "Unable to find zone", err.Error())
+}
+
 func TestCreateZoneForUserSuite(t *testing.T) {
 	suite.Run(t, new(CreateZoneForUserSuite))
 }
 
-// func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsRightZone2() {
-// 	root := &mocks.Zone{}
-// 	root.On("IsOpen").Return(false)
-// 	root.On("Geohash").Return("")
-// 	root.On("RightZoneID").Return(":hz")
-// 	root.On("LeftZoneID").Return(":0g")
-//
-// 	leftZone := &mocks.Zone{}
-//
-// 	rightZone := &mocks.Zone{}
-// 	rightZone.On("Geohash").Return("s")
-// 	rightZone.On("From").Return("h")
-// 	rightZone.On("IsOpen").Return(true)
-//
-// 	suite.cache.On("Zone", ":0g").Return(leftZone, nil)
-// 	suite.cache.On("Zone", ":hz").Return(rightZone, nil)
-//
-// 	user := &mocks.User{}
-// 	user.On("Location").Return(rome)
-//
-// 	world := &World{
-// 		cache:           suite.cache,
-// 		root:            root,
-// 		maxUsersPerZone: 2,
-// 	}
-//
-// 	zone, err := world.GetOrCreateZoneForUser(user)
-// 	assert.NoError(suite.T(), err)
-// 	assert.Equal(suite.T(), rightZone, zone)
-// }
-//
-// func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ErrorOnNoOpenRooms() {
-// 	root := &mocks.Zone{}
-// 	root.On("IsOpen").Return(false)
-// 	root.On("Geohash").Return(seattle.Geohash())
-//
-// 	user := &mocks.User{}
-// 	user.On("Location").Return(seattle)
-//
-// 	world := &World{
-// 		cache:           suite.cache,
-// 		root:            root,
-// 		maxUsersPerZone: 2,
-// 	}
-//
-// 	zone, err := world.GetOrCreateZoneForUser(user)
-// 	assert.Nil(suite.T(), zone)
-// 	assert.Error(suite.T(), err)
-// 	assert.Equal(suite.T(), "Unable to find zone", err.Error())
-// }
 //
 // func (suite *WorldTestSuite) TestIntegration() {
 // 	db := &mocks.DB{}
