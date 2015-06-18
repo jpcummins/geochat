@@ -293,6 +293,7 @@ type WorldIntegrationTestSuite struct {
 	cache  *cache.Cache
 	pubsub *mocks.PubSub
 	ch     chan types.Event
+	rch    <-chan types.Event
 }
 
 func (suite *WorldIntegrationTestSuite) SetupTest() {
@@ -301,12 +302,13 @@ func (suite *WorldIntegrationTestSuite) SetupTest() {
 	suite.cache = cache.NewCache(suite.db)
 	suite.pubsub = &mocks.PubSub{}
 	suite.ch = make(chan types.Event)
+	suite.rch = suite.ch
 
 	suite.db.On("GetZone", mock.Anything).Return(nil, nil)
 	suite.db.On("SetZone", mock.Anything).Return(nil)
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.chat.On("PubSub").Return(suite.pubsub)
-	suite.pubsub.On("Subscribe").Return(suite.ch)
+	suite.pubsub.On("Subscribe").Return(suite.rch)
 }
 
 func (suite *WorldIntegrationTestSuite) TestIntegration() {
