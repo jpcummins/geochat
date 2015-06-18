@@ -94,3 +94,18 @@ func (z *Zone) MarshalJSON() ([]byte, error) {
 	args := z.Called()
 	return args.Get(0).([]byte), args.Error(1)
 }
+
+func (m *Zone) Join(_a0 types.User) error {
+	ret := m.Called(_a0)
+
+	r0 := ret.Error(0)
+
+	return r0
+}
+func (m *Zone) Message(_a0 types.User, _a1 string) error {
+	ret := m.Called(_a0, _a1)
+
+	r0 := ret.Error(0)
+
+	return r0
+}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	gh "github.com/TomiHiltunen/geohash-golang"
+	"github.com/jpcummins/geochat/app/events"
 	"github.com/jpcummins/geochat/app/types"
 	"sort"
 	"strings"
@@ -23,6 +24,7 @@ type zoneJSON struct {
 type Zone struct {
 	sync.RWMutex
 	*zoneJSON
+	world        types.World
 	southWest    types.LatLng
 	northEast    types.LatLng
 	geohash      string
@@ -34,7 +36,7 @@ type Zone struct {
 	users        map[string]types.User
 }
 
-func newZone(id string, worldID string, maxUsers int) (*Zone, error) {
+func newZone(id string, world types.World, maxUsers int) (*Zone, error) {
 	geohash, from, to, err := validateZoneID(id)
 	if err != nil {
 		return nil, err
@@ -43,10 +45,11 @@ func newZone(id string, worldID string, maxUsers int) (*Zone, error) {
 	zone := &Zone{
 		zoneJSON: &zoneJSON{
 			ID:       id,
-			WorldID:  worldID,
+			WorldID:  world.ID(),
 			IsOpen:   true,
 			MaxUsers: maxUsers,
 		},
+		world:     world,
 		southWest: newLatLng(gh.Decode(geohash + from).SouthWest()),
 		northEast: newLatLng(gh.Decode(geohash + to).NorthEast()),
 		geohash:   geohash,
@@ -172,4 +175,20 @@ func (z *Zone) Broadcast(event types.Event) {
 	for _, user := range z.users {
 		user.Broadcast(event)
 	}
+}
+
+func (z *Zone) Join(user types.User) error {
+	joinEventData, err := events.NewJoin(z, user)
+	if err != nil {
+		return err
+	}
+	return z.world.Publish(joinEventData)
+}
+
+func (z *Zone) Message(user types.User, message string) error {
+	messageEventData, err := events.NewMessage(user, z, message)
+	if err != nil {
+		return err
+	}
+	return z.world.Publish(messageEventData)
 }

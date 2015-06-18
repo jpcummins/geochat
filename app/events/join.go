@@ -58,5 +58,16 @@ func (j *Join) BeforePublish(e types.Event) error {
 }
 
 func (j *Join) OnReceive(e types.Event) error {
+	_, err := e.World().UpdateUser(j.joinJSON.UserJSON.ID)
+	if err != nil {
+		return err
+	}
+
+	zone, err := e.World().UpdateZone(j.joinJSON.ZoneID)
+	if err != nil {
+		return nil
+	}
+
+	zone.Broadcast(e)
 	return nil
 }

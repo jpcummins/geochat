@@ -3,7 +3,9 @@ package types
 type Event interface {
 	ID() string
 	Type() string
+	WorldID() string
 	World() World
+	SetWorld(World)
 	Data() EventData
 }
 

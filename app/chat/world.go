@@ -38,6 +38,7 @@ func (w *World) manage() {
 	for {
 		select {
 		case event := <-w.subscribe:
+			event.SetWorld(w)
 			event.Data().OnReceive(event)
 		case <-w.unsubscribe:
 			return
@@ -64,12 +65,20 @@ func (w *World) SetZone(zone types.Zone) error {
 	return w.chat.Cache().SetZone(zone)
 }
 
+func (w *World) UpdateZone(id string) (types.Zone, error) {
+	return w.chat.Cache().UpdateZone(id)
+}
+
 func (w *World) User(id string) (types.User, error) {
 	return w.chat.Cache().User(id)
 }
 
 func (w *World) SetUser(user types.User) error {
 	return w.chat.Cache().SetUser(user)
+}
+
+func (w *World) UpdateUser(id string) (types.User, error) {
+	return w.chat.Cache().UpdateUser(id)
 }
 
 func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
@@ -79,7 +88,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	}
 
 	if zone == nil {
-		zone, err = newZone(id, w.ID(), w.maxUsersPerZone)
+		zone, err = newZone(id, w, w.maxUsersPerZone)
 		if err != nil {
 			return nil, err
 		}
@@ -129,9 +138,15 @@ func (w *World) GetOrCreateZoneForUser(user types.User) (types.Zone, error) {
 	return root, nil
 }
 
-func (w *World) Publish(event types.Event) error {
-	if err := event.Data().BeforePublish(event); err != nil {
-		return err
+func (w *World) Publish(data types.EventData) error {
+	event, eventErr := w.chat.Events().New("", data)
+	if eventErr != nil {
+		return eventErr
 	}
+
+	if publishErr := data.BeforePublish(event); publishErr != nil {
+		return publishErr
+	}
+
 	return w.chat.PubSub().Publish(event)
 }

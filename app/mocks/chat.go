@@ -21,6 +21,13 @@ func (m *Chat) Cache() types.Cache {
 
 	return r0
 }
+func (m *Chat) Events() types.EventFactory {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.EventFactory)
+
+	return r0
+}
 func (m *Chat) World(id string) (types.World, error) {
 	ret := m.Called(id)
 

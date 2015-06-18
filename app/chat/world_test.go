@@ -393,6 +393,7 @@ func (suite *WorldIntegrationTestSuite) TestIncomingEventsCallOnReceive() {
 	})
 
 	mockEvent.On("Data").Return(mockEventData)
+	mockEvent.On("SetWorld", world).Return()
 	mockEventData.AssertNotCalled(suite.T(), "OnReceive", mockEvent)
 	suite.ch <- mockEvent
 	<-done
@@ -409,6 +410,7 @@ type PubSubSuite struct {
 	chat   *mocks.Chat
 	cache  *mocks.Cache
 	pubsub *mocks.PubSub
+	events *mocks.EventFactory
 	event  *mocks.Event
 	data   *mocks.EventData
 	root   *mocks.Zone
@@ -419,14 +421,17 @@ func (suite *PubSubSuite) SetupTest() {
 	suite.cache = &mocks.Cache{}
 	suite.pubsub = &mocks.PubSub{}
 	suite.event = &mocks.Event{}
+	suite.events = &mocks.EventFactory{}
 	suite.data = &mocks.EventData{}
 	suite.root = &mocks.Zone{}
 
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.chat.On("PubSub").Return(suite.pubsub)
+	suite.chat.On("Events").Return(suite.events)
 	suite.cache.On("Zone", ":0z").Return(suite.root, nil)
 	suite.event.On("Data").Return(suite.data)
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
+	suite.events.On("New", "", suite.data).Return(suite.event, nil)
 }
 
 func (suite *PubSubSuite) TestPublishCallsBeforePublish() {
@@ -435,7 +440,7 @@ func (suite *PubSubSuite) TestPublishCallsBeforePublish() {
 
 	world, _ := newWorld("", suite.chat, 1)
 	defer world.close()
-	err := world.Publish(suite.event)
+	err := world.Publish(suite.data)
 	assert.NoError(suite.T(), err)
 	suite.data.AssertCalled(suite.T(), "BeforePublish", suite.event)
 }
@@ -447,7 +452,7 @@ func (suite *PubSubSuite) TestPublishReturnsBeforePublishError() {
 
 	world, _ := newWorld("", suite.chat, 1)
 	defer world.close()
-	err2 := world.Publish(suite.event)
+	err2 := world.Publish(suite.data)
 	assert.Equal(suite.T(), err1, err2)
 	suite.data.AssertCalled(suite.T(), "BeforePublish", suite.event)
 }
@@ -459,7 +464,7 @@ func (suite *PubSubSuite) TestPublishReturnsPubSubError() {
 
 	world, _ := newWorld("", suite.chat, 1)
 	defer world.close()
-	err2 := world.Publish(suite.event)
+	err2 := world.Publish(suite.data)
 	assert.Equal(suite.T(), err1, err2)
 	suite.data.AssertCalled(suite.T(), "BeforePublish", suite.event)
 }

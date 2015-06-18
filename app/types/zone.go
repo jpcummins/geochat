@@ -22,4 +22,8 @@ type Zone interface {
 	Broadcast(Event)
 	AddUser(User)
 	RemoveUser(string)
+
+	// Events
+	Join(User) error
+	Message(User, string) error
 }

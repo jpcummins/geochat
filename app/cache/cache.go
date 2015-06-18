@@ -34,16 +34,7 @@ func (c *Cache) User(id string) (types.User, error) {
 		return user, nil
 	}
 
-	user, err = c.db.GetUser(id)
-	if err != nil {
-		return nil, err
-	}
-
-	if user != nil {
-		err = c.localSetUser(user)
-	}
-
-	return user, err
+	return c.UpdateUser(id)
 }
 
 func (c *Cache) SetUser(user types.User) error {
@@ -58,17 +49,29 @@ func (c *Cache) SetUser(user types.User) error {
 	return nil
 }
 
+func (c *Cache) UpdateUser(id string) (types.User, error) {
+	user, err := c.db.GetUser(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if user != nil {
+		err = c.localSetUser(user)
+	}
+
+	return user, err
+}
+
 func (c *Cache) localUser(id string) (types.User, error) {
 	c.userMutex.RLock()
-	user := c.users[id]
-	c.userMutex.RUnlock()
-	return user, nil
+	defer c.userMutex.RUnlock()
+	return c.users[id], nil
 }
 
 func (c *Cache) localSetUser(user types.User) error {
 	c.userMutex.Lock()
+	defer c.userMutex.Unlock()
 	c.users[user.ID()] = user
-	c.userMutex.Unlock()
 	return nil
 }
 
@@ -82,16 +85,7 @@ func (c *Cache) Zone(id string) (types.Zone, error) {
 		return zone, nil
 	}
 
-	zone, err = c.db.GetZone(id)
-	if err != nil {
-		return nil, err
-	}
-
-	if zone != nil {
-		err = c.localSetZone(zone)
-	}
-
-	return zone, err
+	return c.UpdateZone(id)
 }
 
 func (c *Cache) SetZone(zone types.Zone) error {
@@ -106,17 +100,29 @@ func (c *Cache) SetZone(zone types.Zone) error {
 	return nil
 }
 
+func (c *Cache) UpdateZone(id string) (types.Zone, error) {
+	zone, err := c.db.GetZone(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if zone != nil {
+		err = c.localSetZone(zone)
+	}
+
+	return zone, err
+}
+
 func (c *Cache) localZone(id string) (types.Zone, error) {
 	c.zoneMutex.RLock()
-	zone := c.zones[id]
-	c.zoneMutex.RUnlock()
-	return zone, nil
+	defer c.zoneMutex.RUnlock()
+	return c.zones[id], nil
 }
 
 func (c *Cache) localSetZone(zone types.Zone) error {
 	c.zoneMutex.Lock()
+	defer c.zoneMutex.Unlock()
 	c.zones[zone.ID()] = zone
-	c.zoneMutex.Unlock()
 	return nil
 }
 
@@ -156,14 +162,13 @@ func (c *Cache) SetWorld(world types.World) error {
 
 func (c *Cache) localWorld(id string) (types.World, error) {
 	c.worldMutex.RLock()
-	world := c.worlds[id]
-	c.worldMutex.RUnlock()
-	return world, nil
+	defer c.worldMutex.RUnlock()
+	return c.worlds[id], nil
 }
 
 func (c *Cache) localSetWorld(world types.World) error {
 	c.worldMutex.Lock()
+	defer c.worldMutex.Unlock()
 	c.worlds[world.ID()] = world
-	c.worldMutex.Unlock()
 	return nil
 }

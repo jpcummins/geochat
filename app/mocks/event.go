@@ -21,12 +21,22 @@ func (m *Event) Type() string {
 
 	return r0
 }
+func (m *Event) WorldID() string {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(string)
+
+	return r0
+}
 func (m *Event) World() types.World {
 	ret := m.Called()
 
 	r0 := ret.Get(0).(types.World)
 
 	return r0
+}
+func (m *Event) SetWorld(_a0 types.World) {
+	m.Called(_a0)
 }
 func (m *Event) Data() types.EventData {
 	ret := m.Called()

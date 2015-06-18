@@ -1,50 +1,74 @@
 package mocks
 
-import (
-	"github.com/jpcummins/geochat/app/types"
-	"github.com/stretchr/testify/mock"
-)
+import "github.com/jpcummins/geochat/app/types"
+import "github.com/stretchr/testify/mock"
 
 type Cache struct {
 	mock.Mock
 }
 
 func (m *Cache) User(id string) (types.User, error) {
-	args := m.Called(id)
-	return args.Get(0).(types.User), args.Error(1)
-}
+	ret := m.Called(id)
 
+	r0 := ret.Get(0).(types.User)
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
 func (m *Cache) SetUser(user types.User) error {
-	args := m.Called(user)
-	return args.Error(0)
-}
+	ret := m.Called(user)
 
+	r0 := ret.Error(0)
+
+	return r0
+}
+func (m *Cache) UpdateUser(id string) (types.User, error) {
+	ret := m.Called(id)
+
+	r0 := ret.Get(0).(types.User)
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
 func (m *Cache) Zone(id string) (types.Zone, error) {
-	args := m.Called(id)
+	ret := m.Called(id)
 
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
+	if ret.Get(0) == nil {
+		return nil, ret.Error(1)
 	}
 
-	return args.Get(0).(types.Zone), args.Error(1)
-}
+	r0 := ret.Get(0).(types.Zone)
+	r1 := ret.Error(1)
 
-func (m *Cache) SetZone(z types.Zone) error {
-	args := m.Called(z)
-	return args.Error(0)
+	return r0, r1
 }
+func (m *Cache) SetZone(zone types.Zone) error {
+	ret := m.Called(zone)
 
+	r0 := ret.Error(0)
+
+	return r0
+}
+func (m *Cache) UpdateZone(id string) (types.Zone, error) {
+	ret := m.Called(id)
+
+	r0 := ret.Get(0).(types.Zone)
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
 func (m *Cache) World(id string) (types.World, error) {
-	args := m.Called(id)
+	ret := m.Called(id)
 
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
+	r0 := ret.Get(0).(types.World)
+	r1 := ret.Error(1)
 
-	return args.Get(0).(types.World), args.Error(1)
+	return r0, r1
 }
+func (m *Cache) SetWorld(world types.World) error {
+	ret := m.Called(world)
 
-func (m *Cache) SetWorld(z types.World) error {
-	args := m.Called(z)
-	return args.Error(0)
+	r0 := ret.Error(0)
+
+	return r0
 }

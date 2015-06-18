@@ -9,10 +9,16 @@ import (
 
 type ZoneTestSuite struct {
 	suite.Suite
+	world *mocks.World
+}
+
+func (suite *ZoneTestSuite) SetupTest() {
+	suite.world = &mocks.World{}
+	suite.world.On("ID").Return("worldid")
 }
 
 func (suite *ZoneTestSuite) TestNewZone() {
-	zone, err := newZone(":0z", "", 2)
+	zone, err := newZone(":0z", suite.world, 2)
 	assert.NoError(suite.T(), err)
 
 	assert.Equal(suite.T(), ":0z", zone.ID())
@@ -34,7 +40,7 @@ func (suite *ZoneTestSuite) TestAddUser() {
 	user := &mocks.User{}
 	user.On("ID").Return("user1")
 
-	zone, err := newZone(":0z", "", 2)
+	zone, err := newZone(":0z", suite.world, 2)
 	assert.NoError(suite.T(), err)
 
 	zone.AddUser(user)
@@ -43,7 +49,7 @@ func (suite *ZoneTestSuite) TestAddUser() {
 }
 
 func (suite *ZoneTestSuite) TestSetIsOpen() {
-	zone, err := newZone(":0z", "", 2)
+	zone, err := newZone(":0z", suite.world, 2)
 	assert.NoError(suite.T(), err)
 
 	assert.True(suite.T(), zone.IsOpen())
@@ -57,7 +63,7 @@ func (suite *ZoneTestSuite) TestRemoveUser() {
 	user1 := &mocks.User{}
 	user1.On("ID").Return("user1")
 
-	zone, err := newZone(":0z", "", 2)
+	zone, err := newZone(":0z", suite.world, 2)
 	assert.NoError(suite.T(), err)
 
 	assert.Equal(suite.T(), 0, zone.Count())
@@ -78,7 +84,7 @@ func (suite *ZoneTestSuite) TestBroadcast() {
 	user2.On("ID").Return("user2")
 	user2.On("Broadcast", event).Return(nil)
 
-	zone, err := newZone(":0z", "", 2)
+	zone, err := newZone(":0z", suite.world, 2)
 	assert.NoError(suite.T(), err)
 
 	zone.AddUser(user1)
@@ -90,7 +96,7 @@ func (suite *ZoneTestSuite) TestBroadcast() {
 }
 
 func (suite *ZoneTestSuite) TestMarshalJSON() {
-	zone, err := newZone(":0z", "test", 2)
+	zone, err := newZone(":0z", suite.world, 2)
 	assert.NoError(suite.T(), err)
 
 	user1 := &mocks.User{}
@@ -102,7 +108,7 @@ func (suite *ZoneTestSuite) TestMarshalJSON() {
 	zone.AddUser(user2)
 
 	b, err := zone.MarshalJSON()
-	assert.Equal(suite.T(), "{\"id\":\":0z\",\"world_id\":\"test\",\"user_ids\":[\"user1\",\"user2\"],\"is_open\":true,\"max_users\":2}", string(b))
+	assert.Equal(suite.T(), "{\"id\":\":0z\",\"world_id\":\"worldid\",\"user_ids\":[\"user1\",\"user2\"],\"is_open\":true,\"max_users\":2}", string(b))
 	assert.NoError(suite.T(), err)
 }
 

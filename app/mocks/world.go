@@ -29,6 +29,14 @@ func (m *World) SetZone(_a0 types.Zone) error {
 
 	return r0
 }
+func (m *World) UpdateZone(_a0 string) (types.Zone, error) {
+	ret := m.Called(_a0)
+
+	r0 := ret.Get(0).(types.Zone)
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
 func (m *World) GetOrCreateZone(_a0 string) (types.Zone, error) {
 	ret := m.Called(_a0)
 
@@ -45,6 +53,14 @@ func (m *World) GetOrCreateZoneForUser(_a0 types.User) (types.Zone, error) {
 
 	return r0, r1
 }
+func (m *World) User(_a0 string) (types.User, error) {
+	ret := m.Called(_a0)
+
+	r0 := ret.Get(0).(types.User)
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
 func (m *World) SetUser(_a0 types.User) error {
 	ret := m.Called(_a0)
 
@@ -52,7 +68,15 @@ func (m *World) SetUser(_a0 types.User) error {
 
 	return r0
 }
-func (m *World) Publish(_a0 types.Event) error {
+func (m *World) UpdateUser(_a0 string) (types.User, error) {
+	ret := m.Called(_a0)
+
+	r0 := ret.Get(0).(types.User)
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
+func (m *World) Publish(_a0 types.EventData) error {
 	ret := m.Called(_a0)
 
 	r0 := ret.Error(0)

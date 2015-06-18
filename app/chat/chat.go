@@ -7,11 +7,12 @@ import (
 type Chat struct {
 	cache               types.Cache
 	pubsub              types.PubSub
+	events              types.EventFactory
 	maxUsersForNewZones int
 }
 
-func newChat(cache types.Cache, pubsub types.PubSub, maxUsersForNewZones int) (types.Chat, error) {
-	return &Chat{cache, pubsub, maxUsersForNewZones}, nil
+func newChat(cache types.Cache, pubsub types.PubSub, events types.EventFactory, maxUsersForNewZones int) (types.Chat, error) {
+	return &Chat{cache, pubsub, events, maxUsersForNewZones}, nil
 }
 
 func (c *Chat) PubSub() types.PubSub {
@@ -20,6 +21,10 @@ func (c *Chat) PubSub() types.PubSub {
 
 func (c *Chat) Cache() types.Cache {
 	return c.cache
+}
+
+func (c *Chat) Events() types.EventFactory {
+	return c.events
 }
 
 func (c *Chat) World(id string) (types.World, error) {

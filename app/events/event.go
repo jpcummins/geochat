@@ -1,9 +1,8 @@
-package chat
+package events
 
 import (
 	"encoding/json"
 	"errors"
-	"github.com/jpcummins/geochat/app/events"
 	"github.com/jpcummins/geochat/app/types"
 )
 
@@ -16,29 +15,19 @@ type eventJSON struct {
 
 type Event struct {
 	*eventJSON
-	data  types.EventData
 	world types.World
+	data  types.EventData
 }
 
-func newEvent(id string, worldID string, data types.EventData) (*Event, error) {
-	world, err := chat.World(worldID)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if world == nil {
-		return nil, errors.New("Unable to find world: " + worldID)
-	}
-
+func newEvent(id string, world types.World, data types.EventData) (*Event, error) {
 	return &Event{
 		eventJSON: &eventJSON{
 			ID:      id,
 			Type:    data.Type(),
-			WorldID: worldID,
+			WorldID: world.ID(),
 		},
-		data:  data,
 		world: world,
+		data:  data,
 	}, nil
 }
 
@@ -50,12 +39,20 @@ func (e *Event) Type() string {
 	return e.eventJSON.Type
 }
 
-func (e *Event) Data() types.EventData {
-	return e.data
+func (e *Event) WorldID() string {
+	return e.eventJSON.WorldID
 }
 
 func (e *Event) World() types.World {
 	return e.world
+}
+
+func (e *Event) SetWorld(world types.World) {
+	e.world = world
+}
+
+func (e *Event) Data() types.EventData {
+	return e.data
 }
 
 func (e *Event) UnmarshalJSON(b []byte) error {
@@ -63,30 +60,19 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	world, err := chat.World(e.eventJSON.WorldID)
-	if err != nil {
-		return err
-	}
-
-	if world == nil {
-		return errors.New("Unable to find world: " + e.eventJSON.WorldID)
-	}
-
-	e.world = world
-
 	switch e.Type() {
 	case "message":
-		e.data = &events.Message{}
+		e.data = &Message{}
 	case "join":
-		e.data = &events.Join{}
+		e.data = &Join{}
 	case "leave":
-		e.data = &events.Leave{}
+		e.data = &Leave{}
 	case "online":
-		e.data = &events.Online{}
+		e.data = &Online{}
 	case "offline":
-		e.data = &events.Offline{}
+		e.data = &Offline{}
 	case "split":
-		e.data = &events.Split{}
+		e.data = &Split{}
 	default:
 		return errors.New("Unable to unmarshal command: " + e.Type())
 	}
