@@ -48,6 +48,7 @@ func (w *World) manage() {
 func (w *World) close() {
 	if w != nil {
 		w.unsubscribe <- true
+		close(w.unsubscribe)
 	}
 }
 
