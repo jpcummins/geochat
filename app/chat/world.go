@@ -12,6 +12,7 @@ type World struct {
 	chat            types.Chat
 	maxUsersPerZone int
 	subscribe       <-chan types.Event
+	unsubscribe     chan bool
 }
 
 func newWorld(id string, chat types.Chat, maxUsersPerZone int) (*World, error) {
@@ -20,6 +21,7 @@ func newWorld(id string, chat types.Chat, maxUsersPerZone int) (*World, error) {
 		chat:            chat,
 		maxUsersPerZone: maxUsersPerZone,
 		subscribe:       chat.PubSub().Subscribe(),
+		unsubscribe:     make(chan bool),
 	}
 
 	root, err := world.GetOrCreateZone(":0z")
@@ -37,8 +39,14 @@ func (w *World) manage() {
 		select {
 		case event := <-w.subscribe:
 			event.Data().OnReceive(event)
+		case <-w.unsubscribe:
+			return
 		}
 	}
+}
+
+func (w *World) close() {
+	w.unsubscribe <- true
 }
 
 func (w *World) ID() string {
