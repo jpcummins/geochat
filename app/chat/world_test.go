@@ -253,8 +253,7 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsRightZone
 }
 
 func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ErrorOnNoOpenRooms() {
-	root := &mocks.Zone{}
-	root.On("IsOpen").Return(false)
+	suite.root.On("IsOpen").Return(false)
 	suite.cache.On("Zone", ":0g").Return(suite.left, nil)
 	suite.cache.On("Zone", ":hz").Return(suite.right, nil)
 	suite.left.On("IsOpen").Return(false)
