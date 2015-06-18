@@ -183,6 +183,7 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsE
 	suite.root.On("IsOpen").Return(false)
 	suite.left.On("IsOpen").Return(true)
 	suite.user.On("Location").Return(seattle)
+	suite.cache.On("Zone", ":hz").Return(suite.right, nil)
 	suite.cache.On("Zone", ":0g").Return(suite.left, err)
 
 	world, _ := newWorld("", suite.chat, 1)
