@@ -46,7 +46,9 @@ func (w *World) manage() {
 }
 
 func (w *World) close() {
-	w.unsubscribe <- true
+	if w != nil {
+		w.unsubscribe <- true
+	}
 }
 
 func (w *World) ID() string {

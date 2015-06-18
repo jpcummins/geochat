@@ -40,6 +40,7 @@ func (suite *WorldTestSuite) TestNewWorld() {
 	suite.pubsub.On("Subscribe").Return(ch)
 
 	world, err := newWorld("worldid", suite.chat, 1)
+	defer world.close()
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "worldid", world.id)
 	assert.Equal(suite.T(), suite.zone, world.root)
@@ -56,6 +57,7 @@ func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
 
 	world, err := newWorld("", suite.chat, 1)
+	defer world.close()
 	assert.Nil(suite.T(), world)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), worldErr, err)
@@ -110,8 +112,11 @@ func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRo
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
 
 	world1, err1 := newWorld("", suite.chat, 1)
+	defer world1.close()
 	world2, err2 := newWorld("", suite.chat, 1)
+	defer world2.close()
 	world3, err3 := newWorld("", suite.chat, 1)
+	defer world3.close()
 
 	assert.Equal(suite.T(), suite.zone, world1.root)
 	assert.Equal(suite.T(), suite.zone, world2.root)
@@ -160,6 +165,7 @@ func (suite *CreateZoneForUserSuite) SetupTest() {
 func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_EmptyWorld() {
 	suite.root.On("IsOpen").Return(true)
 	world, _ := newWorld("", suite.chat, 1)
+	defer world.close()
 	zone, err := world.GetOrCreateZoneForUser(suite.user)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), world.root, zone)
@@ -173,6 +179,7 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_RightZoneReturns
 	suite.cache.On("Zone", ":hz").Return(suite.right, err)
 
 	world, _ := newWorld("", suite.chat, 1)
+	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.Equal(suite.T(), err, zerr)
 	assert.Nil(suite.T(), zone)
@@ -187,6 +194,7 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsE
 	suite.cache.On("Zone", ":0g").Return(suite.left, err)
 
 	world, _ := newWorld("", suite.chat, 1)
+	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.Equal(suite.T(), err, zerr)
 	assert.Nil(suite.T(), zone)
@@ -200,6 +208,7 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone(
 	suite.cache.On("Zone", ":0g").Return(suite.left, nil)
 
 	world, _ := newWorld("", suite.chat, 1)
+	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.NoError(suite.T(), zerr)
 	assert.Equal(suite.T(), suite.left, zone)
@@ -213,6 +222,7 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsRightZone
 	suite.cache.On("Zone", ":0g").Return(suite.left, nil)
 
 	world, _ := newWorld("", suite.chat, 1)
+	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.NoError(suite.T(), zerr)
 	assert.Equal(suite.T(), suite.right, zone)
@@ -230,6 +240,7 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone2
 	suite.cache.On("Zone", ":hz").Return(right, nil)
 
 	world, _ := newWorld("", suite.chat, 1)
+	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.NoError(suite.T(), zerr)
 	assert.Equal(suite.T(), suite.left, zone)
@@ -247,6 +258,7 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsRightZone
 	suite.cache.On("Zone", ":hz").Return(right, nil)
 
 	world, _ := newWorld("", suite.chat, 1)
+	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.NoError(suite.T(), zerr)
 	assert.Equal(suite.T(), right, zone)
@@ -263,6 +275,7 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ErrorOnNoOpenRoo
 	suite.user.On("Location").Return(latlng)
 
 	world, _ := newWorld("", suite.chat, 1)
+	defer world.close()
 	zone, err := world.GetOrCreateZoneForUser(suite.user)
 	assert.Nil(suite.T(), zone)
 	assert.Equal(suite.T(), "Unable to find zone", err.Error())
@@ -274,6 +287,7 @@ func TestCreateZoneForUserSuite(t *testing.T) {
 
 type WorldIntegrationTestSuite struct {
 	suite.Suite
+	world  *World
 	db     *mocks.DB
 	chat   *mocks.Chat
 	cache  *cache.Cache
@@ -298,6 +312,7 @@ func (suite *WorldIntegrationTestSuite) TestIntegration() {
 
 	for _, test := range testCases {
 		world, err := newWorld("", suite.chat, 1)
+		defer world.close()
 		assert.NoError(suite.T(), err)
 		world.root.SetIsOpen(false)
 
@@ -350,6 +365,7 @@ func (suite *PubSubSuite) SetupTest() {
 
 func (suite *PubSubSuite) TestPublishCallsBeforePublish() {
 	world, _ := newWorld("", suite.chat, 1)
+	defer world.close()
 	err := world.Publish(suite.event)
 	assert.NoError(suite.T(), err)
 	suite.data.AssertCalled(suite.T(), "BeforePublish", suite.event)
