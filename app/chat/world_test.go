@@ -2,7 +2,7 @@ package chat
 
 import (
 	"errors"
-	// "github.com/jpcummins/geochat/app/cache"
+	"github.com/jpcummins/geochat/app/cache"
 	"github.com/jpcummins/geochat/app/mocks"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/stretchr/testify/assert"
@@ -272,69 +272,55 @@ func TestCreateZoneForUserSuite(t *testing.T) {
 	suite.Run(t, new(CreateZoneForUserSuite))
 }
 
-//
-// func (suite *WorldTestSuite) TestIntegration() {
-// 	db := &mocks.DB{}
-// 	db.On("GetZone", mock.Anything).Return(nil, nil)
-// 	db.On("SetZone", mock.Anything).Return(nil)
-//
-// 	world := &World{
-// 		id:              "test",
-// 		cache:           cache.NewCache(db),
-// 		factory:         &Factory{},
-// 		maxUsersPerZone: 1,
-// 	}
-//
-// 	w, err := world.GetOrCreateZone(":0z")
-// 	assert.NoError(suite.T(), err)
-// 	world.root = w
-// 	world.root.SetIsOpen(false)
-// 	assert.Equal(suite.T(), ":0z", world.root.ID())
-//
-// 	user := &mocks.User{}
-// 	user.On("Location").Return(seattle)
-//
-// 	zone, err := world.GetOrCreateZoneForUser(user)
-// 	assert.Equal(suite.T(), ":0g", zone.ID())
-//
-// 	zone.SetIsOpen(false)
-// 	zone, err = world.GetOrCreateZoneForUser(user)
-// 	assert.Equal(suite.T(), ":8g", zone.ID())
-// }
-//
-// func (suite *WorldTestSuite) TestIntegration2() {
-// 	testCases := []string{"000", "z0z", "2k1", "bbc", "zzz", "c23nb"}
-//
-// 	db := &mocks.DB{}
-// 	db.On("GetZone", mock.Anything).Return(nil, nil)
-// 	db.On("SetZone", mock.Anything).Return(nil)
-//
-// 	for _, test := range testCases {
-// 		world := &World{
-// 			cache:           cache.NewCache(db),
-// 			factory:         &Factory{},
-// 			maxUsersPerZone: 1,
-// 		}
-// 		w, err := world.GetOrCreateZone(":0z")
-// 		assert.NoError(suite.T(), err)
-// 		world.root = w
-// 		world.root.SetIsOpen(false)
-//
-// 		user := &mocks.User{}
-// 		user.On("Location").Return(&LatLng{0, 0, test})
-//
-// 		var zone types.Zone
-// 		for i := 0; i < 5*len(test); i++ {
-// 			zone, err = world.GetOrCreateZoneForUser(user)
-// 			assert.NoError(suite.T(), err)
-// 			zone.SetIsOpen(false)
-// 			if len(zone.Geohash()) == len(test) {
-// 				break
-// 			}
-// 		}
-// 		assert.Equal(suite.T(), test+":0z", zone.ID())
-// 	}
-// }
+type WorldIntegrationTestSuite struct {
+	suite.Suite
+	db     *mocks.DB
+	chat   *mocks.Chat
+	cache  *cache.Cache
+	pubsub *mocks.PubSub
+}
+
+func (suite *WorldIntegrationTestSuite) SetupTest() {
+	suite.db = &mocks.DB{}
+	suite.chat = &mocks.Chat{}
+	suite.cache = cache.NewCache(suite.db)
+	suite.pubsub = &mocks.PubSub{}
+
+	suite.db.On("GetZone", mock.Anything).Return(nil, nil)
+	suite.db.On("SetZone", mock.Anything).Return(nil)
+	suite.chat.On("Cache").Return(suite.cache)
+	suite.chat.On("PubSub").Return(suite.pubsub)
+	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
+}
+
+func (suite *WorldIntegrationTestSuite) TestIntegration() {
+	testCases := []string{"000", "z0z", "2k1", "bbc", "zzz", "c23nb"}
+
+	for _, test := range testCases {
+		world, err := newWorld("", suite.chat, 1)
+		assert.NoError(suite.T(), err)
+		world.root.SetIsOpen(false)
+
+		user := &mocks.User{}
+		user.On("Location").Return(&LatLng{0, 0, test})
+
+		var zone types.Zone
+		for i := 0; i < 5*len(test); i++ {
+			zone, err = world.GetOrCreateZoneForUser(user)
+			assert.NoError(suite.T(), err)
+			zone.SetIsOpen(false)
+			if len(zone.Geohash()) == len(test) {
+				break
+			}
+		}
+		assert.Equal(suite.T(), test+":0z", zone.ID())
+	}
+}
+
+func TestWorldIntegrationTestSuite(t *testing.T) {
+	suite.Run(t, new(WorldIntegrationTestSuite))
+}
+
 //
 // func (suite *WorldTestSuite) TestPublishCallsBeforePublish() {
 // 	event := &mocks.Event{}
