@@ -321,20 +321,44 @@ func TestWorldIntegrationTestSuite(t *testing.T) {
 	suite.Run(t, new(WorldIntegrationTestSuite))
 }
 
-//
-// func (suite *WorldTestSuite) TestPublishCallsBeforePublish() {
-// 	event := &mocks.Event{}
-// 	data := &mocks.EventData{}
-// 	pubsub := &mocks.PubSub{}
-// 	event.On("Data").Return(data)
-// 	data.On("BeforePublish", event).Return(nil)
-// 	pubsub.On("Publish", event).Return(nil)
-// 	world := &World{pubsub: pubsub}
-// 	err := world.Publish(event)
-// 	assert.NoError(suite.T(), err)
-// 	data.AssertCalled(suite.T(), "BeforePublish", event)
-// }
-//
+type PubSubSuite struct {
+	suite.Suite
+	chat   *mocks.Chat
+	cache  *mocks.Cache
+	pubsub *mocks.PubSub
+	event  *mocks.Event
+	data   *mocks.EventData
+	root   *mocks.Zone
+}
+
+func (suite *PubSubSuite) SetupTest() {
+	suite.chat = &mocks.Chat{}
+	suite.cache = &mocks.Cache{}
+	suite.pubsub = &mocks.PubSub{}
+	suite.event = &mocks.Event{}
+	suite.data = &mocks.EventData{}
+	suite.root = &mocks.Zone{}
+
+	suite.chat.On("Cache").Return(suite.cache)
+	suite.chat.On("PubSub").Return(suite.pubsub)
+	suite.cache.On("Zone", ":0z").Return(suite.root, nil)
+	suite.event.On("Data").Return(suite.data)
+	suite.data.On("BeforePublish", suite.event).Return(nil)
+	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
+	suite.pubsub.On("Publish", suite.event).Return(nil)
+}
+
+func (suite *PubSubSuite) TestPublishCallsBeforePublish() {
+	world, _ := newWorld("", suite.chat, 1)
+	err := world.Publish(suite.event)
+	assert.NoError(suite.T(), err)
+	suite.data.AssertCalled(suite.T(), "BeforePublish", suite.event)
+}
+
+func TestPubSubSuite(t *testing.T) {
+	suite.Run(t, new(PubSubSuite))
+}
+
 // func (suite *WorldTestSuite) TestPublishReturnsBeforePublishError() {
 // 	err := errors.New("err")
 // 	event := &mocks.Event{}
