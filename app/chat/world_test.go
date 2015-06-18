@@ -193,7 +193,6 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsE
 }
 
 func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone() {
-	err := errors.New("invalid")
 	suite.root.On("IsOpen").Return(false)
 	suite.left.On("IsOpen").Return(true)
 	suite.user.On("Location").Return(seattle)
@@ -202,7 +201,7 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone(
 
 	world, _ := newWorld("", suite.chat, 1)
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
-	assert.NoError(suite.T(), err, zerr)
+	assert.NoError(suite.T(), zerr)
 	assert.Equal(suite.T(), suite.left, zone)
 }
 
