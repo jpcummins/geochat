@@ -292,6 +292,7 @@ type WorldIntegrationTestSuite struct {
 	chat   *mocks.Chat
 	cache  *cache.Cache
 	pubsub *mocks.PubSub
+	ch     chan types.Event
 }
 
 func (suite *WorldIntegrationTestSuite) SetupTest() {
@@ -299,12 +300,13 @@ func (suite *WorldIntegrationTestSuite) SetupTest() {
 	suite.chat = &mocks.Chat{}
 	suite.cache = cache.NewCache(suite.db)
 	suite.pubsub = &mocks.PubSub{}
+	suite.ch = make(chan types.Event)
 
 	suite.db.On("GetZone", mock.Anything).Return(nil, nil)
 	suite.db.On("SetZone", mock.Anything).Return(nil)
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.chat.On("PubSub").Return(suite.pubsub)
-	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
+	suite.pubsub.On("Subscribe").Return(suite.ch)
 }
 
 func (suite *WorldIntegrationTestSuite) TestIntegration() {
@@ -330,6 +332,30 @@ func (suite *WorldIntegrationTestSuite) TestIntegration() {
 		}
 		assert.Equal(suite.T(), test+":0z", zone.ID())
 	}
+}
+
+// This is really gross :-(
+func (suite *WorldIntegrationTestSuite) TestIncomingEventsCallOnReceive() {
+
+	world, err := newWorld("", suite.chat, 1)
+	defer world.close()
+	assert.NoError(suite.T(), err)
+
+	mockEvent := &mocks.Event{}
+	mockEventData := &mocks.EventData{}
+
+	done := make(chan bool)
+	mockEventData.On("OnReceive", mockEvent).Return(nil).Run(func(args mock.Arguments) {
+		assert.Equal(suite.T(), mockEvent, args.Get(0))
+		done <- true
+	})
+
+	mockEvent.On("Data").Return(mockEventData)
+	mockEventData.AssertNotCalled(suite.T(), "OnReceive", mockEvent)
+	suite.ch <- mockEvent
+	<-done
+	suite.pubsub.AssertCalled(suite.T(), "Subscribe")
+	mockEventData.AssertCalled(suite.T(), "OnReceive", mockEvent)
 }
 
 func TestWorldIntegrationTestSuite(t *testing.T) {
@@ -400,45 +426,6 @@ func TestPubSubSuite(t *testing.T) {
 	suite.Run(t, new(PubSubSuite))
 }
 
-//
-// func (suite *WorldTestSuite) TestNewWorldCallsSubscribe() {
-// 	zone := &mocks.Zone{}
-// 	suite.cache.On("Zone", ":0z").Return(zone, nil)
-// 	suite.pubsub.On("Subscribe").Return(make(chan types.Event))
-// 	_, err := newWorld("123", suite.cache, suite.factory, suite.pubsub, 2)
-// 	assert.NoError(suite.T(), err)
-// 	suite.pubsub.AssertCalled(suite.T(), "Subscribe")
-// }
-//
-// // This is really gross :-(
-// func (suite *WorldTestSuite) TestIncomingEventsCallOnReceive() {
-// 	zone := &mocks.Zone{}
-// 	suite.cache.On("Zone", ":0z").Return(zone, nil)
-//
-// 	ch := make(chan types.Event, 1)
-//
-// 	mockPubSub := &mocks.PubSub{}
-// 	mockPubSub.On("Subscribe").Return(ch)
-//
-// 	_, err := newWorld("123", suite.cache, suite.factory, mockPubSub, 2)
-// 	assert.NoError(suite.T(), err)
-//
-// 	mockEvent := &mocks.Event{}
-// 	mockEventData := &mocks.EventData{}
-//
-// 	done := make(chan bool)
-// 	mockEventData.On("OnReceive", mockEvent).Return(nil).Run(func(args mock.Arguments) {
-// 		assert.Equal(suite.T(), mockEvent, args.Get(0))
-// 		done <- true
-// 	})
-//
-// 	mockEvent.On("Data").Return(mockEventData)
-// 	mockEventData.AssertNotCalled(suite.T(), "OnReceive", mockEvent)
-// 	ch <- mockEvent
-// 	<-done
-// 	mockPubSub.AssertCalled(suite.T(), "Subscribe")
-// 	mockEventData.AssertCalled(suite.T(), "OnReceive", mockEvent)
-// }
 //
 // func (suite *WorldTestSuite) TestSetZone() {
 // 	zone := &mocks.Zone{}
