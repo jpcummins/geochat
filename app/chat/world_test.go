@@ -127,6 +127,46 @@ func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRo
 	assert.NoError(suite.T(), err3)
 }
 
+func (suite *WorldTestSuite) TestSetZone() {
+	suite.cache.On("SetZone", suite.zone).Return(nil)
+	suite.chat.On("Cache").Return(suite.cache)
+	world := &World{chat: suite.chat}
+	err := world.SetZone(suite.zone)
+	assert.NoError(suite.T(), err)
+	suite.cache.AssertCalled(suite.T(), "SetZone", suite.zone)
+}
+
+func (suite *WorldTestSuite) TestSetZoneReturnsError() {
+	err := errors.New("sdfsd")
+	suite.cache.On("SetZone", suite.zone).Return(err)
+	suite.chat.On("Cache").Return(suite.cache)
+	world := &World{chat: suite.chat}
+	zerr := world.SetZone(suite.zone)
+	assert.Error(suite.T(), zerr)
+	suite.cache.AssertCalled(suite.T(), "SetZone", suite.zone)
+	assert.Equal(suite.T(), err, zerr)
+}
+
+func (suite *WorldTestSuite) TestSetUser() {
+	suite.cache.On("SetUser", suite.user).Return(nil)
+	suite.chat.On("Cache").Return(suite.cache)
+	world := &World{chat: suite.chat}
+	err := world.SetUser(suite.user)
+	assert.NoError(suite.T(), err)
+	suite.cache.AssertCalled(suite.T(), "SetUser", suite.user)
+}
+
+func (suite *WorldTestSuite) TestSetUserReturnsError() {
+	err := errors.New("sdfsd")
+	suite.cache.On("SetUser", suite.user).Return(err)
+	suite.chat.On("Cache").Return(suite.cache)
+	world := &World{chat: suite.chat}
+	zerr := world.SetUser(suite.user)
+	assert.Error(suite.T(), zerr)
+	suite.cache.AssertCalled(suite.T(), "SetUser", suite.user)
+	assert.Equal(suite.T(), err, zerr)
+}
+
 func TestWorldSuite(t *testing.T) {
 	suite.Run(t, new(WorldTestSuite))
 }
@@ -427,49 +467,3 @@ func (suite *PubSubSuite) TestPublishReturnsPubSubError() {
 func TestPubSubSuite(t *testing.T) {
 	suite.Run(t, new(PubSubSuite))
 }
-
-//
-// func (suite *WorldTestSuite) TestSetZone() {
-// 	zone := &mocks.Zone{}
-// 	cache := &mocks.Cache{}
-// 	cache.On("SetZone", zone).Return(nil)
-// 	w := &World{cache: cache}
-// 	err := w.SetZone(zone)
-// 	assert.NoError(suite.T(), err)
-// 	cache.AssertCalled(suite.T(), "SetZone", zone)
-// }
-//
-// func (suite *WorldTestSuite) TestSetZoneReturnsError() {
-// 	err := errors.New("sdfsd")
-// 	zone := &mocks.Zone{}
-// 	cache := &mocks.Cache{}
-// 	cache.On("SetZone", zone).Return(err)
-// 	w := &World{cache: cache}
-// 	zerr := w.SetZone(zone)
-// 	assert.Error(suite.T(), zerr)
-// 	cache.AssertCalled(suite.T(), "SetZone", zone)
-// 	assert.Equal(suite.T(), err, zerr)
-// }
-//
-// func (suite *WorldTestSuite) TestSetUser() {
-// 	user := &mocks.User{}
-// 	cache := &mocks.Cache{}
-// 	cache.On("SetUser", user).Return(nil)
-// 	w := &World{cache: cache}
-// 	err := w.SetUser(user)
-// 	assert.NoError(suite.T(), err)
-// 	cache.AssertCalled(suite.T(), "SetUser", user)
-// }
-//
-// func (suite *WorldTestSuite) TestSetUserReturnsError() {
-// 	err := errors.New("sdfsd")
-// 	user := &mocks.User{}
-// 	cache := &mocks.Cache{}
-// 	cache.On("SetUser", user).Return(err)
-// 	w := &World{cache: cache}
-// 	zerr := w.SetUser(user)
-// 	assert.Error(suite.T(), zerr)
-// 	cache.AssertCalled(suite.T(), "SetUser", user)
-// 	assert.Equal(suite.T(), err, zerr)
-// }
-//

@@ -86,11 +86,11 @@ func validateZoneID(id string) (geohash string, from string, to string, err erro
 
 func (z *Zone) MarshalJSON() ([]byte, error) {
 	z.RLock()
+	defer z.RUnlock()
 	z.zoneJSON.UserIDs = make([]string, 0, len(z.users))
 	for id := range z.users {
 		z.zoneJSON.UserIDs = append(z.zoneJSON.UserIDs, id)
 	}
-	z.RUnlock()
 	sort.Strings(z.zoneJSON.UserIDs)
 	return json.Marshal(z.zoneJSON)
 }
@@ -141,9 +141,8 @@ func (z *Zone) MaxUsers() int {
 
 func (z *Zone) Count() int {
 	z.RLock()
-	count := len(z.users)
-	z.RUnlock()
-	return count
+	defer z.RUnlock()
+	return len(z.users)
 }
 
 func (z *Zone) IsOpen() bool {
@@ -156,20 +155,21 @@ func (z *Zone) SetIsOpen(isOpen bool) {
 
 func (z *Zone) AddUser(user types.User) {
 	z.Lock()
+	defer z.Unlock()
 	z.users[user.ID()] = user
-	z.Unlock()
 }
 
 func (z *Zone) RemoveUser(id string) {
 	z.Lock()
+	defer z.Unlock()
 	delete(z.users, id)
-	z.Unlock()
 }
 
 func (z *Zone) Broadcast(event types.Event) {
 	z.RLock()
+	defer z.RUnlock()
+
 	for _, user := range z.users {
 		user.Broadcast(event)
 	}
-	z.RUnlock()
 }
