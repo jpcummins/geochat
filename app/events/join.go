@@ -1,20 +1,38 @@
 package events
 
 import (
+	"encoding/json"
 	"github.com/jpcummins/geochat/app/types"
 )
 
-type Join struct {
-	world types.World
-	zone  types.Zone
-	user  types.User
+type userJSON struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
-func NewJoin(world types.World, zone types.Zone, user types.User) (*Join, error) {
+type joinJSON struct {
+	WorldID  string    `json:"world_id"`
+	ZoneID   string    `json:"zone_id"`
+	UserJSON *userJSON `json:"user"`
+}
+
+type Join struct {
+	*joinJSON
+	zone types.Zone
+	user types.User
+}
+
+func NewJoin(zone types.Zone, user types.User) (*Join, error) {
 	j := &Join{
-		world: world,
-		zone:  zone,
-		user:  user,
+		zone: zone,
+		user: user,
+		joinJSON: &joinJSON{
+			ZoneID: zone.ID(),
+			UserJSON: &userJSON{
+				ID:   user.ID(),
+				Name: user.Name(),
+			},
+		},
 	}
 	return j, nil
 }
@@ -23,13 +41,20 @@ func (j *Join) Type() string {
 	return "join"
 }
 
+func (j *Join) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &j.joinJSON); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (j *Join) BeforePublish(e types.Event) error {
-	if err := j.world.SetUser(j.user); err != nil {
+	if err := e.World().SetUser(j.user); err != nil {
 		return err
 	}
 
 	j.zone.AddUser(j.user)
-	return j.world.SetZone(j.zone)
+	return e.World().SetZone(j.zone)
 }
 
 func (j *Join) OnReceive(e types.Event) error {

@@ -23,11 +23,11 @@ func (c *Chat) Cache() types.Cache {
 }
 
 func (c *Chat) World(id string) (types.World, error) {
-	return nil, nil
+	return c.cache.World(id)
 }
 
-func (c *Chat) SetWorld(types.World) error {
-	return nil
+func (c *Chat) SetWorld(world types.World) error {
+	return c.cache.SetWorld(world)
 }
 
 func (c *Chat) GetOrCreateWorld(id string) (types.World, error) {

@@ -14,17 +14,17 @@ func (m *Event) ID() string {
 
 	return r0
 }
-func (m *Event) World() types.World {
-	ret := m.Called()
-
-	r0 := ret.Get(0).(types.World)
-
-	return r0
-}
 func (m *Event) Type() string {
 	ret := m.Called()
 
 	r0 := ret.Get(0).(string)
+
+	return r0
+}
+func (m *Event) World() types.World {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.World)
 
 	return r0
 }
@@ -42,18 +42,22 @@ type EventData struct {
 
 func (m *EventData) Type() string {
 	ret := m.Called()
+
 	r0 := ret.Get(0).(string)
+
 	return r0
 }
-
 func (m *EventData) BeforePublish(_a0 types.Event) error {
 	ret := m.Called(_a0)
+
 	r0 := ret.Error(0)
+
 	return r0
 }
-
 func (m *EventData) OnReceive(_a0 types.Event) error {
 	ret := m.Called(_a0)
+
 	r0 := ret.Error(0)
+
 	return r0
 }

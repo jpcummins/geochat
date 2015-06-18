@@ -64,6 +64,10 @@ func (w *World) SetZone(zone types.Zone) error {
 	return w.chat.Cache().SetZone(zone)
 }
 
+func (w *World) User(id string) (types.User, error) {
+	return w.chat.Cache().User(id)
+}
+
 func (w *World) SetUser(user types.User) error {
 	return w.chat.Cache().SetUser(user)
 }

@@ -1,15 +1,10 @@
 package types
 
-import (
-// "encoding/json"
-)
-
 type Event interface {
 	ID() string
-	World() World
 	Type() string
+	World() World
 	Data() EventData
-	// json.Unmarshaler
 }
 
 type EventData interface {
