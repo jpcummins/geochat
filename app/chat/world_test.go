@@ -358,12 +358,13 @@ func (suite *PubSubSuite) SetupTest() {
 	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.cache.On("Zone", ":0z").Return(suite.root, nil)
 	suite.event.On("Data").Return(suite.data)
-	suite.data.On("BeforePublish", suite.event).Return(nil)
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
 	suite.pubsub.On("Publish", suite.event).Return(nil)
 }
 
 func (suite *PubSubSuite) TestPublishCallsBeforePublish() {
+	suite.data.On("BeforePublish", suite.event).Return(nil)
+
 	world, _ := newWorld("", suite.chat, 1)
 	defer world.close()
 	err := world.Publish(suite.event)
@@ -371,22 +372,21 @@ func (suite *PubSubSuite) TestPublishCallsBeforePublish() {
 	suite.data.AssertCalled(suite.T(), "BeforePublish", suite.event)
 }
 
+func (suite *PubSubSuite) TestPublishReturnsBeforePublishError() {
+	err1 := errors.New("err")
+	suite.data.On("BeforePublish", suite.event).Return(err1)
+
+	world, _ := newWorld("", suite.chat, 1)
+	defer world.close()
+	err2 := world.Publish(suite.event)
+	assert.Equal(suite.T(), err1, err2)
+	suite.data.AssertCalled(suite.T(), "BeforePublish", suite.event)
+}
+
 func TestPubSubSuite(t *testing.T) {
 	suite.Run(t, new(PubSubSuite))
 }
 
-// func (suite *WorldTestSuite) TestPublishReturnsBeforePublishError() {
-// 	err := errors.New("err")
-// 	event := &mocks.Event{}
-// 	data := &mocks.EventData{}
-// 	pubsub := &mocks.PubSub{}
-// 	event.On("Data").Return(data)
-// 	data.On("BeforePublish", event).Return(err)
-// 	world := &World{pubsub: pubsub}
-// 	publishError := world.Publish(event)
-// 	data.AssertCalled(suite.T(), "BeforePublish", event)
-// 	assert.Equal(suite.T(), err, publishError)
-// }
 //
 // func (suite *WorldTestSuite) TestPublishReturnsPubSubError() {
 // 	err := errors.New("err")
