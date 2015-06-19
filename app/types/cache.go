@@ -5,9 +5,9 @@ type Cache interface {
 	SetUser(user User) error
 	UpdateUser(id string) (User, error)
 
-	Zone(id string) (Zone, error)
-	SetZone(zone Zone) error
-	UpdateZone(id string) (Zone, error)
+	Zone(zoneID string, worldID string) (Zone, error)
+	SetZone(zone Zone, worldID string) error
+	UpdateZone(id string, worldID string) (Zone, error)
 
 	World(id string) (World, error)
 	SetWorld(world World) error

@@ -7,40 +7,23 @@ type DB struct {
 	mock.Mock
 }
 
-func (m *DB) Publish(event types.Event) error {
-	ret := m.Called(event)
-
-	r0 := ret.Error(0)
-
-	return r0
-}
-func (m *DB) Subscribe(world types.World) <-chan types.Event {
-	ret := m.Called(world)
-
-	var r0 <-chan types.Event
-	if ret.Get(0) != nil {
-		r0 = ret.Get(0).(<-chan types.Event)
-	}
-
-	return r0
-}
-func (m *DB) GetUser(id string) (types.User, error) {
-	ret := m.Called(id)
+func (m *DB) GetUser(_a0 string) (types.User, error) {
+	ret := m.Called(_a0)
 
 	r0 := ret.Get(0).(types.User)
 	r1 := ret.Error(1)
 
 	return r0, r1
 }
-func (m *DB) SetUser(user types.User) error {
-	ret := m.Called(user)
+func (m *DB) SetUser(_a0 types.User) error {
+	ret := m.Called(_a0)
 
 	r0 := ret.Error(0)
 
 	return r0
 }
-func (m *DB) GetZone(id string) (types.Zone, error) {
-	ret := m.Called(id)
+func (m *DB) GetZone(zoneID string, worldID string) (types.Zone, error) {
+	ret := m.Called(zoneID, worldID)
 
 	if ret.Get(0) == nil {
 		return nil, ret.Error(1)
@@ -51,28 +34,23 @@ func (m *DB) GetZone(id string) (types.Zone, error) {
 
 	return r0, r1
 }
-func (m *DB) SetZone(zone types.Zone) error {
-	ret := m.Called(zone)
+func (m *DB) SetZone(zoneID types.Zone, worldID string) error {
+	ret := m.Called(zoneID, worldID)
 
 	r0 := ret.Error(0)
 
 	return r0
 }
-
-func (m *DB) GetWorld(id string) (types.World, error) {
-	ret := m.Called(id)
-
-	if ret.Get(0) == nil {
-		return nil, ret.Error(1)
-	}
+func (m *DB) GetWorld(_a0 string) (types.World, error) {
+	ret := m.Called(_a0)
 
 	r0 := ret.Get(0).(types.World)
 	r1 := ret.Error(1)
 
 	return r0, r1
 }
-func (m *DB) SetWorld(zone types.World) error {
-	ret := m.Called(zone)
+func (m *DB) SetWorld(_a0 types.World) error {
+	ret := m.Called(_a0)
 
 	r0 := ret.Error(0)
 

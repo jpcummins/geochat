@@ -12,13 +12,17 @@ var chat types.Chat
 func Init(redisServer, worldID string) (types.Chat, error) {
 	redisConnection := db.NewRedisDB(redisServer)
 	cache := cache.NewCache(redisConnection)
-	world, _ := cache.World(worldID)
-	pubsub, err := db.NewRedisPubSub(worldID, redisConnection)
-	events := events.NewEventFactory(world)
 
+	world, err := cache.World(worldID)
 	if err != nil {
 		return nil, err
 	}
 
+	pubsub, err := db.NewRedisPubSub(worldID, redisConnection)
+	if err != nil {
+		return nil, err
+	}
+
+	events := events.NewEventFactory(world)
 	return newChat(cache, pubsub, events, 2)
 }

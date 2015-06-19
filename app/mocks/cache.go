@@ -30,8 +30,8 @@ func (m *Cache) UpdateUser(id string) (types.User, error) {
 
 	return r0, r1
 }
-func (m *Cache) Zone(id string) (types.Zone, error) {
-	ret := m.Called(id)
+func (m *Cache) Zone(zoneID string, worldID string) (types.Zone, error) {
+	ret := m.Called(zoneID, worldID)
 
 	if ret.Get(0) == nil {
 		return nil, ret.Error(1)
@@ -42,15 +42,15 @@ func (m *Cache) Zone(id string) (types.Zone, error) {
 
 	return r0, r1
 }
-func (m *Cache) SetZone(zone types.Zone) error {
-	ret := m.Called(zone)
+func (m *Cache) SetZone(zone types.Zone, worldID string) error {
+	ret := m.Called(zone, worldID)
 
 	r0 := ret.Error(0)
 
 	return r0
 }
-func (m *Cache) UpdateZone(id string) (types.Zone, error) {
-	ret := m.Called(id)
+func (m *Cache) UpdateZone(id string, worldID string) (types.Zone, error) {
+	ret := m.Called(id, worldID)
 
 	r0 := ret.Get(0).(types.Zone)
 	r1 := ret.Error(1)

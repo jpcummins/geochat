@@ -43,11 +43,11 @@ func (r *RedisDB) SetUser(types.User) error {
 	return nil
 }
 
-func (r *RedisDB) GetZone(id string) (types.Zone, error) {
+func (r *RedisDB) GetZone(id string, worldID string) (types.Zone, error) {
 	return nil, nil
 }
 
-func (r *RedisDB) SetZone(types.Zone) error {
+func (r *RedisDB) SetZone(zone types.Zone, worldID string) error {
 	return nil
 }
 

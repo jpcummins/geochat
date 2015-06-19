@@ -3,6 +3,7 @@ package cache
 import (
 	"errors"
 	"github.com/jpcummins/geochat/app/mocks"
+	"github.com/jpcummins/geochat/app/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -90,8 +91,8 @@ func (suite *CacheTestSuite) TestSetUserDBError() {
 func (suite *CacheTestSuite) TestZoneCallsDB() {
 	zone := &mocks.Zone{}
 	zone.On("ID").Return("zoneid")
-	suite.db.On("GetZone", "123").Return(zone, nil)
-	cachedZone, err := suite.cache.Zone("123")
+	suite.db.On("GetZone", "123", "abc").Return(zone, nil)
+	cachedZone, err := suite.cache.Zone("123", "abc")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), zone, cachedZone)
 }
@@ -99,12 +100,12 @@ func (suite *CacheTestSuite) TestZoneCallsDB() {
 func (suite *CacheTestSuite) TestZoneCallsDBAndSetsLocal() {
 	zone := &mocks.Zone{}
 	zone.On("ID").Return("zoneid")
-	suite.db.On("GetZone", "123").Return(zone, nil)
-	cachedZone, err := suite.cache.Zone("123")
+	suite.db.On("GetZone", "123", "abc").Return(zone, nil)
+	cachedZone, err := suite.cache.Zone("123", "abc")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), zone, cachedZone)
-	suite.db.On("GetZone", "123").Return(nil, errors.New("err"))
-	cachedZone, err = suite.cache.Zone("123")
+	suite.db.On("GetZone", "123", "abc").Return(nil, errors.New("err"))
+	cachedZone, err = suite.cache.Zone("123", "abc")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), zone, cachedZone)
 }
@@ -112,37 +113,38 @@ func (suite *CacheTestSuite) TestZoneCallsDBAndSetsLocal() {
 func (suite *CacheTestSuite) TestZoneCallsDBAndReturnsError() {
 	err := errors.New("bla")
 	zone := &mocks.Zone{}
-	suite.db.On("GetZone", "123").Return(zone, err)
-	cachedZone, cachedErr := suite.cache.Zone("123")
+	suite.db.On("GetZone", "123", "abc").Return(zone, err)
+	cachedZone, cachedErr := suite.cache.Zone("123", "abc")
 	assert.Nil(suite.T(), cachedZone)
 	assert.Equal(suite.T(), err, cachedErr)
 }
 
 func (suite *CacheTestSuite) TestZoneRetrievesFromLocalCache() {
 	mockZone := &mocks.Zone{}
-	suite.cache.zones["123"] = mockZone
+	suite.cache.zones["abc"] = make(map[string]types.Zone)
+	suite.cache.zones["abc"]["123"] = mockZone
 
-	zone, err := suite.cache.Zone("123")
+	zone, err := suite.cache.Zone("123", "abc")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), mockZone, zone)
-	suite.db.AssertNotCalled(suite.T(), "GetZone", mock.Anything)
+	suite.db.AssertNotCalled(suite.T(), "GetZone", mock.Anything, "abc")
 }
 
 func (suite *CacheTestSuite) TestSetZoneCachesAndCallsDB() {
 	mockZone := &mocks.Zone{}
 	mockZone.On("ID").Return("123")
-	suite.db.On("SetZone", mockZone).Return(nil)
-	err := suite.cache.SetZone(mockZone)
+	suite.db.On("SetZone", mockZone, "abc").Return(nil)
+	err := suite.cache.SetZone(mockZone, "abc")
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), mockZone, suite.cache.zones["123"])
+	assert.Equal(suite.T(), mockZone, suite.cache.zones["abc"]["123"])
 }
 
 func (suite *CacheTestSuite) TestSetZoneDBError() {
 	err := errors.New("err")
 	mockZone := &mocks.Zone{}
 	mockZone.On("ID").Return("123")
-	suite.db.On("SetZone", mockZone).Return(err)
-	cachedError := suite.cache.SetZone(mockZone)
+	suite.db.On("SetZone", mockZone, "abc").Return(err)
+	cachedError := suite.cache.SetZone(mockZone, "abc")
 	assert.Error(suite.T(), cachedError)
 	assert.Equal(suite.T(), err, cachedError)
 	assert.Equal(suite.T(), 0, len(suite.cache.zones))

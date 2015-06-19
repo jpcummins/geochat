@@ -36,13 +36,13 @@ func (suite *WorldTestSuite) TestNewWorld() {
 	ch := make(<-chan types.Event)
 	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", rootZoneID).Return(suite.zone, nil)
+	suite.cache.On("Zone", rootZoneID, rootWorldID).Return(suite.zone, nil)
 	suite.pubsub.On("Subscribe").Return(ch)
 
-	world, err := newWorld("worldid", suite.chat, 1)
+	world, err := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), "worldid", world.id)
+	assert.Equal(suite.T(), rootWorldID, world.id)
 	assert.Equal(suite.T(), suite.zone, world.root)
 	assert.Equal(suite.T(), suite.chat, world.chat)
 	assert.Equal(suite.T(), 1, world.maxUsersPerZone)
@@ -53,10 +53,10 @@ func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 	worldErr := errors.New("err")
 	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", rootZoneID).Return(nil, worldErr)
+	suite.cache.On("Zone", rootZoneID, rootWorldID).Return(nil, worldErr)
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
 
-	world, err := newWorld("", suite.chat, 1)
+	world, err := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	assert.Nil(suite.T(), world)
 	assert.Error(suite.T(), err)
@@ -64,9 +64,9 @@ func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 }
 
 func (suite *WorldTestSuite) TestGetOrCreateZone() {
-	world := &World{chat: suite.chat}
+	world := &World{id: rootWorldID, chat: suite.chat}
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", rootZoneID).Return(suite.zone, nil)
+	suite.cache.On("Zone", rootZoneID, rootWorldID).Return(suite.zone, nil)
 
 	z, err := world.GetOrCreateZone(rootZoneID)
 	assert.NoError(suite.T(), err)
@@ -74,10 +74,10 @@ func (suite *WorldTestSuite) TestGetOrCreateZone() {
 }
 
 func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
-	world := &World{chat: suite.chat}
+	world := &World{id: rootWorldID, chat: suite.chat}
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", rootZoneID).Return(nil, nil)
-	suite.cache.On("SetZone", mock.Anything).Return(nil)
+	suite.cache.On("Zone", rootZoneID, rootWorldID).Return(nil, nil)
+	suite.cache.On("SetZone", mock.Anything, rootWorldID).Return(nil)
 
 	z, err := world.GetOrCreateZone(rootZoneID)
 	assert.NoError(suite.T(), err)
@@ -85,9 +85,9 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
 }
 
 func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
-	world := &World{chat: suite.chat}
+	world := &World{id: rootWorldID, chat: suite.chat}
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", invalidZoneID).Return(nil, nil)
+	suite.cache.On("Zone", invalidZoneID, rootWorldID).Return(nil, nil)
 
 	z, err := world.GetOrCreateZone(invalidZoneID)
 	assert.Nil(suite.T(), z)
@@ -96,10 +96,10 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
 
 func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
 	err := errors.New("err")
-	world := &World{chat: suite.chat}
+	world := &World{id: rootWorldID, chat: suite.chat}
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", rootZoneID).Return(nil, nil)
-	suite.cache.On("SetZone", mock.Anything).Return(err)
+	suite.cache.On("Zone", rootZoneID, rootWorldID).Return(nil, nil)
+	suite.cache.On("SetZone", mock.Anything, rootWorldID).Return(err)
 	z, zerr := world.GetOrCreateZone(rootZoneID)
 	assert.Equal(suite.T(), err, zerr)
 	assert.Nil(suite.T(), z)
@@ -108,14 +108,14 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
 func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRoot() {
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.chat.On("PubSub").Return(suite.pubsub)
-	suite.cache.On("Zone", rootZoneID).Return(suite.zone, nil)
+	suite.cache.On("Zone", rootZoneID, rootWorldID).Return(suite.zone, nil)
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
 
-	world1, err1 := newWorld("", suite.chat, 1)
+	world1, err1 := newWorld(rootWorldID, suite.chat, 1)
 	defer world1.close()
-	world2, err2 := newWorld("", suite.chat, 1)
+	world2, err2 := newWorld(rootWorldID, suite.chat, 1)
 	defer world2.close()
-	world3, err3 := newWorld("", suite.chat, 1)
+	world3, err3 := newWorld(rootWorldID, suite.chat, 1)
 	defer world3.close()
 
 	assert.Equal(suite.T(), suite.zone, world1.root)
@@ -128,29 +128,29 @@ func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRo
 }
 
 func (suite *WorldTestSuite) TestSetZone() {
-	suite.cache.On("SetZone", suite.zone).Return(nil)
+	suite.cache.On("SetZone", suite.zone, rootWorldID).Return(nil)
 	suite.chat.On("Cache").Return(suite.cache)
-	world := &World{chat: suite.chat}
+	world := &World{id: rootWorldID, chat: suite.chat}
 	err := world.SetZone(suite.zone)
 	assert.NoError(suite.T(), err)
-	suite.cache.AssertCalled(suite.T(), "SetZone", suite.zone)
+	suite.cache.AssertCalled(suite.T(), "SetZone", suite.zone, rootWorldID)
 }
 
 func (suite *WorldTestSuite) TestSetZoneReturnsError() {
 	err := errors.New("sdfsd")
-	suite.cache.On("SetZone", suite.zone).Return(err)
+	suite.cache.On("SetZone", suite.zone, rootWorldID).Return(err)
 	suite.chat.On("Cache").Return(suite.cache)
-	world := &World{chat: suite.chat}
+	world := &World{id: rootWorldID, chat: suite.chat}
 	zerr := world.SetZone(suite.zone)
 	assert.Error(suite.T(), zerr)
-	suite.cache.AssertCalled(suite.T(), "SetZone", suite.zone)
+	suite.cache.AssertCalled(suite.T(), "SetZone", suite.zone, rootWorldID)
 	assert.Equal(suite.T(), err, zerr)
 }
 
 func (suite *WorldTestSuite) TestSetUser() {
 	suite.cache.On("SetUser", suite.user).Return(nil)
 	suite.chat.On("Cache").Return(suite.cache)
-	world := &World{chat: suite.chat}
+	world := &World{id: rootWorldID, chat: suite.chat}
 	err := world.SetUser(suite.user)
 	assert.NoError(suite.T(), err)
 	suite.cache.AssertCalled(suite.T(), "SetUser", suite.user)
@@ -160,7 +160,7 @@ func (suite *WorldTestSuite) TestSetUserReturnsError() {
 	err := errors.New("sdfsd")
 	suite.cache.On("SetUser", suite.user).Return(err)
 	suite.chat.On("Cache").Return(suite.cache)
-	world := &World{chat: suite.chat}
+	world := &World{id: rootWorldID, chat: suite.chat}
 	zerr := world.SetUser(suite.user)
 	assert.Error(suite.T(), zerr)
 	suite.cache.AssertCalled(suite.T(), "SetUser", suite.user)
@@ -192,7 +192,7 @@ func (suite *CreateZoneForUserSuite) SetupTest() {
 	suite.right = &mocks.Zone{}
 
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", rootZoneID).Return(suite.root, nil)
+	suite.cache.On("Zone", rootZoneID, rootWorldID).Return(suite.root, nil)
 	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.root.On("Geohash").Return("")
 	suite.root.On("LeftZoneID").Return(":0g")
@@ -204,7 +204,7 @@ func (suite *CreateZoneForUserSuite) SetupTest() {
 
 func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_EmptyWorld() {
 	suite.root.On("IsOpen").Return(true)
-	world, _ := newWorld("", suite.chat, 1)
+	world, _ := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	zone, err := world.GetOrCreateZoneForUser(suite.user)
 	assert.NoError(suite.T(), err)
@@ -216,9 +216,9 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_RightZoneReturns
 	suite.root.On("IsOpen").Return(false)
 	suite.right.On("IsOpen").Return(true)
 	suite.user.On("Location").Return(rome)
-	suite.cache.On("Zone", ":hz").Return(suite.right, err)
+	suite.cache.On("Zone", ":hz", rootWorldID).Return(suite.right, err)
 
-	world, _ := newWorld("", suite.chat, 1)
+	world, _ := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.Equal(suite.T(), err, zerr)
@@ -230,10 +230,10 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsE
 	suite.root.On("IsOpen").Return(false)
 	suite.left.On("IsOpen").Return(true)
 	suite.user.On("Location").Return(seattle)
-	suite.cache.On("Zone", ":hz").Return(suite.right, nil)
-	suite.cache.On("Zone", ":0g").Return(suite.left, err)
+	suite.cache.On("Zone", ":hz", rootWorldID).Return(suite.right, nil)
+	suite.cache.On("Zone", ":0g", rootWorldID).Return(suite.left, err)
 
-	world, _ := newWorld("", suite.chat, 1)
+	world, _ := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.Equal(suite.T(), err, zerr)
@@ -244,10 +244,10 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone(
 	suite.root.On("IsOpen").Return(false)
 	suite.left.On("IsOpen").Return(true)
 	suite.user.On("Location").Return(seattle)
-	suite.cache.On("Zone", ":hz").Return(suite.right, nil)
-	suite.cache.On("Zone", ":0g").Return(suite.left, nil)
+	suite.cache.On("Zone", ":hz", rootWorldID).Return(suite.right, nil)
+	suite.cache.On("Zone", ":0g", rootWorldID).Return(suite.left, nil)
 
-	world, _ := newWorld("", suite.chat, 1)
+	world, _ := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.NoError(suite.T(), zerr)
@@ -258,10 +258,10 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsRightZone
 	suite.root.On("IsOpen").Return(false)
 	suite.right.On("IsOpen").Return(true)
 	suite.user.On("Location").Return(rome)
-	suite.cache.On("Zone", ":hz").Return(suite.right, nil)
-	suite.cache.On("Zone", ":0g").Return(suite.left, nil)
+	suite.cache.On("Zone", ":hz", rootWorldID).Return(suite.right, nil)
+	suite.cache.On("Zone", ":0g", rootWorldID).Return(suite.left, nil)
 
-	world, _ := newWorld("", suite.chat, 1)
+	world, _ := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.NoError(suite.T(), zerr)
@@ -272,14 +272,14 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone2
 	suite.root.On("IsOpen").Return(false)
 	suite.left.On("IsOpen").Return(true)
 	suite.user.On("Location").Return(seattle)
-	suite.cache.On("Zone", ":0g").Return(suite.left, nil)
+	suite.cache.On("Zone", ":0g", rootWorldID).Return(suite.left, nil)
 
 	right := &mocks.Zone{}
 	right.On("Geohash").Return("s")
 	right.On("From").Return("h")
-	suite.cache.On("Zone", ":hz").Return(right, nil)
+	suite.cache.On("Zone", ":hz", rootWorldID).Return(right, nil)
 
-	world, _ := newWorld("", suite.chat, 1)
+	world, _ := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.NoError(suite.T(), zerr)
@@ -289,15 +289,15 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone2
 func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsRightZone2() {
 	suite.root.On("IsOpen").Return(false)
 	suite.user.On("Location").Return(rome)
-	suite.cache.On("Zone", ":0g").Return(suite.left, nil)
+	suite.cache.On("Zone", ":0g", rootWorldID).Return(suite.left, nil)
 
 	right := &mocks.Zone{}
 	right.On("Geohash").Return("s")
 	right.On("From").Return("h")
 	right.On("IsOpen").Return(true)
-	suite.cache.On("Zone", ":hz").Return(right, nil)
+	suite.cache.On("Zone", ":hz", rootWorldID).Return(right, nil)
 
-	world, _ := newWorld("", suite.chat, 1)
+	world, _ := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	zone, zerr := world.GetOrCreateZoneForUser(suite.user)
 	assert.NoError(suite.T(), zerr)
@@ -306,15 +306,15 @@ func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ReturnsRightZone
 
 func (suite *CreateZoneForUserSuite) TestGetOrCreateZoneForUser_ErrorOnNoOpenRooms() {
 	suite.root.On("IsOpen").Return(false)
-	suite.cache.On("Zone", ":0g").Return(suite.left, nil)
-	suite.cache.On("Zone", ":hz").Return(suite.right, nil)
+	suite.cache.On("Zone", ":0g", rootWorldID).Return(suite.left, nil)
+	suite.cache.On("Zone", ":hz", rootWorldID).Return(suite.right, nil)
 	suite.left.On("IsOpen").Return(false)
 	suite.right.On("IsOpen").Return(false)
 	latlng := &mocks.LatLng{}
 	latlng.On("Geohash").Return("")
 	suite.user.On("Location").Return(latlng)
 
-	world, _ := newWorld("", suite.chat, 1)
+	world, _ := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	zone, err := world.GetOrCreateZoneForUser(suite.user)
 	assert.Nil(suite.T(), zone)
@@ -344,8 +344,8 @@ func (suite *WorldIntegrationTestSuite) SetupTest() {
 	suite.ch = make(chan types.Event)
 	suite.rch = suite.ch
 
-	suite.db.On("GetZone", mock.Anything).Return(nil, nil)
-	suite.db.On("SetZone", mock.Anything).Return(nil)
+	suite.db.On("GetZone", mock.Anything, rootWorldID).Return(nil, nil)
+	suite.db.On("SetZone", mock.Anything, rootWorldID).Return(nil)
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.pubsub.On("Subscribe").Return(suite.rch)
@@ -355,7 +355,7 @@ func (suite *WorldIntegrationTestSuite) TestIntegration() {
 	testCases := []string{"000", "z0z", "2k1", "bbc", "zzz", "c23nb"}
 
 	for _, test := range testCases {
-		world, err := newWorld("", suite.chat, 1)
+		world, err := newWorld(rootWorldID, suite.chat, 1)
 		defer world.close()
 		assert.NoError(suite.T(), err)
 		world.root.SetIsOpen(false)
@@ -378,8 +378,7 @@ func (suite *WorldIntegrationTestSuite) TestIntegration() {
 
 // This is really gross :-(
 func (suite *WorldIntegrationTestSuite) TestIncomingEventsCallOnReceive() {
-
-	world, err := newWorld("", suite.chat, 1)
+	world, err := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	assert.NoError(suite.T(), err)
 
@@ -428,7 +427,7 @@ func (suite *PubSubSuite) SetupTest() {
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.chat.On("Events").Return(suite.events)
-	suite.cache.On("Zone", rootZoneID).Return(suite.root, nil)
+	suite.cache.On("Zone", rootZoneID, rootWorldID).Return(suite.root, nil)
 	suite.event.On("Data").Return(suite.data)
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
 	suite.events.On("New", "", suite.data).Return(suite.event, nil)
@@ -438,7 +437,7 @@ func (suite *PubSubSuite) TestPublishCallsBeforePublish() {
 	suite.pubsub.On("Publish", suite.event).Return(nil)
 	suite.data.On("BeforePublish", suite.event).Return(nil)
 
-	world, _ := newWorld("", suite.chat, 1)
+	world, _ := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	err := world.Publish(suite.data)
 	assert.NoError(suite.T(), err)
@@ -450,7 +449,7 @@ func (suite *PubSubSuite) TestPublishReturnsBeforePublishError() {
 	suite.pubsub.On("Publish", suite.event).Return(nil)
 	suite.data.On("BeforePublish", suite.event).Return(err1)
 
-	world, _ := newWorld("", suite.chat, 1)
+	world, _ := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	err2 := world.Publish(suite.data)
 	assert.Equal(suite.T(), err1, err2)
@@ -462,7 +461,7 @@ func (suite *PubSubSuite) TestPublishReturnsPubSubError() {
 	suite.pubsub.On("Publish", suite.event).Return(err1)
 	suite.data.On("BeforePublish", suite.event).Return(nil)
 
-	world, _ := newWorld("", suite.chat, 1)
+	world, _ := newWorld(rootWorldID, suite.chat, 1)
 	defer world.close()
 	err2 := world.Publish(suite.data)
 	assert.Equal(suite.T(), err1, err2)

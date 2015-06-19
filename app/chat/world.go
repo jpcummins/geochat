@@ -15,6 +15,7 @@ type World struct {
 	unsubscribe     chan bool
 }
 
+const rootWorldID string = "0"
 const rootZoneID string = ":0z"
 
 func newWorld(id string, chat types.Chat, maxUsersPerZone int) (*World, error) {
@@ -60,15 +61,15 @@ func (w *World) ID() string {
 }
 
 func (w *World) Zone(id string) (types.Zone, error) {
-	return w.chat.Cache().Zone(id)
+	return w.chat.Cache().Zone(id, w.ID())
 }
 
 func (w *World) SetZone(zone types.Zone) error {
-	return w.chat.Cache().SetZone(zone)
+	return w.chat.Cache().SetZone(zone, w.ID())
 }
 
 func (w *World) UpdateZone(id string) (types.Zone, error) {
-	return w.chat.Cache().UpdateZone(id)
+	return w.chat.Cache().UpdateZone(id, w.ID())
 }
 
 func (w *World) User(id string) (types.User, error) {

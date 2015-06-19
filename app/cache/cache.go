@@ -10,7 +10,7 @@ type Cache struct {
 	zoneMutex  sync.RWMutex
 	worldMutex sync.RWMutex
 	users      map[string]types.User
-	zones      map[string]types.Zone
+	zones      map[string](map[string]types.Zone)
 	worlds     map[string]types.World
 	db         types.DB
 }
@@ -18,7 +18,7 @@ type Cache struct {
 func NewCache(db types.DB) *Cache {
 	return &Cache{
 		users:  make(map[string]types.User),
-		zones:  make(map[string]types.Zone),
+		zones:  make(map[string](map[string]types.Zone)),
 		worlds: make(map[string]types.World),
 		db:     db,
 	}
@@ -75,8 +75,8 @@ func (c *Cache) localSetUser(user types.User) error {
 	return nil
 }
 
-func (c *Cache) Zone(id string) (types.Zone, error) {
-	zone, err := c.localZone(id)
+func (c *Cache) Zone(id string, worldID string) (types.Zone, error) {
+	zone, err := c.localZone(id, worldID)
 	if err != nil {
 		return nil, err
 	}
@@ -85,44 +85,56 @@ func (c *Cache) Zone(id string) (types.Zone, error) {
 		return zone, nil
 	}
 
-	return c.UpdateZone(id)
+	return c.UpdateZone(id, worldID)
 }
 
-func (c *Cache) SetZone(zone types.Zone) error {
-	if err := c.db.SetZone(zone); err != nil {
+func (c *Cache) SetZone(zone types.Zone, worldID string) error {
+	if err := c.db.SetZone(zone, worldID); err != nil {
 		return err
 	}
 
-	if err := c.localSetZone(zone); err != nil {
+	if err := c.localSetZone(zone, worldID); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (c *Cache) UpdateZone(id string) (types.Zone, error) {
-	zone, err := c.db.GetZone(id)
+func (c *Cache) UpdateZone(id string, worldID string) (types.Zone, error) {
+	zone, err := c.db.GetZone(id, worldID)
 	if err != nil {
 		return nil, err
 	}
 
 	if zone != nil {
-		err = c.localSetZone(zone)
+		err = c.localSetZone(zone, worldID)
 	}
 
 	return zone, err
 }
 
-func (c *Cache) localZone(id string) (types.Zone, error) {
+func (c *Cache) localZone(id string, worldID string) (types.Zone, error) {
 	c.zoneMutex.RLock()
 	defer c.zoneMutex.RUnlock()
-	return c.zones[id], nil
+
+	zones, found := c.zones[worldID]
+	if !found {
+		return nil, nil
+	}
+
+	return zones[id], nil
 }
 
-func (c *Cache) localSetZone(zone types.Zone) error {
+func (c *Cache) localSetZone(zone types.Zone, worldID string) error {
 	c.zoneMutex.Lock()
 	defer c.zoneMutex.Unlock()
-	c.zones[zone.ID()] = zone
+
+	_, found := c.zones[worldID]
+	if !found {
+		c.zones[worldID] = make(map[string]types.Zone)
+	}
+
+	c.zones[worldID][zone.ID()] = zone
 	return nil
 }
 
