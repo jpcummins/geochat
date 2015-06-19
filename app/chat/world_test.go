@@ -36,7 +36,7 @@ func (suite *WorldTestSuite) TestNewWorld() {
 	ch := make(<-chan types.Event)
 	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+	suite.cache.On("Zone", rootZoneID).Return(suite.zone, nil)
 	suite.pubsub.On("Subscribe").Return(ch)
 
 	world, err := newWorld("worldid", suite.chat, 1)
@@ -53,7 +53,7 @@ func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 	worldErr := errors.New("err")
 	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", ":0z").Return(nil, worldErr)
+	suite.cache.On("Zone", rootZoneID).Return(nil, worldErr)
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
 
 	world, err := newWorld("", suite.chat, 1)
@@ -66,9 +66,9 @@ func (suite *WorldTestSuite) TestNewWorldReturnsError() {
 func (suite *WorldTestSuite) TestGetOrCreateZone() {
 	world := &World{chat: suite.chat}
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+	suite.cache.On("Zone", rootZoneID).Return(suite.zone, nil)
 
-	z, err := world.GetOrCreateZone(":0z")
+	z, err := world.GetOrCreateZone(rootZoneID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), suite.zone, z)
 }
@@ -76,12 +76,12 @@ func (suite *WorldTestSuite) TestGetOrCreateZone() {
 func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMiss() {
 	world := &World{chat: suite.chat}
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", ":0z").Return(nil, nil)
+	suite.cache.On("Zone", rootZoneID).Return(nil, nil)
 	suite.cache.On("SetZone", mock.Anything).Return(nil)
 
-	z, err := world.GetOrCreateZone(":0z")
+	z, err := world.GetOrCreateZone(rootZoneID)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), ":0z", z.ID())
+	assert.Equal(suite.T(), rootZoneID, z.ID())
 }
 
 func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndNewZoneError() {
@@ -98,9 +98,9 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
 	err := errors.New("err")
 	world := &World{chat: suite.chat}
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", ":0z").Return(nil, nil)
+	suite.cache.On("Zone", rootZoneID).Return(nil, nil)
 	suite.cache.On("SetZone", mock.Anything).Return(err)
-	z, zerr := world.GetOrCreateZone(":0z")
+	z, zerr := world.GetOrCreateZone(rootZoneID)
 	assert.Equal(suite.T(), err, zerr)
 	assert.Nil(suite.T(), z)
 }
@@ -108,7 +108,7 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
 func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRoot() {
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.chat.On("PubSub").Return(suite.pubsub)
-	suite.cache.On("Zone", ":0z").Return(suite.zone, nil)
+	suite.cache.On("Zone", rootZoneID).Return(suite.zone, nil)
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
 
 	world1, err1 := newWorld("", suite.chat, 1)
@@ -192,7 +192,7 @@ func (suite *CreateZoneForUserSuite) SetupTest() {
 	suite.right = &mocks.Zone{}
 
 	suite.chat.On("Cache").Return(suite.cache)
-	suite.cache.On("Zone", ":0z").Return(suite.root, nil)
+	suite.cache.On("Zone", rootZoneID).Return(suite.root, nil)
 	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.root.On("Geohash").Return("")
 	suite.root.On("LeftZoneID").Return(":0g")
@@ -372,7 +372,7 @@ func (suite *WorldIntegrationTestSuite) TestIntegration() {
 				break
 			}
 		}
-		assert.Equal(suite.T(), test+":0z", zone.ID())
+		assert.Equal(suite.T(), test+rootZoneID, zone.ID())
 	}
 }
 
@@ -428,7 +428,7 @@ func (suite *PubSubSuite) SetupTest() {
 	suite.chat.On("Cache").Return(suite.cache)
 	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.chat.On("Events").Return(suite.events)
-	suite.cache.On("Zone", ":0z").Return(suite.root, nil)
+	suite.cache.On("Zone", rootZoneID).Return(suite.root, nil)
 	suite.event.On("Data").Return(suite.data)
 	suite.pubsub.On("Subscribe").Return(make(<-chan types.Event))
 	suite.events.On("New", "", suite.data).Return(suite.event, nil)

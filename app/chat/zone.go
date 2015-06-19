@@ -66,8 +66,8 @@ func newZone(id string, world types.World, maxUsers int) (*Zone, error) {
 		zone.leftZoneID = geohash + ":" + from + string(geohashmap[fromI+split])
 		zone.rightZoneID = geohash + ":" + string(geohashmap[fromI+split+1]) + to
 	} else {
-		zone.leftZoneID = geohash + from + ":0z"
-		zone.rightZoneID = geohash + to + ":0z"
+		zone.leftZoneID = geohash + from + rootZoneID
+		zone.rightZoneID = geohash + to + rootZoneID
 	}
 
 	return zone, nil

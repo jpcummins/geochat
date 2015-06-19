@@ -18,10 +18,10 @@ func (suite *ZoneTestSuite) SetupTest() {
 }
 
 func (suite *ZoneTestSuite) TestNewZone() {
-	zone, err := newZone(":0z", suite.world, 2)
+	zone, err := newZone(rootZoneID, suite.world, 2)
 	assert.NoError(suite.T(), err)
 
-	assert.Equal(suite.T(), ":0z", zone.ID())
+	assert.Equal(suite.T(), rootZoneID, zone.ID())
 	assert.Equal(suite.T(), float64(90), zone.NorthEast().Lat())
 	assert.Equal(suite.T(), float64(180), zone.NorthEast().Lng())
 	assert.Equal(suite.T(), float64(-90), zone.SouthWest().Lat())
@@ -40,7 +40,7 @@ func (suite *ZoneTestSuite) TestAddUser() {
 	user := &mocks.User{}
 	user.On("ID").Return("user1")
 
-	zone, err := newZone(":0z", suite.world, 2)
+	zone, err := newZone(rootZoneID, suite.world, 2)
 	assert.NoError(suite.T(), err)
 
 	zone.AddUser(user)
@@ -49,7 +49,7 @@ func (suite *ZoneTestSuite) TestAddUser() {
 }
 
 func (suite *ZoneTestSuite) TestSetIsOpen() {
-	zone, err := newZone(":0z", suite.world, 2)
+	zone, err := newZone(rootZoneID, suite.world, 2)
 	assert.NoError(suite.T(), err)
 
 	assert.True(suite.T(), zone.IsOpen())
@@ -63,7 +63,7 @@ func (suite *ZoneTestSuite) TestRemoveUser() {
 	user1 := &mocks.User{}
 	user1.On("ID").Return("user1")
 
-	zone, err := newZone(":0z", suite.world, 2)
+	zone, err := newZone(rootZoneID, suite.world, 2)
 	assert.NoError(suite.T(), err)
 
 	assert.Equal(suite.T(), 0, zone.Count())
@@ -84,7 +84,7 @@ func (suite *ZoneTestSuite) TestBroadcast() {
 	user2.On("ID").Return("user2")
 	user2.On("Broadcast", event).Return(nil)
 
-	zone, err := newZone(":0z", suite.world, 2)
+	zone, err := newZone(rootZoneID, suite.world, 2)
 	assert.NoError(suite.T(), err)
 
 	zone.AddUser(user1)
@@ -96,7 +96,7 @@ func (suite *ZoneTestSuite) TestBroadcast() {
 }
 
 func (suite *ZoneTestSuite) TestMarshalJSON() {
-	zone, err := newZone(":0z", suite.world, 2)
+	zone, err := newZone(rootZoneID, suite.world, 2)
 	assert.NoError(suite.T(), err)
 
 	user1 := &mocks.User{}

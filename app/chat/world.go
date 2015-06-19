@@ -15,6 +15,8 @@ type World struct {
 	unsubscribe     chan bool
 }
 
+const rootZoneID string = ":0z"
+
 func newWorld(id string, chat types.Chat, maxUsersPerZone int) (*World, error) {
 	world := &World{
 		id:              id,
@@ -24,7 +26,7 @@ func newWorld(id string, chat types.Chat, maxUsersPerZone int) (*World, error) {
 		unsubscribe:     make(chan bool),
 	}
 
-	root, err := world.GetOrCreateZone(":0z")
+	root, err := world.GetOrCreateZone(rootZoneID)
 	if err != nil {
 		return nil, err
 	}
