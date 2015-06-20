@@ -11,7 +11,9 @@ import (
 	"sync"
 )
 
-var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
+const rootZoneID = ":0z"
+
+const geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 
 type zoneJSON struct {
 	ID       string   `json:"id"`

@@ -5,36 +5,25 @@ import (
 )
 
 type Chat struct {
-	cache               types.Cache
+	db                  types.DB
 	pubsub              types.PubSub
 	events              types.EventFactory
+	world               types.World
 	maxUsersForNewZones int
 }
 
-func newChat(cache types.Cache, pubsub types.PubSub, events types.EventFactory, maxUsersForNewZones int) (types.Chat, error) {
-	return &Chat{cache, pubsub, events, maxUsersForNewZones}, nil
+func (c *Chat) DB() types.DB {
+	return c.db
 }
 
 func (c *Chat) PubSub() types.PubSub {
 	return c.pubsub
 }
 
-func (c *Chat) Cache() types.Cache {
-	return c.cache
-}
-
 func (c *Chat) Events() types.EventFactory {
 	return c.events
 }
 
-func (c *Chat) World(id string) (types.World, error) {
-	return c.cache.World(id)
-}
-
-func (c *Chat) SetWorld(world types.World) error {
-	return c.cache.SetWorld(world)
-}
-
-func (c *Chat) GetOrCreateWorld(id string) (types.World, error) {
-	return nil, nil
+func (c *Chat) World() types.World {
+	return c.world
 }

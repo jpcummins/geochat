@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"github.com/jpcummins/geochat/app/cache"
 	"github.com/jpcummins/geochat/app/db"
 	"github.com/jpcummins/geochat/app/events"
 	"github.com/jpcummins/geochat/app/types"
@@ -10,19 +9,19 @@ import (
 var chat types.Chat
 
 func Init(redisServer, worldID string) (types.Chat, error) {
-	redisConnection := db.NewRedisDB(redisServer)
-	cache := cache.NewCache(redisConnection)
+	redisDB := db.NewRedisDB(redisServer)
 
-	world, err := cache.World(worldID)
+	world := &World{}
+	_, err := redisDB.GetWorld(worldID, world)
 	if err != nil {
 		return nil, err
 	}
 
-	pubsub, err := db.NewRedisPubSub(worldID, redisConnection)
-	if err != nil {
-		return nil, err
-	}
-
-	events := events.NewEventFactory(world)
-	return newChat(cache, pubsub, events, 2)
+	return &Chat{
+		db:                  redisDB,
+		pubsub:              db.NewRedisPubSub(world, redisDB),
+		events:              events.NewEventFactory(world),
+		world:               world,
+		maxUsersForNewZones: 10,
+	}, nil
 }
