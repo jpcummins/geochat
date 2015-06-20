@@ -2,31 +2,33 @@ package chat
 
 import (
 	"errors"
+	"github.com/jpcummins/geochat/app/events"
 	"github.com/jpcummins/geochat/app/types"
 	"strings"
-	"sync"
 )
 
 type World struct {
-	userMutex    sync.RWMutex
-	zoneMutex    sync.RWMutex
-	id           string
-	root         types.Zone
-	dependencies *Dependencies
-	unsubscribe  chan bool
-	users        map[string]types.User
-	zones        map[string]types.Zone
+	id          string
+	root        types.Zone
+	db          types.DB
+	pubsub      types.PubSub
+	events      types.Events
+	users       Users
+	zones       Zones
+	unsubscribe chan bool
 }
 
 const rootWorldID string = "0"
 
-func newWorld(id string, dependencies *Dependencies) (*World, error) {
+func newWorld(id string, db types.DB, ps types.PubSub) (*World, error) {
 	world := &World{
-		id:           id,
-		dependencies: dependencies,
-		unsubscribe:  make(chan bool),
-		users:        make(map[string]types.User),
-		zones:        make(map[string]types.Zone),
+		id:          id,
+		db:          db,
+		pubsub:      ps,
+		events:      events.EventFactory,
+		users:       newUsers(),
+		zones:       newZones(),
+		unsubscribe: make(chan bool),
 	}
 
 	root, err := world.GetOrCreateZone(rootZoneID)
@@ -61,96 +63,6 @@ func (w *World) close() {
 
 func (w *World) ID() string {
 	return w.id
-}
-
-func (w *World) Zone(id string) (types.Zone, error) {
-	zone, found := w.localZone(id)
-	if found {
-		return zone, nil
-	}
-	return w.UpdateZone(id)
-}
-
-func (w *World) UpdateZone(id string) (types.Zone, error) {
-	zone := &Zone{}
-	found, err := w.dependencies.DB().GetZone(id, w, zone)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		return nil, nil
-	}
-
-	w.localSetZone(zone)
-	return zone, nil
-}
-
-func (w *World) SetZone(zone types.Zone) error {
-	if err := w.dependencies.DB().SetZone(zone, w); err != nil {
-		return err
-	}
-
-	w.localSetZone(zone)
-	return nil
-}
-
-func (w *World) localZone(id string) (types.Zone, bool) {
-	w.zoneMutex.RLock()
-	defer w.zoneMutex.RUnlock()
-	zone, found := w.zones[id]
-	return zone, found
-}
-
-func (w *World) localSetZone(zone types.Zone) {
-	w.zoneMutex.Lock()
-	defer w.zoneMutex.Unlock()
-	w.zones[zone.ID()] = zone
-}
-
-func (w *World) User(id string) (types.User, error) {
-	user, found := w.localUser(id)
-	if found {
-		return user, nil
-	}
-	return w.UpdateUser(id)
-}
-
-func (w *World) UpdateUser(id string) (types.User, error) {
-	user := &User{}
-	found, err := w.dependencies.DB().GetUser(id, user)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		return nil, nil
-	}
-
-	w.localSetUser(user)
-	return user, nil
-}
-
-func (w *World) SetUser(user types.User) error {
-	if err := w.dependencies.DB().SetUser(user); err != nil {
-		return err
-	}
-
-	w.localSetUser(user)
-	return nil
-}
-
-func (w *World) localUser(id string) (types.User, bool) {
-	w.userMutex.RLock()
-	defer w.userMutex.RUnlock()
-	user, found := w.users[id]
-	return user, found
-}
-
-func (w *World) localSetUser(user types.User) {
-	w.userMutex.Lock()
-	defer w.userMutex.Unlock()
-	w.users[user.ID()] = user
 }
 
 func (w *World) GetOrCreateZone(id string) (types.Zone, error) {

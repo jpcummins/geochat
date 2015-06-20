@@ -9,13 +9,6 @@ import (
 func Init(redisServer, worldID string) (types.World, error) {
 	redisDB := db.NewRedisDB(redisServer)
 
-	dependencies := &Dependencies{
-		db: redisDB,
-		// pubsub:              db.NewRedisPubSub(world, redisDB),
-		// events:              events.NewEventFactory(world),
-		maxUsersForNewZones: 10,
-	}
-
 	world := &World{}
 	found, err := redisDB.GetWorld(worldID, world)
 	if err != nil {
@@ -23,8 +16,12 @@ func Init(redisServer, worldID string) (types.World, error) {
 	}
 
 	if !found {
-		return newWorld(worldID, dependencies)
+		world, err = newWorld(worldID, redisDB, events, 10)
+		if err != nil {
+			return nil, err
+		}
+		err = redisDB.SetWorld(world)
 	}
 
-	return world, nil
+	return world, err
 }

@@ -99,12 +99,12 @@ func getWorldKey(id string) string {
 }
 
 type RedisPubSub struct {
-	world types.World
-	db    *RedisDB
+	worldID string
+	db      *RedisDB
 }
 
-func NewRedisPubSub(world types.World, db *RedisDB) *RedisPubSub {
-	return &RedisPubSub{world, db}
+func NewRedisPubSub(worldID string, db *RedisDB) *RedisPubSub {
+	return &RedisPubSub{worldID, db}
 }
 
 func (r *RedisPubSub) Publish(event types.Event) error {

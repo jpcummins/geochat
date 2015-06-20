@@ -1,5 +1,5 @@
 package types
 
-type EventFactory interface {
+type Events interface {
 	New(string, EventData) (Event, error)
 }

@@ -16,19 +16,17 @@ var invalidZoneID = ":::::::"
 
 type WorldTestSuite struct {
 	suite.Suite
-	chat   *mocks.Chat
-	zone   *mocks.Zone
-	pubsub *mocks.PubSub
-	user   *mocks.User
-	db     *mocks.DB
-	world  *mocks.World
-	ch     <-chan types.Event
+	dependencies *mocks.Dependenies
+	zone         *mocks.Zone
+	user         *mocks.User
+	db           *mocks.DB
+	world        *mocks.World
+	ch           <-chan types.Event
 }
 
 func (suite *WorldTestSuite) SetupTest() {
-	suite.chat = &mocks.Chat{}
+	suite.dependencies = &mocks.Dependencies{}
 	suite.zone = &mocks.Zone{}
-	suite.pubsub = &mocks.PubSub{}
 	suite.user = &mocks.User{}
 	suite.db = &mocks.DB{}
 	suite.world = &mocks.World{}
@@ -36,7 +34,6 @@ func (suite *WorldTestSuite) SetupTest() {
 
 func (suite *WorldTestSuite) NewWorld() (*World, error) {
 	suite.ch = make(<-chan types.Event)
-	suite.chat.On("PubSub").Return(suite.pubsub)
 	suite.pubsub.On("Subscribe").Return(suite.ch)
 	suite.chat.On("DB").Return(suite.db)
 	suite.db.On("GetZone", rootZoneID, mock.Anything, mock.Anything).Return(false, nil)
