@@ -4,26 +4,21 @@ import (
 	"github.com/jpcummins/geochat/app/types"
 )
 
-type Chat struct {
+type Dependencies struct {
 	db                  types.DB
 	pubsub              types.PubSub
 	events              types.EventFactory
-	world               types.World
 	maxUsersForNewZones int
 }
 
-func (c *Chat) DB() types.DB {
+func (c *Dependencies) DB() types.DB {
 	return c.db
 }
 
-func (c *Chat) PubSub() types.PubSub {
+func (c *Dependencies) PubSub() types.PubSub {
 	return c.pubsub
 }
 
-func (c *Chat) Events() types.EventFactory {
+func (c *Dependencies) Events() types.EventFactory {
 	return c.events
-}
-
-func (c *Chat) World() types.World {
-	return c.world
 }

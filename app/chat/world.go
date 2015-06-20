@@ -8,29 +8,25 @@ import (
 )
 
 type World struct {
-	userMutex       sync.RWMutex
-	zoneMutex       sync.RWMutex
-	id              string
-	root            types.Zone
-	chat            types.Chat
-	maxUsersPerZone int
-	subscribe       <-chan types.Event
-	unsubscribe     chan bool
-	users           map[string]types.User
-	zones           map[string]types.Zone
+	userMutex    sync.RWMutex
+	zoneMutex    sync.RWMutex
+	id           string
+	root         types.Zone
+	dependencies *Dependencies
+	unsubscribe  chan bool
+	users        map[string]types.User
+	zones        map[string]types.Zone
 }
 
 const rootWorldID string = "0"
 
-func newWorld(id string, chat types.Chat, maxUsersPerZone int) (*World, error) {
+func newWorld(id string, dependencies *Dependencies) (*World, error) {
 	world := &World{
-		id:              id,
-		chat:            chat,
-		maxUsersPerZone: maxUsersPerZone,
-		subscribe:       chat.PubSub().Subscribe(),
-		unsubscribe:     make(chan bool),
-		users:           make(map[string]types.User),
-		zones:           make(map[string]types.Zone),
+		id:           id,
+		dependencies: dependencies,
+		unsubscribe:  make(chan bool),
+		users:        make(map[string]types.User),
+		zones:        make(map[string]types.Zone),
 	}
 
 	root, err := world.GetOrCreateZone(rootZoneID)
@@ -44,9 +40,10 @@ func newWorld(id string, chat types.Chat, maxUsersPerZone int) (*World, error) {
 }
 
 func (w *World) manage() {
+	subscription := w.dependencies.PubSub().Subscribe()
 	for {
 		select {
-		case event := <-w.subscribe:
+		case event := <-subscription:
 			event.SetWorld(w)
 			event.Data().OnReceive(event)
 		case <-w.unsubscribe:
@@ -76,7 +73,7 @@ func (w *World) Zone(id string) (types.Zone, error) {
 
 func (w *World) UpdateZone(id string) (types.Zone, error) {
 	zone := &Zone{}
-	found, err := w.chat.DB().GetZone(id, w, zone)
+	found, err := w.dependencies.DB().GetZone(id, w, zone)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +87,7 @@ func (w *World) UpdateZone(id string) (types.Zone, error) {
 }
 
 func (w *World) SetZone(zone types.Zone) error {
-	if err := w.chat.DB().SetZone(zone, w); err != nil {
+	if err := w.dependencies.DB().SetZone(zone, w); err != nil {
 		return err
 	}
 
@@ -121,7 +118,7 @@ func (w *World) User(id string) (types.User, error) {
 
 func (w *World) UpdateUser(id string) (types.User, error) {
 	user := &User{}
-	found, err := w.chat.DB().GetUser(id, user)
+	found, err := w.dependencies.DB().GetUser(id, user)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +132,7 @@ func (w *World) UpdateUser(id string) (types.User, error) {
 }
 
 func (w *World) SetUser(user types.User) error {
-	if err := w.chat.DB().SetUser(user); err != nil {
+	if err := w.dependencies.DB().SetUser(user); err != nil {
 		return err
 	}
 
@@ -163,7 +160,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	}
 
 	if zone == nil {
-		zone, err = newZone(id, w, w.maxUsersPerZone)
+		zone, err = newZone(id, w, 10)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +211,7 @@ func (w *World) GetOrCreateZoneForUser(user types.User) (types.Zone, error) {
 }
 
 func (w *World) Publish(data types.EventData) error {
-	event, eventErr := w.chat.Events().New("", data)
+	event, eventErr := w.dependencies.Events().New("", data)
 	if eventErr != nil {
 		return eventErr
 	}
@@ -223,5 +220,5 @@ func (w *World) Publish(data types.EventData) error {
 		return publishErr
 	}
 
-	return w.chat.PubSub().Publish(event)
+	return w.dependencies.PubSub().Publish(event)
 }
