@@ -93,6 +93,14 @@ func (z *Zone) RemoveUser(id string) {
 	z.Called(id)
 }
 
+func (m *Zone) Update(_a0 types.EventData) error {
+	ret := m.Called(_a0)
+
+	r0 := ret.Error(0)
+
+	return r0
+}
+
 func (z *Zone) MarshalJSON() ([]byte, error) {
 	args := z.Called()
 	return args.Get(0).([]byte), args.Error(1)

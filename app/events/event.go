@@ -65,14 +65,6 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 		e.data = &Message{}
 	case "join":
 		e.data = &Join{}
-	case "leave":
-		e.data = &Leave{}
-	case "online":
-		e.data = &Online{}
-	case "offline":
-		e.data = &Offline{}
-	case "split":
-		e.data = &Split{}
 	default:
 		return errors.New("Unable to unmarshal command: " + e.Type())
 	}

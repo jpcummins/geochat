@@ -23,6 +23,8 @@ type Zone interface {
 	AddUser(User)
 	RemoveUser(string)
 
+	// Update(EventData) error
+
 	// Events
 	Join(User) (Event, error)
 	Message(User, string) (Event, error)
