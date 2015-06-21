@@ -5,13 +5,11 @@ import (
 )
 
 type Connection struct {
-	user   *User
 	events chan types.Event
 }
 
-func newConnection(user *User) *Connection {
+func newConnection() *Connection {
 	return &Connection{
-		user:   user,
 		events: make(chan types.Event, 10),
 	}
 }

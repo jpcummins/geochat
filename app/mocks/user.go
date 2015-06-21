@@ -36,10 +36,13 @@ func (m *User) Broadcast(e types.Event) {
 	m.Called(e)
 }
 
-func (m *User) AddConnection(c types.Connection) {
-	m.Called(c)
-}
+func (m *User) Connect() types.Connection {
+	ret := m.Called()
 
-func (m *User) RemoveConnection(connection types.Connection) {
-	m.Called(connection)
+	r0 := ret.Get(0).(types.Connection)
+
+	return r0
+}
+func (m *User) Disconnect(_a0 types.Connection) {
+	m.Called(_a0)
 }

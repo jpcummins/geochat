@@ -6,6 +6,6 @@ type User interface {
 	Location() LatLng
 	Zone() Zone
 	Broadcast(Event)
-	AddConnection(Connection)
-	RemoveConnection(Connection)
+	Connect() Connection
+	Disconnect(Connection)
 }

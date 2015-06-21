@@ -20,7 +20,7 @@ type User struct {
 	*userJSON
 	sync.RWMutex
 	zone        types.Zone
-	connections []types.Connection
+	connections []*Connection
 }
 
 func newUser(id string, name string, location types.LatLng) *User {
@@ -32,7 +32,7 @@ func newUser(id string, name string, location types.LatLng) *User {
 			Name:         name,
 			Location:     location,
 		},
-		connections: make([]types.Connection, 0),
+		connections: make([]*Connection, 0),
 	}
 	return u
 }
@@ -66,19 +66,23 @@ func (u *User) Broadcast(e types.Event) {
 	}
 }
 
-func (u *User) AddConnection(c types.Connection) {
+func (u *User) Connect() types.Connection {
+	connection := newConnection()
+
 	u.Lock()
 	defer u.Unlock()
 
-	u.connections = append(u.connections, c)
+	u.connections = append(u.connections, connection)
+	return connection
 }
 
-func (u *User) RemoveConnection(c types.Connection) {
+func (u *User) Disconnect(c types.Connection) {
 	u.Lock()
 	defer u.Unlock()
 
 	for i, connection := range u.connections {
 		if connection == c {
+			close(connection.events)
 			copy(u.connections[i:], u.connections[i+1:])
 			u.connections[len(u.connections)-1] = nil // gc
 			u.connections = u.connections[:len(u.connections)-1]
