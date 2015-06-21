@@ -9,26 +9,23 @@ type AuthController struct {
 	*revel.Controller
 }
 
+var userIDSessionKey = "user_id"
+
 func (ac AuthController) Login(name string, lat float64, long float64) revel.Result {
-	id, ok := ac.Session["user_id"]
+	id, ok := ac.Session[userIDSessionKey]
 
-	var user *chat.User
-	if ok {
-		user, ok = (*chat.UserCache).Get(id)
-
-		if !ok {
-			delete(ac.Session, "user_id")
-		}
+	user, err := chat.App.Users().User(id)
+	if err != nil {
+		delete(ac.Session, userIDSessionKey)
 	}
 
-	if !ok {
-		println("creating new user")
-		user := chat.NewUser(lat, long, name)
-		if _, err := user.JoinNextAvailableZone(); err != nil {
+	if user == nil {
+		user = chat.NewUser(name, name, NewLatLng(lat, long))
+		if err := chat.App.Users().SetUser(user); err != nil {
+			delete(ac.Session, userIDSessionKey)
 			return ac.RenderError(err)
 		}
-
-		ac.Session["user_id"] = user.GetID()
+		ac.Session[userIDSessionKey] = user.GetID()
 	}
 
 	return ac.RenderJson(user)

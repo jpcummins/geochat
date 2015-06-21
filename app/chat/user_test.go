@@ -14,7 +14,7 @@ type UserTestSuite struct {
 }
 
 func (suite *UserTestSuite) SetupTest() {
-	suite.user = newUser("testid", "test", seattle)
+	suite.user = NewUser("testid", "test", seattle)
 }
 
 func (suite *UserTestSuite) TestNewUser() {

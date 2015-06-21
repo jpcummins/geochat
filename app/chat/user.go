@@ -21,7 +21,7 @@ type User struct {
 	connections []types.Connection
 }
 
-func newUser(id string, name string, location types.LatLng) *User {
+func NewUser(id string, name string, location types.LatLng) *User {
 	u := &User{
 		userJSON: &userJSON{
 			ID:           id,

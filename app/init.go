@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/jpcummins/geochat/app/chat"
 	"github.com/revel/revel"
+	"os"
 )
 
 func init() {
@@ -22,7 +23,17 @@ func init() {
 		revel.ActionInvoker,           // Invoke the action.
 	}
 
-	revel.OnAppStart(chat.Init)
+	redisServer := os.Getenv("REDISTOGO_URL")
+
+	if redisServer == "" {
+		redisServer = "redis://localhost:6379"
+	}
+
+	revel.OnAppStart(func() {
+		if err := chat.Init(redisServer, "0"); err != nil {
+			panic(err)
+		}
+	})
 }
 
 // HeaderFilter adds a few security related headers

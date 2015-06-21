@@ -11,8 +11,9 @@ type App struct {
 
 func (c App) Index() revel.Result {
 	if id, ok := c.Session["user_id"]; ok {
-		_, ok := (*chat.UserCache).Get(id)
-		if ok {
+
+		user, err := chat.App.Users().User(id)
+		if user != nil && err == nil {
 			return c.Redirect("/chat")
 		} else {
 			delete(c.Session, "user_id")

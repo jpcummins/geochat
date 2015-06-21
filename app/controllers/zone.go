@@ -19,15 +19,15 @@ func init() {
 }
 
 func (zc *ZoneController) setSession() revel.Result {
-	userID, ok := zc.Session["user_id"]
+	userID, ok := zc.Session[userIDSessionKey]
 
 	if !ok {
 		zc.Redirect("/")
 	}
 
-	user, found := (*chat.UserCache).Get(userID)
+	user, err := chat.App.Users.User(userID)
 
-	if !found {
+	if user == nil || err != nil {
 		return zc.Redirect("/")
 	}
 
