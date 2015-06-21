@@ -17,7 +17,6 @@ const geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 
 type zoneJSON struct {
 	ID       string   `json:"id"`
-	WorldID  string   `json:"world_id"`
 	UserIDs  []string `json:"user_ids"`
 	IsOpen   bool     `json:"is_open"`
 	MaxUsers int      `json:"max_users"`
@@ -44,16 +43,18 @@ func newZone(id string, world types.World, maxUsers int) (*Zone, error) {
 		return nil, err
 	}
 
+	southWest := gh.Decode(geohash + from).SouthWest()
+	northEast := gh.Decode(geohash + to).NorthEast()
+
 	zone := &Zone{
 		zoneJSON: &zoneJSON{
 			ID:       id,
-			WorldID:  world.ID(),
 			IsOpen:   true,
 			MaxUsers: maxUsers,
 		},
 		world:     world,
-		southWest: NewLatLng(gh.Decode(geohash + from).SouthWest()),
-		northEast: NewLatLng(gh.Decode(geohash + to).NorthEast()),
+		southWest: newLatLng(southWest.Lat(), southWest.Lng()),
+		northEast: newLatLng(northEast.Lat(), northEast.Lng()),
 		geohash:   geohash,
 		from:      from,
 		to:        to,
@@ -102,10 +103,6 @@ func (z *Zone) MarshalJSON() ([]byte, error) {
 
 func (z *Zone) ID() string {
 	return z.zoneJSON.ID
-}
-
-func (z *Zone) WorldID() string {
-	return z.zoneJSON.WorldID
 }
 
 func (z *Zone) SouthWest() types.LatLng {

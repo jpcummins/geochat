@@ -13,15 +13,17 @@ type userJSON struct {
 	LastActivity int          `json:"last_activity"`
 	Name         string       `json:"name"`
 	Location     types.LatLng `json:"location"`
+	ZoneID       string       `json:"zone_id"`
 }
 
 type User struct {
 	*userJSON
 	sync.RWMutex
+	zone        types.Zone
 	connections []types.Connection
 }
 
-func NewUser(id string, name string, location types.LatLng) *User {
+func newUser(id string, name string, location types.LatLng) *User {
 	u := &User{
 		userJSON: &userJSON{
 			ID:           id,
@@ -49,6 +51,10 @@ func (u *User) Name() string {
 
 func (u *User) Location() types.LatLng {
 	return u.userJSON.Location
+}
+
+func (u *User) Zone() types.Zone {
+	return u.zone
 }
 
 func (u *User) Broadcast(e types.Event) {

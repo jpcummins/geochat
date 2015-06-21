@@ -29,7 +29,7 @@ func newWorld(id string, db types.DB, ps types.PubSub) (*World, error) {
 		pubsub: ps,
 	}
 
-	world.users = newUsers(db)
+	world.users = newUsers(db, world)
 	world.zones = newZones(db, world)
 	world.events = events.NewEvents(world)
 
@@ -121,6 +121,14 @@ func (w *World) FindOpenZone(user types.User) (types.Zone, error) {
 	}
 
 	return root, nil
+}
+
+func (w *World) NewUser(id string, name string, lat float64, lng float64) (types.User, error) {
+	user := newUser(id, name, newLatLng(lat, lng))
+	if err := w.Users().SetUser(user); err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func (w *World) Publish(data types.EventData) error {

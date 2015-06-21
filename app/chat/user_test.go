@@ -10,11 +10,13 @@ import (
 
 type UserTestSuite struct {
 	suite.Suite
-	user *User
+	world *mocks.World
+	user  *User
 }
 
 func (suite *UserTestSuite) SetupTest() {
-	suite.user = NewUser("testid", "test", seattle)
+	suite.world = &mocks.World{}
+	suite.user = newUser("testid", "test", seattle)
 }
 
 func (suite *UserTestSuite) TestNewUser() {

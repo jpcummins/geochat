@@ -44,6 +44,14 @@ func (m *World) FindOpenZone(_a0 types.User) (types.Zone, error) {
 
 	return r0, r1
 }
+func (m *World) NewUser(id string, name string, lat float64, lng float64) (types.User, error) {
+	ret := m.Called(id, name, lat, lng)
+
+	r0 := ret.Get(0).(types.User)
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
 func (m *World) Publish(_a0 types.EventData) error {
 	ret := m.Called(_a0)
 

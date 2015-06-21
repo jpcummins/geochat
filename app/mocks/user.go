@@ -24,6 +24,14 @@ func (m *User) Location() types.LatLng {
 	return args.Get(0).(types.LatLng)
 }
 
+func (m *User) Zone() types.Zone {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.Zone)
+
+	return r0
+}
+
 func (m *User) Broadcast(e types.Event) {
 	m.Called(e)
 }

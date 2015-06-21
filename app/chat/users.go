@@ -8,12 +8,14 @@ import (
 type Users struct {
 	sync.RWMutex
 	db    types.DB
+	world types.World
 	users map[string]types.User
 }
 
-func newUsers(db types.DB) *Users {
+func newUsers(db types.DB, world types.World) *Users {
 	return &Users{
 		db:    db,
+		world: world,
 		users: make(map[string]types.User),
 	}
 }

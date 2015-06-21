@@ -6,7 +6,6 @@ type Zone interface {
 	json.Marshaler
 
 	ID() string
-	WorldID() string
 	SouthWest() LatLng
 	NorthEast() LatLng
 	Geohash() string

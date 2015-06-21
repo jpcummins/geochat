@@ -10,11 +10,11 @@ type LatLng struct {
 	geohash string
 }
 
-func NewLatLng(latlng *gh.LatLng) *LatLng {
+func newLatLng(lat float64, lng float64) *LatLng {
 	return &LatLng{
-		lat:     latlng.Lat(),
-		lng:     latlng.Lng(),
-		geohash: gh.EncodeWithPrecision(latlng.Lat(), latlng.Lng(), 5),
+		lat:     lat,
+		lng:     lng,
+		geohash: gh.EncodeWithPrecision(lat, lng, 5),
 	}
 }
 

@@ -40,6 +40,7 @@ func (suite *WorldTestSuite) SetupTest() {
 	suite.rch = suite.ch
 	suite.zones = &mocks.Zones{}
 	suite.user = &mocks.User{}
+	suite.users = &mocks.Users{}
 	suite.db = &mocks.DB{}
 	suite.pubsub = &mocks.PubSub{}
 	suite.root = &mocks.Zone{}
@@ -311,6 +312,29 @@ func (suite *WorldTestSuite) TestPublishReturnsPubSubError() {
 	data.On("BeforePublish", event).Return(nil)
 	err2 := suite.world.Publish(data)
 	assert.Equal(suite.T(), err1, err2)
+}
+
+func (suite *WorldTestSuite) TestNewUser() {
+	suite.users.On("SetUser", mock.Anything).Return(nil)
+
+	world := suite.NewWorld()
+	user, err := world.NewUser("abc", "bob", seattle.lat, seattle.lng)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "abc", user.ID())
+	assert.Equal(suite.T(), "bob", user.Name())
+	assert.Equal(suite.T(), seattle.lat, user.Location().Lat())
+	assert.Equal(suite.T(), seattle.lng, user.Location().Lng())
+	assert.Nil(suite.T(), user.Zone())
+}
+
+func (suite *WorldTestSuite) TestNewUserError() {
+	err1 := errors.New("err")
+	suite.users.On("SetUser", mock.Anything).Return(err1)
+
+	world := suite.NewWorld()
+	user, err2 := world.NewUser("abc", "bob", seattle.lat, seattle.lng)
+	assert.Equal(suite.T(), err1, err2)
+	assert.Nil(suite.T(), user)
 }
 
 func TestWorldSuite(t *testing.T) {
