@@ -67,7 +67,7 @@ func (u *User) Broadcast(e types.Event) {
 }
 
 func (u *User) Connect() types.Connection {
-	connection := newConnection()
+	connection := newConnection(u)
 
 	u.Lock()
 	defer u.Unlock()

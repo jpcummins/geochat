@@ -52,11 +52,17 @@ func (m *World) NewUser(id string, name string, lat float64, lng float64) (types
 
 	return r0, r1
 }
-func (m *World) Publish(_a0 types.EventData) (types.Event, error) {
+func (m *World) NewEvent(_a0 types.EventData) types.Event {
 	ret := m.Called(_a0)
 
 	r0 := ret.Get(0).(types.Event)
-	r1 := ret.Error(1)
 
-	return r0, r1
+	return r0
+}
+func (m *World) Publish(_a0 types.Event) error {
+	ret := m.Called(_a0)
+
+	r0 := ret.Error(0)
+
+	return r0
 }

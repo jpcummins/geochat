@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/jpcummins/geochat/app/chat"
+	"github.com/jpcummins/geochat/app/types"
 	"github.com/revel/revel"
 )
 
@@ -14,9 +15,14 @@ var userIDSessionKey = "user_id"
 func (ac AuthController) Login(name string, lat float64, long float64) revel.Result {
 	id, ok := ac.Session[userIDSessionKey]
 
-	user, err := chat.App.Users().User(id)
-	if err != nil {
-		delete(ac.Session, userIDSessionKey)
+	var user types.User
+	var err error
+
+	if ok {
+		user, err = chat.App.Users().User(id)
+		if err != nil {
+			delete(ac.Session, userIDSessionKey)
+		}
 	}
 
 	if user == nil {

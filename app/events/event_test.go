@@ -20,8 +20,7 @@ func (suite *EventTestSuite) SetupTest() {
 func (suite *EventTestSuite) TestNewEvent() {
 	data := &mocks.EventData{}
 	data.On("Type").Return("test")
-	e, err := newEvent("eventid", suite.world, data)
-	assert.NoError(suite.T(), err)
+	e := newEvent("eventid", suite.world, data)
 	assert.Equal(suite.T(), "eventid", e.ID())
 	assert.Equal(suite.T(), "test", e.Type())
 	assert.Equal(suite.T(), data, e.Data())

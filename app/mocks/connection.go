@@ -13,3 +13,7 @@ func (m *Connection) Events() chan types.Event {
 	args := m.Called()
 	return args.Get(0).(chan types.Event)
 }
+
+func (m *Connection) Ping() {
+	m.Called()
+}

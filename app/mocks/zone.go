@@ -14,6 +14,14 @@ func (z *Zone) ID() string {
 	return args.String(0)
 }
 
+func (m *Zone) World() types.World {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.World)
+
+	return r0
+}
+
 func (z *Zone) SouthWest() types.LatLng {
 	args := z.Called()
 	return args.Get(0).(types.LatLng)

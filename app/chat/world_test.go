@@ -284,11 +284,11 @@ func (suite *WorldTestSuite) TestPublishCallsBeforePublish() {
 	event := &mocks.Event{}
 	data := &mocks.EventData{}
 
-	suite.events.On("New", mock.Anything, data).Return(event, nil)
+	event.On("Data").Return(data)
 	suite.pubsub.On("Publish", event).Return(nil)
 	data.On("BeforePublish", event).Return(nil)
 
-	_, err := suite.world.Publish(data)
+	err := suite.world.Publish(event)
 	assert.NoError(suite.T(), err)
 	data.AssertCalled(suite.T(), "BeforePublish", event)
 }
@@ -297,9 +297,10 @@ func (suite *WorldTestSuite) TestPublishReturnsBeforePublishError() {
 	err1 := errors.New("err")
 	event := &mocks.Event{}
 	data := &mocks.EventData{}
-	suite.events.On("New", mock.Anything, data).Return(event, nil)
+	event.On("Data").Return(data)
+
 	data.On("BeforePublish", event).Return(err1)
-	_, err2 := suite.world.Publish(data)
+	err2 := suite.world.Publish(event)
 	assert.Equal(suite.T(), err1, err2)
 }
 
@@ -307,10 +308,10 @@ func (suite *WorldTestSuite) TestPublishReturnsPubSubError() {
 	err1 := errors.New("err")
 	event := &mocks.Event{}
 	data := &mocks.EventData{}
-	suite.events.On("New", mock.Anything, data).Return(event, nil)
+	event.On("Data").Return(data)
 	suite.pubsub.On("Publish", event).Return(err1)
 	data.On("BeforePublish", event).Return(nil)
-	_, err2 := suite.world.Publish(data)
+	err2 := suite.world.Publish(event)
 	assert.Equal(suite.T(), err1, err2)
 }
 

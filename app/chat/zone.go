@@ -105,6 +105,10 @@ func (z *Zone) ID() string {
 	return z.zoneJSON.ID
 }
 
+func (z *Zone) World() types.World {
+	return z.world
+}
+
 func (z *Zone) SouthWest() types.LatLng {
 	return z.southWest
 }
@@ -181,7 +185,8 @@ func (z *Zone) Join(user types.User) (types.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	return z.world.Publish(joinEventData)
+	event := z.world.NewEvent(joinEventData)
+	return event, z.world.Publish(event)
 }
 
 func (z *Zone) Message(user types.User, message string) (types.Event, error) {
@@ -189,5 +194,6 @@ func (z *Zone) Message(user types.User, message string) (types.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	return z.world.Publish(messageEventData)
+	event := z.world.NewEvent(messageEventData)
+	return event, z.world.Publish(event)
 }
