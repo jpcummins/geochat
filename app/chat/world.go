@@ -4,7 +4,10 @@ import (
 	"errors"
 	"github.com/jpcummins/geochat/app/events"
 	"github.com/jpcummins/geochat/app/types"
+	"math/rand"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type World struct {
@@ -121,7 +124,9 @@ func (w *World) GetOrCreateZoneForUser(user types.User) (types.Zone, error) {
 }
 
 func (w *World) Publish(data types.EventData) error {
-	event, eventErr := w.events.New("", data)
+	id := strconv.FormatInt(time.Now().UnixNano(), 10) + randomSequence(4)
+
+	event, eventErr := w.events.New(id, data)
 	if eventErr != nil {
 		return eventErr
 	}
@@ -131,4 +136,14 @@ func (w *World) Publish(data types.EventData) error {
 	}
 
 	return w.pubsub.Publish(event)
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+func randomSequence(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }
