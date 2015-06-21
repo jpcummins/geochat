@@ -2,7 +2,6 @@ package chat
 
 import (
 	"github.com/jpcummins/geochat/app/db"
-	// "github.com/jpcummins/geochat/app/events"
 	"github.com/jpcummins/geochat/app/types"
 )
 

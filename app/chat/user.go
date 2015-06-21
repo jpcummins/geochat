@@ -53,20 +53,24 @@ func (u *User) Location() types.LatLng {
 
 func (u *User) Broadcast(e types.Event) {
 	u.Lock()
+	defer u.Unlock()
+
 	for _, connection := range u.connections {
 		connection.Events() <- e
 	}
-	u.Unlock()
 }
 
 func (u *User) AddConnection(c types.Connection) {
 	u.Lock()
+	defer u.Unlock()
+
 	u.connections = append(u.connections, c)
-	u.Unlock()
 }
 
 func (u *User) RemoveConnection(c types.Connection) {
 	u.Lock()
+	defer u.Unlock()
+
 	for i, connection := range u.connections {
 		if connection == c {
 			copy(u.connections[i:], u.connections[i+1:])
@@ -75,5 +79,4 @@ func (u *User) RemoveConnection(c types.Connection) {
 			break
 		}
 	}
-	u.Unlock()
 }

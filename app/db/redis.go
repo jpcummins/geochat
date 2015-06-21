@@ -108,9 +108,34 @@ func NewRedisPubSub(worldID string, db *RedisDB) *RedisPubSub {
 }
 
 func (r *RedisPubSub) Publish(event types.Event) error {
-	return nil
+	bytes, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.db.connection.Do("PUBLISH", getWorldKey(r.worldID), string(bytes))
+	return err
 }
 
 func (r *RedisPubSub) Subscribe() <-chan types.Event {
-	return nil
+	ch := make(chan types.Event)
+	go r.subscribe(ch)
+	return ch
+}
+
+func (r *RedisPubSub) subscribe(ch chan types.Event) {
+	psc := redis.PubSubConn{r.db.pool.Get()}
+	defer psc.Close()
+	psc.Subscribe(getWorldKey(r.worldID))
+
+	for {
+		switch v := psc.Receive().(type) {
+		case redis.Message:
+			var event types.Event
+			if err := json.Unmarshal(v.Data, &event); err != nil {
+				continue
+			}
+			ch <- event
+		}
+	}
 }
