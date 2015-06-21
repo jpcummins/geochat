@@ -38,7 +38,7 @@ func (m *Message) BeforePublish(e types.Event) error {
 }
 
 func (m *Message) OnReceive(e types.Event) error {
-	zone, err := e.World().Zone(m.messageJSON.ZoneID)
+	zone, err := e.World().Zones().Zone(m.messageJSON.ZoneID)
 	if err != nil {
 		return nil
 	}

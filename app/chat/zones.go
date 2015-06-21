@@ -7,11 +7,15 @@ import (
 
 type Zones struct {
 	sync.RWMutex
+	db    types.DB
+	world types.World
 	zones map[string]types.Zone
 }
 
-func newZones() *Zones {
+func newZones(db types.DB, world types.World) *Zones {
 	return &Zones{
+		db:    db,
+		world: world,
 		zones: make(map[string]types.Zone),
 	}
 }
@@ -26,7 +30,7 @@ func (z *Zones) Zone(id string) (types.Zone, error) {
 
 func (z *Zones) UpdateZone(id string) (types.Zone, error) {
 	zone := &Zone{}
-	found, err := z.dependencies.DB().GetZone(id, w, zone)
+	found, err := z.db.GetZone(id, z.world, zone)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +44,7 @@ func (z *Zones) UpdateZone(id string) (types.Zone, error) {
 }
 
 func (z *Zones) SetZone(zone types.Zone) error {
-	if err := z.dependencies.DB().SetZone(zone, w); err != nil {
+	if err := z.db.SetZone(zone, z.world); err != nil {
 		return err
 	}
 
@@ -49,14 +53,14 @@ func (z *Zones) SetZone(zone types.Zone) error {
 }
 
 func (z *Zones) localZone(id string) (types.Zone, bool) {
-	z.zoneMutex.RLock()
-	defer z.zoneMutex.RUnlock()
+	z.RLock()
+	defer z.RUnlock()
 	zone, found := z.zones[id]
 	return zone, found
 }
 
 func (z *Zones) localSetZone(zone types.Zone) {
-	z.zoneMutex.Lock()
-	defer z.zoneMutex.Unlock()
+	z.Lock()
+	defer z.Unlock()
 	z.zones[zone.ID()] = zone
 }

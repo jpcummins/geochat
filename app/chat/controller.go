@@ -16,7 +16,8 @@ func Init(redisServer, worldID string) (types.World, error) {
 	}
 
 	if !found {
-		world, err = newWorld(worldID, redisDB, events, 10)
+		pubsub := db.NewRedisPubSub(worldID, redisDB)
+		world, err = newWorld(worldID, redisDB, pubsub)
 		if err != nil {
 			return nil, err
 		}

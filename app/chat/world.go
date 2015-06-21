@@ -8,28 +8,27 @@ import (
 )
 
 type World struct {
-	id          string
-	root        types.Zone
-	db          types.DB
-	pubsub      types.PubSub
-	events      types.Events
-	users       Users
-	zones       Zones
-	unsubscribe chan bool
+	id     string
+	root   types.Zone
+	db     types.DB
+	pubsub types.PubSub
+	events types.Events
+	users  types.Users
+	zones  types.Zones
 }
 
 const rootWorldID string = "0"
 
 func newWorld(id string, db types.DB, ps types.PubSub) (*World, error) {
 	world := &World{
-		id:          id,
-		db:          db,
-		pubsub:      ps,
-		events:      events.EventFactory,
-		users:       newUsers(),
-		zones:       newZones(),
-		unsubscribe: make(chan bool),
+		id:     id,
+		db:     db,
+		pubsub: ps,
 	}
+
+	world.users = newUsers(db)
+	world.zones = newZones(db, world)
+	world.events = events.NewEvents(world)
 
 	root, err := world.GetOrCreateZone(rootZoneID)
 	if err != nil {
@@ -42,22 +41,13 @@ func newWorld(id string, db types.DB, ps types.PubSub) (*World, error) {
 }
 
 func (w *World) manage() {
-	subscription := w.dependencies.PubSub().Subscribe()
+	subscription := w.pubsub.Subscribe()
 	for {
 		select {
 		case event := <-subscription:
 			event.SetWorld(w)
 			event.Data().OnReceive(event)
-		case <-w.unsubscribe:
-			return
 		}
-	}
-}
-
-func (w *World) close() {
-	if w != nil {
-		w.unsubscribe <- true
-		close(w.unsubscribe)
 	}
 }
 
@@ -65,8 +55,16 @@ func (w *World) ID() string {
 	return w.id
 }
 
+func (w *World) Users() types.Users {
+	return w.users
+}
+
+func (w *World) Zones() types.Zones {
+	return w.zones
+}
+
 func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
-	zone, err := w.Zone(id)
+	zone, err := w.Zones().Zone(id)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +75,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 			return nil, err
 		}
 
-		if err := w.SetZone(zone); err != nil {
+		if err := w.zones.SetZone(zone); err != nil {
 			return nil, err
 		}
 	}
@@ -123,7 +121,7 @@ func (w *World) GetOrCreateZoneForUser(user types.User) (types.Zone, error) {
 }
 
 func (w *World) Publish(data types.EventData) error {
-	event, eventErr := w.dependencies.Events().New("", data)
+	event, eventErr := w.events.New("", data)
 	if eventErr != nil {
 		return eventErr
 	}
@@ -132,5 +130,5 @@ func (w *World) Publish(data types.EventData) error {
 		return publishErr
 	}
 
-	return w.dependencies.PubSub().Publish(event)
+	return w.pubsub.Publish(event)
 }

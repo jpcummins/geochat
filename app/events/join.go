@@ -49,21 +49,21 @@ func (j *Join) UnmarshalJSON(b []byte) error {
 }
 
 func (j *Join) BeforePublish(e types.Event) error {
-	if err := e.World().SetUser(j.user); err != nil {
+	if err := e.World().Users().SetUser(j.user); err != nil {
 		return err
 	}
 
 	j.zone.AddUser(j.user)
-	return e.World().SetZone(j.zone)
+	return e.World().Zones().SetZone(j.zone)
 }
 
 func (j *Join) OnReceive(e types.Event) error {
-	_, err := e.World().UpdateUser(j.joinJSON.UserJSON.ID)
+	_, err := e.World().Users().UpdateUser(j.joinJSON.UserJSON.ID)
 	if err != nil {
 		return err
 	}
 
-	zone, err := e.World().UpdateZone(j.joinJSON.ZoneID)
+	zone, err := e.World().Zones().UpdateZone(j.joinJSON.ZoneID)
 	if err != nil {
 		return nil
 	}
