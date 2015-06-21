@@ -29,8 +29,8 @@ func newWorld(id string, db types.DB, ps types.PubSub) (*World, error) {
 		pubsub: ps,
 	}
 
-	world.users = newUsers(db, world)
-	world.zones = newZones(db, world)
+	world.users = newUsers(world)
+	world.zones = newZones(world)
 	world.events = events.NewEvents(world)
 
 	root, err := world.GetOrCreateZone(rootZoneID)

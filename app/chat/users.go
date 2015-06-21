@@ -7,14 +7,12 @@ import (
 
 type Users struct {
 	sync.RWMutex
-	db    types.DB
-	world types.World
+	world *World
 	users map[string]types.User
 }
 
-func newUsers(db types.DB, world types.World) *Users {
+func newUsers(world *World) *Users {
 	return &Users{
-		db:    db,
 		world: world,
 		users: make(map[string]types.User),
 	}
@@ -30,7 +28,7 @@ func (u *Users) User(id string) (types.User, error) {
 
 func (u *Users) UpdateUser(id string) (types.User, error) {
 	user := &User{}
-	found, err := u.db.GetUser(id, user)
+	found, err := u.world.db.GetUser(id, user)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +42,7 @@ func (u *Users) UpdateUser(id string) (types.User, error) {
 }
 
 func (u *Users) SetUser(user types.User) error {
-	if err := u.db.SetUser(user); err != nil {
+	if err := u.world.db.SetUser(user); err != nil {
 		return err
 	}
 
