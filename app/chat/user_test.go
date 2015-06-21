@@ -24,7 +24,7 @@ func (suite *UserTestSuite) TestNewUser() {
 }
 
 func (suite *UserTestSuite) TestAddConnection() {
-	c := suite.user.Connect()
+	suite.user.Connect()
 	assert.Equal(suite.T(), 1, len(suite.user.connections))
 }
 
