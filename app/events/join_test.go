@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/jpcummins/geochat/app/mocks"
 	"github.com/stretchr/testify/assert"
+	// "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -13,6 +14,8 @@ type JoinTestSuite struct {
 	world *mocks.World
 	zone  *mocks.Zone
 	user  *mocks.User
+	users *mocks.Users
+	zones *mocks.Zones
 	event *mocks.Event
 }
 
@@ -20,13 +23,17 @@ func (suite *JoinTestSuite) SetupTest() {
 	suite.world = &mocks.World{}
 	suite.zone = &mocks.Zone{}
 	suite.user = &mocks.User{}
+	suite.users = &mocks.Users{}
+	suite.zones = &mocks.Zones{}
 	suite.event = &mocks.Event{}
 
-	suite.world.On("Zone").Return(suite.zone)
 	suite.zone.On("ID").Return("zoneid")
 	suite.user.On("ID").Return("userid")
 	suite.user.On("Name").Return("username")
 	suite.event.On("World").Return(suite.world)
+	suite.world.On("Zone").Return(suite.zone)
+	suite.world.On("Users").Return(suite.users)
+	suite.world.On("Zones").Return(suite.zones)
 }
 
 func (suite *JoinTestSuite) TestNewJoinEvent() {
@@ -37,19 +44,19 @@ func (suite *JoinTestSuite) TestNewJoinEvent() {
 }
 
 func (suite *JoinTestSuite) TestBeforePublishSavesUser() {
-	suite.world.On("SetUser", suite.user).Return(nil)
+	suite.users.On("SetUser", suite.user).Return(nil)
+	suite.zones.On("SetZone", suite.zone).Return(nil)
 	suite.zone.On("AddUser", suite.user).Return()
-	suite.world.On("SetZone", suite.zone).Return(nil)
 
-	j, err := NewJoin(suite.zone, suite.user)
-	j.BeforePublish(suite.event)
+	j, _ := NewJoin(suite.zone, suite.user)
+	err := j.BeforePublish(suite.event)
 	assert.NoError(suite.T(), err)
-	suite.world.AssertCalled(suite.T(), "SetUser", suite.user)
+	suite.users.AssertCalled(suite.T(), "SetUser", suite.user)
 }
 
 func (suite *JoinTestSuite) TestBeforePublishErrors() {
 	err1 := errors.New("dflksdj")
-	suite.world.On("SetUser", suite.user).Return(err1)
+	suite.users.On("SetUser", suite.user).Return(err1)
 
 	j, _ := NewJoin(suite.zone, suite.user)
 	err2 := j.BeforePublish(suite.event)
@@ -58,9 +65,9 @@ func (suite *JoinTestSuite) TestBeforePublishErrors() {
 
 func (suite *JoinTestSuite) TestBeforePublishErrors2() {
 	err1 := errors.New("sdflksdjf")
-	suite.world.On("SetUser", suite.user).Return(nil)
+	suite.users.On("SetUser", suite.user).Return(nil)
+	suite.zones.On("SetZone", suite.zone).Return(err1)
 	suite.zone.On("AddUser", suite.user).Return()
-	suite.world.On("SetZone", suite.zone).Return(err1)
 
 	j, _ := NewJoin(suite.zone, suite.user)
 	err2 := j.BeforePublish(suite.event)
