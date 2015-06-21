@@ -1,16 +1,32 @@
 package types
 
-type Event interface {
+type ServerEventType string
+
+type ServerEvent interface {
 	ID() string
-	Type() string
+	Type() ServerEventType
 	WorldID() string
 	World() World
 	SetWorld(World)
-	Data() EventData
+	Data() ServerEventData
 }
 
-type EventData interface {
-	Type() string
-	BeforePublish(Event) error
-	OnReceive(Event) error
+type ServerEventData interface {
+	Type() ServerEventType
+	BeforePublish(ServerEvent) error
+	OnReceive(ServerEvent) error
+}
+
+type ClientEventType string
+
+type ClientEvent interface {
+	ID() string
+	Type() ClientEventType
+	User() User
+	Data() ClientEventData
+}
+
+type ClientEventData interface {
+	Type() ClientEventType
+	BeforeBroadcast(ClientEvent) error
 }

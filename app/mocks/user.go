@@ -32,7 +32,7 @@ func (m *User) Zone() types.Zone {
 	return r0
 }
 
-func (m *User) Broadcast(e types.Event) {
+func (m *User) Broadcast(e types.ClientEvent) {
 	m.Called(e)
 }
 

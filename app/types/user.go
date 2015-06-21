@@ -5,7 +5,7 @@ type User interface {
 	Name() string
 	Location() LatLng
 	Zone() Zone
-	Broadcast(Event)
+	Broadcast(ClientEvent)
 	Connect() Connection
 	Disconnect(Connection)
 }

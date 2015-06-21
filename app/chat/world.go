@@ -144,12 +144,12 @@ func (w *World) NewUser(id string, name string, lat float64, lng float64) (types
 	return user, nil
 }
 
-func (w *World) NewEvent(data types.EventData) types.Event {
+func (w *World) NewServerEvent(data types.ServerEventData) types.ServerEvent {
 	id := strconv.FormatInt(time.Now().UnixNano(), 10) + randomSequence(4)
 	return w.events.New(id, data)
 }
 
-func (w *World) Publish(event types.Event) error {
+func (w *World) Publish(event types.ServerEvent) error {
 	if err := event.Data().BeforePublish(event); err != nil {
 		return err
 	}

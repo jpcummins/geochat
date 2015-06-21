@@ -14,6 +14,6 @@ func NewEvents(world types.World) types.Events {
 	}
 }
 
-func (f *Events) New(id string, data types.EventData) types.Event {
+func (f *Events) New(id string, data types.ServerEventData) types.ServerEvent {
 	return newEvent(id, f.world, data)
 }

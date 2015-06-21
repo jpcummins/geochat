@@ -81,7 +81,7 @@ func (z *Zone) SetIsOpen(isOpen bool) {
 	z.Called(isOpen)
 }
 
-func (z *Zone) Broadcast(event types.Event) {
+func (z *Zone) Broadcast(event types.ClientEvent) {
 	z.Called(event)
 }
 
@@ -93,31 +93,23 @@ func (z *Zone) RemoveUser(id string) {
 	z.Called(id)
 }
 
-func (m *Zone) Update(_a0 types.EventData) error {
-	ret := m.Called(_a0)
-
-	r0 := ret.Error(0)
-
-	return r0
-}
-
 func (z *Zone) MarshalJSON() ([]byte, error) {
 	args := z.Called()
 	return args.Get(0).([]byte), args.Error(1)
 }
 
-func (m *Zone) Join(_a0 types.User) (types.Event, error) {
+func (m *Zone) Join(_a0 types.User) (types.ClientEvent, error) {
 	ret := m.Called(_a0)
 
-	r0 := ret.Get(0).(types.Event)
+	r0 := ret.Get(0).(types.ClientEvent)
 	r1 := ret.Error(1)
 
 	return r0, r1
 }
-func (m *Zone) Message(_a0 types.User, _a1 string) (types.Event, error) {
+func (m *Zone) Message(_a0 types.User, _a1 string) (types.ClientEvent, error) {
 	ret := m.Called(_a0, _a1)
 
-	r0 := ret.Get(0).(types.Event)
+	r0 := ret.Get(0).(types.ClientEvent)
 	r1 := ret.Error(1)
 
 	return r0, r1

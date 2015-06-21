@@ -7,14 +7,10 @@ import (
 
 type Ping struct{}
 
-func (p *Ping) Type() string {
+func (p *Ping) Type() types.ClientEventType {
 	return "ping"
 }
 
-func (p *Ping) BeforePublish(event types.Event) error {
+func (p *Ping) BeforeBroadcast(event types.ClientEvent) error {
 	return errors.New("Pings should not be published")
-}
-
-func (p *Ping) OnReceive(event types.Event) error {
-	return errors.New("Received an unsupported ping event")
 }

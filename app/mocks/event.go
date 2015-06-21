@@ -14,10 +14,10 @@ func (m *Event) ID() string {
 
 	return r0
 }
-func (m *Event) Type() string {
+func (m *Event) Type() types.ServerEventType {
 	ret := m.Called()
 
-	r0 := ret.Get(0).(string)
+	r0 := ret.Get(0).(types.ServerEventType)
 
 	return r0
 }
@@ -38,33 +38,33 @@ func (m *Event) World() types.World {
 func (m *Event) SetWorld(_a0 types.World) {
 	m.Called(_a0)
 }
-func (m *Event) Data() types.EventData {
+func (m *Event) Data() types.ServerEventData {
 	ret := m.Called()
 
-	r0 := ret.Get(0).(types.EventData)
+	r0 := ret.Get(0).(types.ServerEventData)
 
 	return r0
 }
 
-type EventData struct {
+type ServerEventData struct {
 	mock.Mock
 }
 
-func (m *EventData) Type() string {
+func (m *ServerEventData) Type() types.ServerEventType {
 	ret := m.Called()
 
-	r0 := ret.Get(0).(string)
+	r0 := ret.Get(0).(types.ServerEventType)
 
 	return r0
 }
-func (m *EventData) BeforePublish(_a0 types.Event) error {
+func (m *ServerEventData) BeforePublish(_a0 types.ServerEvent) error {
 	ret := m.Called(_a0)
 
 	r0 := ret.Error(0)
 
 	return r0
 }
-func (m *EventData) OnReceive(_a0 types.Event) error {
+func (m *ServerEventData) OnReceive(_a0 types.ServerEvent) error {
 	ret := m.Called(_a0)
 
 	r0 := ret.Error(0)

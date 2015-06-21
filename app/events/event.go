@@ -7,20 +7,20 @@ import (
 )
 
 type eventJSON struct {
-	ID      string          `json:"id"`
-	Type    string          `json:"type"`
-	WorldID string          `json:"world_id"`
-	Data    json.RawMessage `json:"data,omitempty"`
+	ID      string                `json:"id"`
+	Type    types.ServerEventType `json:"type"`
+	WorldID string                `json:"world_id"`
+	Data    json.RawMessage       `json:"data,omitempty"`
 }
 
-type Event struct {
+type ServerEvent struct {
 	*eventJSON
 	world types.World
-	data  types.EventData
+	data  types.ServerEventData
 }
 
-func newEvent(id string, world types.World, data types.EventData) *Event {
-	return &Event{
+func newEvent(id string, world types.World, data types.ServerEventData) *ServerEvent {
+	return &ServerEvent{
 		eventJSON: &eventJSON{
 			ID:      id,
 			Type:    data.Type(),
@@ -31,42 +31,42 @@ func newEvent(id string, world types.World, data types.EventData) *Event {
 	}
 }
 
-func (e *Event) ID() string {
+func (e *ServerEvent) ID() string {
 	return e.eventJSON.ID
 }
 
-func (e *Event) Type() string {
+func (e *ServerEvent) Type() types.ServerEventType {
 	return e.eventJSON.Type
 }
 
-func (e *Event) WorldID() string {
+func (e *ServerEvent) WorldID() string {
 	return e.eventJSON.WorldID
 }
 
-func (e *Event) World() types.World {
+func (e *ServerEvent) World() types.World {
 	return e.world
 }
 
-func (e *Event) SetWorld(world types.World) {
+func (e *ServerEvent) SetWorld(world types.World) {
 	e.world = world
 }
 
-func (e *Event) Data() types.EventData {
+func (e *ServerEvent) Data() types.ServerEventData {
 	return e.data
 }
 
-func (e *Event) UnmarshalJSON(b []byte) error {
+func (e *ServerEvent) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &e.eventJSON); err != nil {
 		return err
 	}
 
 	switch e.Type() {
-	case "message":
+	case MessageServerEvent:
 		e.data = &Message{}
-	case "join":
+	case JoinSeverEvent:
 		e.data = &Join{}
 	default:
-		return errors.New("Unable to unmarshal command: " + e.Type())
+		return errors.New("Unable to unmarshal command: " + string(e.Type()))
 	}
 
 	return json.Unmarshal(e.eventJSON.Data, e.data)

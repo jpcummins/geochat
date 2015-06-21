@@ -57,7 +57,7 @@ func (u *User) Zone() types.Zone {
 	return u.zone
 }
 
-func (u *User) Broadcast(e types.Event) {
+func (u *User) Broadcast(e types.ClientEvent) {
 	u.Lock()
 	defer u.Unlock()
 

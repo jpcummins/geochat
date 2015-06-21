@@ -2,6 +2,7 @@ package events
 
 import (
 	"github.com/jpcummins/geochat/app/mocks"
+	"github.com/jpcummins/geochat/app/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -18,34 +19,36 @@ func (suite *EventTestSuite) SetupTest() {
 }
 
 func (suite *EventTestSuite) TestNewEvent() {
-	data := &mocks.EventData{}
-	data.On("Type").Return("test")
+	data := &mocks.ServerEventData{}
+	eventType := types.ServerEventType("test")
+	data.On("Type").Return(eventType)
 	e := newEvent("eventid", suite.world, data)
 	assert.Equal(suite.T(), "eventid", e.ID())
-	assert.Equal(suite.T(), "test", e.Type())
+	assert.Equal(suite.T(), eventType, e.Type())
 	assert.Equal(suite.T(), data, e.Data())
 	assert.Equal(suite.T(), suite.world, e.World())
 	assert.Equal(suite.T(), suite.world.ID(), e.eventJSON.WorldID)
 }
 
 func (suite *EventTestSuite) TestUnmarshalMessage() {
-	event := &Event{}
-	err := event.UnmarshalJSON(generateMockEventBytes("message", "wid"))
+	event := &ServerEvent{}
+	eventType := types.ServerEventType("message")
+	err := event.UnmarshalJSON(generateMockEventBytes(eventType, "wid"))
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "eventid", event.ID())
-	assert.Equal(suite.T(), "message", event.Type())
+	assert.Equal(suite.T(), eventType, event.Type())
 	assert.Equal(suite.T(), suite.world.ID(), event.WorldID())
 }
 
 func (suite *EventTestSuite) TestEventUnmarshalError() {
-	event := &Event{}
+	event := &ServerEvent{}
 	err := event.UnmarshalJSON(generateMockEventBytes("bad", "wid"))
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "Unable to unmarshal command: bad", err.Error())
 }
 
-func generateMockEventBytes(eventType string, worldID string) []byte {
-	return []byte("{\"id\":\"eventid\",\"type\":\"" + eventType + "\",\"world_id\":\"" + worldID + "\",\"data\":{}}")
+func generateMockEventBytes(eventType types.ServerEventType, worldID string) []byte {
+	return []byte("{\"id\":\"eventid\",\"type\":\"" + string(eventType) + "\",\"world_id\":\"" + worldID + "\",\"data\":{}}")
 }
 
 func TestEventSuite(t *testing.T) {

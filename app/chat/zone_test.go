@@ -73,27 +73,27 @@ func (suite *ZoneTestSuite) TestRemoveUser() {
 	assert.Equal(suite.T(), 0, zone.Count())
 }
 
-func (suite *ZoneTestSuite) TestBroadcast() {
-	event := &mocks.Event{}
-
-	user1 := &mocks.User{}
-	user1.On("ID").Return("user1")
-	user1.On("Broadcast", event).Return(nil)
-
-	user2 := &mocks.User{}
-	user2.On("ID").Return("user2")
-	user2.On("Broadcast", event).Return(nil)
-
-	zone, err := newZone(rootZoneID, suite.world, 2)
-	assert.NoError(suite.T(), err)
-
-	zone.AddUser(user1)
-	zone.AddUser(user2)
-	zone.Broadcast(event)
-
-	user1.AssertCalled(suite.T(), "Broadcast", event)
-	user2.AssertCalled(suite.T(), "Broadcast", event)
-}
+// func (suite *ZoneTestSuite) TestBroadcast() {
+// 	event := &mocks.Event{}
+//
+// 	user1 := &mocks.User{}
+// 	user1.On("ID").Return("user1")
+// 	user1.On("Broadcast", event).Return(nil)
+//
+// 	user2 := &mocks.User{}
+// 	user2.On("ID").Return("user2")
+// 	user2.On("Broadcast", event).Return(nil)
+//
+// 	zone, err := newZone(rootZoneID, suite.world, 2)
+// 	assert.NoError(suite.T(), err)
+//
+// 	zone.AddUser(user1)
+// 	zone.AddUser(user2)
+// 	zone.Broadcast(event)
+//
+// 	user1.AssertCalled(suite.T(), "Broadcast", event)
+// 	user2.AssertCalled(suite.T(), "Broadcast", event)
+// }
 
 func (suite *ZoneTestSuite) TestMarshalJSON() {
 	zone, err := newZone(rootZoneID, suite.world, 2)

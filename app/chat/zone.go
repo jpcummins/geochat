@@ -171,7 +171,7 @@ func (z *Zone) RemoveUser(id string) {
 	delete(z.users, id)
 }
 
-func (z *Zone) Broadcast(event types.Event) {
+func (z *Zone) Broadcast(event types.ClientEvent) {
 	z.RLock()
 	defer z.RUnlock()
 
@@ -180,20 +180,20 @@ func (z *Zone) Broadcast(event types.Event) {
 	}
 }
 
-func (z *Zone) Join(user types.User) (types.Event, error) {
+func (z *Zone) Join(user types.User) (types.ClientEvent, error) {
 	joinEventData, err := events.NewJoin(z, user)
 	if err != nil {
 		return nil, err
 	}
-	event := z.world.NewEvent(joinEventData)
-	return event, z.world.Publish(event)
+	event := z.world.NewServerEvent(joinEventData)
+	return nil, z.world.Publish(event)
 }
 
-func (z *Zone) Message(user types.User, message string) (types.Event, error) {
+func (z *Zone) Message(user types.User, message string) (types.ClientEvent, error) {
 	messageEventData, err := events.NewMessage(user, message)
 	if err != nil {
 		return nil, err
 	}
-	event := z.world.NewEvent(messageEventData)
-	return event, z.world.Publish(event)
+	event := z.world.NewServerEvent(messageEventData)
+	return nil, z.world.Publish(event)
 }

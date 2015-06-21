@@ -16,6 +16,8 @@ type joinJSON struct {
 	UserJSON *userJSON `json:"user"`
 }
 
+const JoinSeverEvent types.ServerEventType = "join"
+
 type Join struct {
 	*joinJSON
 	zone types.Zone
@@ -37,8 +39,8 @@ func NewJoin(zone types.Zone, user types.User) (*Join, error) {
 	return j, nil
 }
 
-func (j *Join) Type() string {
-	return "join"
+func (j *Join) Type() types.ServerEventType {
+	return JoinSeverEvent
 }
 
 func (j *Join) UnmarshalJSON(b []byte) error {
@@ -48,7 +50,7 @@ func (j *Join) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (j *Join) BeforePublish(e types.Event) error {
+func (j *Join) BeforePublish(e types.ServerEvent) error {
 	if err := e.World().Users().SetUser(j.user); err != nil {
 		return err
 	}
@@ -57,17 +59,17 @@ func (j *Join) BeforePublish(e types.Event) error {
 	return e.World().Zones().SetZone(j.zone)
 }
 
-func (j *Join) OnReceive(e types.Event) error {
+func (j *Join) OnReceive(e types.ServerEvent) error {
 	_, err := e.World().Users().UpdateUser(j.joinJSON.UserJSON.ID)
 	if err != nil {
 		return err
 	}
 
-	zone, err := e.World().Zones().UpdateZone(j.joinJSON.ZoneID)
+	_, err = e.World().Zones().UpdateZone(j.joinJSON.ZoneID)
 	if err != nil {
 		return nil
 	}
 
-	zone.Broadcast(e)
+	// zone.Broadcast(e)
 	return nil
 }

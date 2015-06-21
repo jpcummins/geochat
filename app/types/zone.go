@@ -19,13 +19,11 @@ type Zone interface {
 	Count() int
 	IsOpen() bool
 	SetIsOpen(bool)
-	Broadcast(Event)
+	Broadcast(ClientEvent)
 	AddUser(User)
 	RemoveUser(string)
 
-	// Update(EventData) error
-
 	// Events
-	Join(User) (Event, error)
-	Message(User, string) (Event, error)
+	Join(User) (ClientEvent, error)
+	Message(User, string) (ClientEvent, error)
 }

@@ -1,6 +1,6 @@
 package types
 
 type Connection interface {
-	Events() chan Event
+	Events() chan ClientEvent
 	Ping()
 }
