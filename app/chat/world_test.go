@@ -52,7 +52,9 @@ func (suite *WorldTestSuite) SetupTest() {
 
 func (suite *WorldTestSuite) NewWorld() *World {
 	world := &World{
-		id:     rootWorldID,
+		worldJSON: &worldJSON{
+			ID: rootWorldID,
+		},
 		db:     suite.db,
 		pubsub: suite.pubsub,
 		users:  suite.users,
@@ -73,7 +75,8 @@ func (suite *WorldTestSuite) TestNewWorld() {
 	suite.db.On("GetZone", rootZoneID, mock.Anything, mock.Anything).Return(false, nil)
 	suite.db.On("SetZone", mock.Anything, mock.Anything).Return(nil)
 
-	world, err := newWorld(rootWorldID, suite.db, suite.pubsub)
+	world := newWorld(rootWorldID)
+	err := world.init(suite.db, suite.pubsub)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rootWorldID, world.ID())
 	assert.Equal(suite.T(), rootZoneID, world.root.ID())
@@ -81,12 +84,12 @@ func (suite *WorldTestSuite) TestNewWorld() {
 	assert.Equal(suite.T(), suite.pubsub, world.pubsub)
 }
 
-func (suite *WorldTestSuite) TestNewWorldReturnsError() {
+func (suite *WorldTestSuite) TestInitReturnsError() {
 	worldErr := errors.New("err")
 	suite.db.On("GetZone", rootZoneID, mock.Anything, mock.Anything).Return(false, worldErr)
 
-	world, err := newWorld(rootWorldID, suite.db, suite.pubsub)
-	assert.Nil(suite.T(), world)
+	world := newWorld(rootWorldID)
+	err := world.init(suite.db, suite.pubsub)
 	assert.Equal(suite.T(), worldErr, err)
 }
 
@@ -237,7 +240,9 @@ func (suite *WorldTestSuite) TestIntegration() {
 	testCases := []string{"000", "z0z", "2k1", "bbc", "zzz", "c23nb"}
 
 	for _, test := range testCases {
-		world, err := newWorld(rootWorldID, suite.db, suite.pubsub)
+		world := newWorld(rootWorldID)
+		err := world.init(suite.db, suite.pubsub)
+
 		assert.NoError(suite.T(), err)
 		world.root.SetIsOpen(false)
 
@@ -272,7 +277,9 @@ func (suite *WorldTestSuite) TestIncomingEventsCallOnReceive() {
 
 	mockEvent.On("Data").Return(mockEventData)
 	mockEvent.On("SetWorld", mock.Anything).Return()
-	newWorld(rootWorldID, suite.db, suite.pubsub)
+
+	newWorld(rootWorldID).init(suite.db, suite.pubsub)
+
 	mockEventData.AssertNotCalled(suite.T(), "OnReceive", mockEvent)
 	suite.ch <- mockEvent
 	<-done

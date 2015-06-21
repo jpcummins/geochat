@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/jpcummins/geochat/app/events"
 	"github.com/jpcummins/geochat/app/types"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"time"
 )
+
+const rootWorldID string = "0"
 
 type worldJSON struct {
 	ID string `json:"ID"`
@@ -24,29 +27,33 @@ type World struct {
 	zones  types.Zones
 }
 
-const rootWorldID string = "0"
-
-func newWorld(id string, db types.DB, ps types.PubSub) (*World, error) {
-	world := &World{
+func newWorld(id string) *World {
+	return &World{
 		worldJSON: &worldJSON{
 			ID: id,
 		},
-		db:     db,
-		pubsub: ps,
 	}
+}
 
-	world.users = newUsers(world)
-	world.zones = newZones(world)
-	world.events = events.NewEvents(world)
+func (w *World) init(db types.DB, ps types.PubSub) error {
+	w.db = db
+	w.pubsub = ps
+	w.users = newUsers(w)
+	w.zones = newZones(w)
+	w.events = events.NewEvents(w)
 
-	root, err := world.GetOrCreateZone(rootZoneID)
+	root, err := w.GetOrCreateZone(rootZoneID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	world.root = root
-	go world.manage() // It's a tough job.
-	return world, nil
+	w.root = root
+	go w.manage() // It's a tough job.
+	return nil
+}
+
+func (w *World) UnmarshalJSON(b []byte) error {
+	return json.Unmarshal(b, &w.worldJSON)
 }
 
 func (w *World) manage() {

@@ -16,10 +16,14 @@ func Init(redisServer, worldID string) error {
 		return err
 	}
 
-	if !found {
-		pubsub := db.NewRedisPubSub(worldID, redisDB)
-		world, err = newWorld(worldID, redisDB, pubsub)
-		if err != nil {
+	pubsub := db.NewRedisPubSub(worldID, redisDB)
+	if found {
+		if err := world.init(redisDB, pubsub); err != nil {
+			return err
+		}
+	} else {
+		world = newWorld(worldID)
+		if err := world.init(redisDB, pubsub); err != nil {
 			return err
 		}
 		err = redisDB.SetWorld(world)
