@@ -10,8 +10,12 @@ import (
 	"time"
 )
 
+type worldJSON struct {
+	ID string `json:"ID"`
+}
+
 type World struct {
-	id     string
+	*worldJSON
 	root   types.Zone
 	db     types.DB
 	pubsub types.PubSub
@@ -24,7 +28,9 @@ const rootWorldID string = "0"
 
 func newWorld(id string, db types.DB, ps types.PubSub) (*World, error) {
 	world := &World{
-		id:     id,
+		worldJSON: &worldJSON{
+			ID: id,
+		},
 		db:     db,
 		pubsub: ps,
 	}
@@ -55,7 +61,7 @@ func (w *World) manage() {
 }
 
 func (w *World) ID() string {
-	return w.id
+	return w.worldJSON.ID
 }
 
 func (w *World) Users() types.Users {

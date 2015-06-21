@@ -61,11 +61,11 @@ func (r *RedisDB) SetWorld(world types.World) error {
 
 func (r *RedisDB) getObject(id string, v interface{}) (bool, error) {
 	data, err := redis.Bytes(r.connection.Do("GET", id))
+	if err == redis.ErrNil {
+		return false, nil
+	}
 	if err != nil {
 		return data != nil, err
-	}
-	if data == nil {
-		return false, nil
 	}
 	return true, json.Unmarshal(data, v)
 }
