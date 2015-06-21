@@ -10,5 +10,5 @@ type World interface {
 	Users() Users
 	NewUser(id string, name string, lat float64, lng float64) (User, error)
 
-	Publish(EventData) error
+	Publish(EventData) (Event, error)
 }

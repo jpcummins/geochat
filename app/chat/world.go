@@ -131,19 +131,19 @@ func (w *World) NewUser(id string, name string, lat float64, lng float64) (types
 	return user, nil
 }
 
-func (w *World) Publish(data types.EventData) error {
+func (w *World) Publish(data types.EventData) (types.Event, error) {
 	id := strconv.FormatInt(time.Now().UnixNano(), 10) + randomSequence(4)
 
 	event, eventErr := w.events.New(id, data)
 	if eventErr != nil {
-		return eventErr
+		return nil, eventErr
 	}
 
 	if publishErr := data.BeforePublish(event); publishErr != nil {
-		return publishErr
+		return nil, publishErr
 	}
 
-	return w.pubsub.Publish(event)
+	return event, w.pubsub.Publish(event)
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")

@@ -176,18 +176,18 @@ func (z *Zone) Broadcast(event types.Event) {
 	}
 }
 
-func (z *Zone) Join(user types.User) error {
+func (z *Zone) Join(user types.User) (types.Event, error) {
 	joinEventData, err := events.NewJoin(z, user)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	return z.world.Publish(joinEventData)
 }
 
-func (z *Zone) Message(user types.User, message string) error {
-	messageEventData, err := events.NewMessage(user, z, message)
+func (z *Zone) Message(user types.User, message string) (types.Event, error) {
+	messageEventData, err := events.NewMessage(user, message)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	return z.world.Publish(messageEventData)
 }

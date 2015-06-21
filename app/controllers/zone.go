@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/jpcummins/geochat/app/chat"
+	"github.com/jpcummins/geochat/app/types"
 	"github.com/revel/revel"
 	"golang.org/x/net/websocket"
 	"time"
@@ -11,7 +12,7 @@ import (
 // contains a handle to the chat package.
 type ZoneController struct {
 	*revel.Controller
-	user *chat.User
+	user types.User
 }
 
 func init() {
@@ -25,7 +26,7 @@ func (zc *ZoneController) setSession() revel.Result {
 		zc.Redirect("/")
 	}
 
-	user, err := chat.App.Users.User(userID)
+	user, err := chat.App.Users().User(userID)
 
 	if user == nil || err != nil {
 		return zc.Redirect("/")
@@ -37,20 +38,23 @@ func (zc *ZoneController) setSession() revel.Result {
 
 // Message action sends a message to those in the subscriber's zone.
 func (zc *ZoneController) Message(text string) revel.Result {
-	message := &chat.Message{User: zc.user, Text: text}
-	event := chat.NewEvent(message)
-	zone := zc.user.GetZone()
-	chat.Redis.Publish(event, zone)
+
+	if zc.user.Zone() == nil {
+		zc.Redirect("/")
+	}
+
+	event, err := zc.user.Zone().Message(zc.user, text)
+
+	if err != nil {
+		return zc.RenderError(err)
+	}
+
 	return zc.RenderJson(event)
 }
 
 // Command action is used to issue administrative commands
 func (zc *ZoneController) Command(command string) revel.Result {
-	json, err := zc.user.ExecuteCommand(command)
-	if err != nil {
-		return zc.RenderError(err)
-	}
-	return zc.RenderJson(json)
+	return zc.Redirect("/")
 }
 
 // Zone action renders the main chat interface

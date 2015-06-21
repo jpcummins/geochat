@@ -90,17 +90,19 @@ func (z *Zone) MarshalJSON() ([]byte, error) {
 	return args.Get(0).([]byte), args.Error(1)
 }
 
-func (m *Zone) Join(_a0 types.User) error {
+func (m *Zone) Join(_a0 types.User) (types.Event, error) {
 	ret := m.Called(_a0)
 
-	r0 := ret.Error(0)
+	r0 := ret.Get(0).(types.Event)
+	r1 := ret.Error(1)
 
-	return r0
+	return r0, r1
 }
-func (m *Zone) Message(_a0 types.User, _a1 string) error {
+func (m *Zone) Message(_a0 types.User, _a1 string) (types.Event, error) {
 	ret := m.Called(_a0, _a1)
 
-	r0 := ret.Error(0)
+	r0 := ret.Get(0).(types.Event)
+	r1 := ret.Error(1)
 
-	return r0
+	return r0, r1
 }
