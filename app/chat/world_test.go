@@ -131,62 +131,62 @@ func (suite *WorldTestSuite) TestMultipleWorldsWithSameDBDependencyReturnsSameRo
 	assert.Equal(suite.T(), suite.root, zone3)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_EmptyWorld() {
+func (suite *WorldTestSuite) TestFindOpenZone_EmptyWorld() {
 	suite.root.On("IsOpen").Return(true)
 
-	zone, err := suite.world.GetOrCreateZoneForUser(suite.user)
+	zone, err := suite.world.FindOpenZone(suite.user)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), suite.root, zone)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_RightZoneReturnsError() {
+func (suite *WorldTestSuite) TestFindOpenZone_RightZoneReturnsError() {
 	err := errors.New("invalid")
 	suite.root.On("IsOpen").Return(false)
 	suite.user.On("Location").Return(seattle)
 	suite.zones.On("Zone", rightZoneID).Return(nil, err)
 
-	zone, zerr := suite.world.GetOrCreateZoneForUser(suite.user)
+	zone, zerr := suite.world.FindOpenZone(suite.user)
 	assert.Equal(suite.T(), err, zerr)
 	assert.Nil(suite.T(), zone)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_LeftZoneReturnsError() {
+func (suite *WorldTestSuite) TestFindOpenZone_LeftZoneReturnsError() {
 	err := errors.New("invalid")
 	suite.root.On("IsOpen").Return(false)
 	suite.user.On("Location").Return(seattle)
 	suite.zones.On("Zone", rightZoneID).Return(suite.right, nil)
 	suite.zones.On("Zone", leftZoneID).Return(nil, err)
 
-	zone, zerr := suite.world.GetOrCreateZoneForUser(suite.user)
+	zone, zerr := suite.world.FindOpenZone(suite.user)
 	assert.Equal(suite.T(), err, zerr)
 	assert.Nil(suite.T(), zone)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone() {
+func (suite *WorldTestSuite) TestFindOpenZone_ReturnsLeftZone() {
 	suite.root.On("IsOpen").Return(false)
 	suite.left.On("IsOpen").Return(true)
 	suite.user.On("Location").Return(seattle)
 	suite.zones.On("Zone", rightZoneID).Return(suite.right, nil)
 	suite.zones.On("Zone", leftZoneID).Return(suite.left, nil)
 
-	zone, zerr := suite.world.GetOrCreateZoneForUser(suite.user)
+	zone, zerr := suite.world.FindOpenZone(suite.user)
 	assert.Nil(suite.T(), zerr)
 	assert.Equal(suite.T(), suite.left, zone)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsRightZone() {
+func (suite *WorldTestSuite) TestFindOpenZone_ReturnsRightZone() {
 	suite.root.On("IsOpen").Return(false)
 	suite.right.On("IsOpen").Return(true)
 	suite.user.On("Location").Return(rome)
 	suite.zones.On("Zone", rightZoneID).Return(suite.right, nil)
 	suite.zones.On("Zone", leftZoneID).Return(suite.left, nil)
 
-	zone, zerr := suite.world.GetOrCreateZoneForUser(suite.user)
+	zone, zerr := suite.world.FindOpenZone(suite.user)
 	assert.Nil(suite.T(), zerr)
 	assert.Equal(suite.T(), suite.right, zone)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone2() {
+func (suite *WorldTestSuite) TestFindOpenZone_ReturnsLeftZone2() {
 	suite.root.On("IsOpen").Return(false)
 	suite.left.On("IsOpen").Return(true)
 	suite.user.On("Location").Return(seattle)
@@ -195,12 +195,12 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsLeftZone2() {
 	suite.right.On("Geohash").Return("s")
 	suite.right.On("From").Return("h")
 
-	zone, zerr := suite.world.GetOrCreateZoneForUser(suite.user)
+	zone, zerr := suite.world.FindOpenZone(suite.user)
 	assert.NoError(suite.T(), zerr)
 	assert.Equal(suite.T(), suite.left, zone)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsRightZone2() {
+func (suite *WorldTestSuite) TestFindOpenZone_ReturnsRightZone2() {
 	suite.root.On("IsOpen").Return(false)
 	suite.right.On("IsOpen").Return(true)
 	suite.user.On("Location").Return(rome)
@@ -209,12 +209,12 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ReturnsRightZone2() {
 	suite.right.On("Geohash").Return("s")
 	suite.right.On("From").Return("h")
 
-	zone, zerr := suite.world.GetOrCreateZoneForUser(suite.user)
+	zone, zerr := suite.world.FindOpenZone(suite.user)
 	assert.NoError(suite.T(), zerr)
 	assert.Equal(suite.T(), suite.right, zone)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ErrorOnNoOpenRooms() {
+func (suite *WorldTestSuite) TestFindOpenZone_ErrorOnNoOpenRooms() {
 	suite.root.On("IsOpen").Return(false)
 	suite.right.On("IsOpen").Return(false)
 	suite.user.On("Location").Return(empty)
@@ -223,7 +223,7 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneForUser_ErrorOnNoOpenRooms() {
 	suite.right.On("Geohash").Return("s")
 	suite.right.On("From").Return("h")
 
-	zone, err := suite.world.GetOrCreateZoneForUser(suite.user)
+	zone, err := suite.world.FindOpenZone(suite.user)
 	assert.Nil(suite.T(), zone)
 	assert.Equal(suite.T(), "Unable to find zone", err.Error())
 }
@@ -245,7 +245,7 @@ func (suite *WorldTestSuite) TestIntegration() {
 
 		var zone types.Zone
 		for i := 0; i < 5*len(test); i++ {
-			zone, err = world.GetOrCreateZoneForUser(user)
+			zone, err = world.FindOpenZone(user)
 			assert.NoError(suite.T(), err)
 			zone.SetIsOpen(false)
 			if len(zone.Geohash()) == len(test) {

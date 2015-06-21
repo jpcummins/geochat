@@ -86,7 +86,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	return zone, nil
 }
 
-func (w *World) GetOrCreateZoneForUser(user types.User) (types.Zone, error) {
+func (w *World) FindOpenZone(user types.User) (types.Zone, error) {
 	root := w.root
 	for !root.IsOpen() {
 		suffix := strings.TrimPrefix(user.Location().Geohash(), root.Geohash())

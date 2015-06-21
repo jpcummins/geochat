@@ -6,6 +6,6 @@ type World interface {
 	Zones() Zones
 
 	GetOrCreateZone(string) (Zone, error)
-	GetOrCreateZoneForUser(User) (Zone, error)
+	FindOpenZone(User) (Zone, error)
 	Publish(EventData) error
 }

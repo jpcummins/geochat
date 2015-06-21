@@ -36,7 +36,7 @@ func (m *World) GetOrCreateZone(_a0 string) (types.Zone, error) {
 
 	return r0, r1
 }
-func (m *World) GetOrCreateZoneForUser(_a0 types.User) (types.Zone, error) {
+func (m *World) FindOpenZone(_a0 types.User) (types.Zone, error) {
 	ret := m.Called(_a0)
 
 	r0 := ret.Get(0).(types.Zone)
