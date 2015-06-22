@@ -52,12 +52,17 @@ func (j *Join) BeforePublish(e types.ServerEvent) error {
 }
 
 func (j *Join) OnReceive(e types.ServerEvent) error {
-	_, err := e.World().Users().Refresh(j.ServerJoinJSON.UserID)
+
+	if w.World().Zones().FromCache(j.ServerJoinJSON.ZoneID) == nil {
+		return nil
+	}
+
+	_, err := e.World().Users().FromDB(j.ServerJoinJSON.UserID)
 	if err != nil {
 		return err
 	}
 
-	_, err = e.World().Zones().Refresh(j.ServerJoinJSON.ZoneID)
+	_, err = e.World().Zones().FromDB(j.ServerJoinJSON.ZoneID)
 	if err != nil {
 		return nil
 	}

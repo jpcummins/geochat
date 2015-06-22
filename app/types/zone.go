@@ -1,10 +1,6 @@
 package types
 
-import "encoding/json"
-
 type Zone interface {
-	json.Marshaler
-
 	ID() string
 	World() World
 	SouthWest() LatLng
@@ -23,6 +19,10 @@ type Zone interface {
 	AddUser(User)
 	RemoveUser(string)
 
+	ClientJSON() *ClientZoneJSON
+	ServerJSON() *ServerZoneJSON
+	Update(*ServerZoneJSON) error
+
 	// Events
 	Join(User) (ClientEvent, error)
 	Message(User, string) (ClientEvent, error)
@@ -36,4 +36,6 @@ type ServerZoneJSON struct {
 }
 
 type ClientZoneJSON struct {
+	ID    string            `json:"id"`
+	Users []*ClientUserJSON `json:"users"`
 }

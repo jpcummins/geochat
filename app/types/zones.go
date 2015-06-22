@@ -1,7 +1,7 @@
 package types
 
 type Zones interface {
-	Zone(string) (Zone, error)
-	Refresh(string) (Zone, error)
+	FromCache(string) (Zone, error)
+	FromDB(string) (Zone, error)
 	Save(Zone) error
 }
