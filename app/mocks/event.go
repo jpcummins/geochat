@@ -3,42 +3,42 @@ package mocks
 import "github.com/jpcummins/geochat/app/types"
 import "github.com/stretchr/testify/mock"
 
-type Event struct {
+type ServerEvent struct {
 	mock.Mock
 }
 
-func (m *Event) ID() string {
+func (m *ServerEvent) ID() string {
 	ret := m.Called()
 
 	r0 := ret.Get(0).(string)
 
 	return r0
 }
-func (m *Event) Type() types.ServerEventType {
+func (m *ServerEvent) Type() types.ServerEventType {
 	ret := m.Called()
 
 	r0 := ret.Get(0).(types.ServerEventType)
 
 	return r0
 }
-func (m *Event) WorldID() string {
+func (m *ServerEvent) WorldID() string {
 	ret := m.Called()
 
 	r0 := ret.Get(0).(string)
 
 	return r0
 }
-func (m *Event) World() types.World {
+func (m *ServerEvent) World() types.World {
 	ret := m.Called()
 
 	r0 := ret.Get(0).(types.World)
 
 	return r0
 }
-func (m *Event) SetWorld(_a0 types.World) {
+func (m *ServerEvent) SetWorld(_a0 types.World) {
 	m.Called(_a0)
 }
-func (m *Event) Data() types.ServerEventData {
+func (m *ServerEvent) Data() types.ServerEventData {
 	ret := m.Called()
 
 	r0 := ret.Get(0).(types.ServerEventData)

@@ -258,66 +258,65 @@ func (suite *WorldTestSuite) TestIntegration() {
 	}
 }
 
-//
-// func (suite *WorldTestSuite) TestIncomingEventsCallOnReceive() {
-// 	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(false, nil)
-// 	suite.db.On("Save", mock.Anything, mock.Anything).Return(nil)
-//
-// 	mockEvent := &mocks.Event{}
-// 	mockEventData := &mocks.EventData{}
-//
-// 	done := make(chan bool)
-// 	mockEventData.On("OnReceive", mockEvent).Return(nil).Run(func(args mock.Arguments) {
-// 		assert.Equal(suite.T(), mockEvent, args.Get(0))
-// 		done <- true
-// 	})
-//
-// 	mockEvent.On("Data").Return(mockEventData)
-// 	mockEvent.On("SetWorld", mock.Anything).Return()
-//
-// 	newWorld(rootWorldID).init(suite.db, suite.pubsub)
-//
-// 	mockEventData.AssertNotCalled(suite.T(), "OnReceive", mockEvent)
-// 	suite.ch <- mockEvent
-// 	<-done
-// 	suite.pubsub.AssertCalled(suite.T(), "Subscribe")
-// 	mockEventData.AssertCalled(suite.T(), "OnReceive", mockEvent)
-// }
-//
-// func (suite *WorldTestSuite) TestPublishCallsBeforePublish() {
-// 	event := &mocks.Event{}
-// 	data := &mocks.EventData{}
-//
-// 	event.On("Data").Return(data)
-// 	suite.pubsub.On("Publish", event).Return(nil)
-// 	data.On("BeforePublish", event).Return(nil)
-//
-// 	err := suite.world.Publish(event)
-// 	assert.NoError(suite.T(), err)
-// 	data.AssertCalled(suite.T(), "BeforePublish", event)
-// }
-//
-// func (suite *WorldTestSuite) TestPublishReturnsBeforePublishError() {
-// 	err1 := errors.New("err")
-// 	event := &mocks.Event{}
-// 	data := &mocks.EventData{}
-// 	event.On("Data").Return(data)
-//
-// 	data.On("BeforePublish", event).Return(err1)
-// 	err2 := suite.world.Publish(event)
-// 	assert.Equal(suite.T(), err1, err2)
-// }
-//
-// func (suite *WorldTestSuite) TestPublishReturnsPubSubError() {
-// 	err1 := errors.New("err")
-// 	event := &mocks.Event{}
-// 	data := &mocks.EventData{}
-// 	event.On("Data").Return(data)
-// 	suite.pubsub.On("Publish", event).Return(err1)
-// 	data.On("BeforePublish", event).Return(nil)
-// 	err2 := suite.world.Publish(event)
-// 	assert.Equal(suite.T(), err1, err2)
-// }
+func (suite *WorldTestSuite) TestIncomingEventsCallOnReceive() {
+	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(nil, nil)
+	suite.db.On("SaveZone", mock.Anything, mock.Anything).Return(nil)
+
+	mockEvent := &mocks.ServerEvent{}
+	mockEventData := &mocks.ServerEventData{}
+
+	done := make(chan bool)
+	mockEventData.On("OnReceive", mockEvent).Return(nil).Run(func(args mock.Arguments) {
+		assert.Equal(suite.T(), mockEvent, args.Get(0))
+		done <- true
+	})
+
+	mockEvent.On("Data").Return(mockEventData)
+	mockEvent.On("SetWorld", mock.Anything).Return()
+
+	newWorld(rootWorldID, suite.db, suite.pubsub)
+
+	mockEventData.AssertNotCalled(suite.T(), "OnReceive", mockEvent)
+	suite.ch <- mockEvent
+	<-done
+	suite.pubsub.AssertCalled(suite.T(), "Subscribe")
+	mockEventData.AssertCalled(suite.T(), "OnReceive", mockEvent)
+}
+
+func (suite *WorldTestSuite) TestPublishCallsBeforePublish() {
+	event := &mocks.ServerEvent{}
+	data := &mocks.ServerEventData{}
+
+	event.On("Data").Return(data)
+	suite.pubsub.On("Publish", event).Return(nil)
+	data.On("BeforePublish", event).Return(nil)
+
+	err := suite.world.Publish(event)
+	assert.NoError(suite.T(), err)
+	data.AssertCalled(suite.T(), "BeforePublish", event)
+}
+
+func (suite *WorldTestSuite) TestPublishReturnsBeforePublishError() {
+	err1 := errors.New("err")
+	event := &mocks.ServerEvent{}
+	data := &mocks.ServerEventData{}
+	event.On("Data").Return(data)
+
+	data.On("BeforePublish", event).Return(err1)
+	err2 := suite.world.Publish(event)
+	assert.Equal(suite.T(), err1, err2)
+}
+
+func (suite *WorldTestSuite) TestPublishReturnsPubSubError() {
+	err1 := errors.New("err")
+	event := &mocks.ServerEvent{}
+	data := &mocks.ServerEventData{}
+	event.On("Data").Return(data)
+	suite.pubsub.On("Publish", event).Return(err1)
+	data.On("BeforePublish", event).Return(nil)
+	err2 := suite.world.Publish(event)
+	assert.Equal(suite.T(), err1, err2)
+}
 
 func (suite *WorldTestSuite) TestNewUser() {
 	suite.users.On("Save", mock.Anything).Return(nil)

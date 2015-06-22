@@ -8,12 +8,14 @@ import (
 type Worlds struct {
 	sync.RWMutex
 	db     types.DB
+	pubsub types.PubSub
 	worlds map[string]types.World
 }
 
-func newWorlds(db types.DB) *Worlds {
+func newWorlds(db types.DB, ps types.PubSub) *Worlds {
 	return &Worlds{
 		db:     db,
+		pubsub: ps,
 		worlds: make(map[string]types.World),
 	}
 }
@@ -40,7 +42,10 @@ func (w *Worlds) FromDB(id string) (types.World, error) {
 
 	world := w.FromCache(id)
 	if world == nil {
-		return nil, nil
+		world, err = newWorld(id, w.db, w.pubsub)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	world.Update(json)

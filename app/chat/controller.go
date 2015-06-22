@@ -9,14 +9,14 @@ var App types.World
 
 func Init(redisServer, worldID string) error {
 	redisDB := db.NewRedisDB(redisServer)
+	pubsub := db.NewRedisPubSub(worldID, redisDB)
 
-	worlds := newWorlds(redisDB)
+	worlds := newWorlds(redisDB, pubsub)
 	world, err := worlds.World(worldID)
 	if err != nil {
 		return err
 	}
 
-	pubsub := db.NewRedisPubSub(worldID, redisDB)
 	if world == nil {
 		world, err = newWorld(worldID, redisDB, pubsub)
 		if err != nil {
