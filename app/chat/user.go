@@ -7,17 +7,8 @@ import (
 	"time"
 )
 
-type userJSON struct {
-	ID           string       `json:"id"`
-	CreatedAt    int          `json:"created_at"`
-	LastActivity int          `json:"last_activity"`
-	Name         string       `json:"name"`
-	Location     types.LatLng `json:"location"`
-	ZoneID       string       `json:"zone_id"`
-}
-
 type User struct {
-	*userJSON
+	*types.ServerUserJSON
 	sync.RWMutex
 	zone        types.Zone
 	connections []*Connection
@@ -25,7 +16,7 @@ type User struct {
 
 func newUser(id string, name string, location types.LatLng) *User {
 	u := &User{
-		userJSON: &userJSON{
+		ServerUserJSON: &types.ServerUserJSON{
 			ID:           id,
 			CreatedAt:    int(time.Now().Unix()),
 			LastActivity: int(time.Now().Unix()),
@@ -37,20 +28,16 @@ func newUser(id string, name string, location types.LatLng) *User {
 	return u
 }
 
-func (u *User) UnmarshalJSON(b []byte) error {
-	return json.Unmarshal(b, &u.userJSON)
-}
-
 func (u *User) ID() string {
-	return u.userJSON.ID
+	return u.ServerUserJSON.ID
 }
 
 func (u *User) Name() string {
-	return u.userJSON.Name
+	return u.ServerUserJSON.Name
 }
 
 func (u *User) Location() types.LatLng {
-	return u.userJSON.Location
+	return u.ServerUserJSON.Location
 }
 
 func (u *User) Zone() types.Zone {
@@ -89,4 +76,20 @@ func (u *User) Disconnect(c types.Connection) {
 			break
 		}
 	}
+}
+
+func (u *User) ClientJSON() ([]byte, error) {
+	return nil, nil
+}
+
+func (u *User) ServerJSON() ([]byte, error) {
+	return json.Marshal(u.ServerUserJSON)
+}
+
+func (u *User) Update(js *types.ServerUserJSON) error {
+	u.Lock()
+	defer u.Unlock()
+
+	u.ServerUserJSON = js
+	return nil
 }

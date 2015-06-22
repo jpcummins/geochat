@@ -27,3 +27,13 @@ type Zone interface {
 	Join(User) (ClientEvent, error)
 	Message(User, string) (ClientEvent, error)
 }
+
+type ServerZoneJSON struct {
+	ID       string   `json:"id"`
+	UserIDs  []string `json:"user_ids"`
+	IsOpen   bool     `json:"is_open"`
+	MaxUsers int      `json:"max_users"`
+}
+
+type ClientZoneJSON struct {
+}

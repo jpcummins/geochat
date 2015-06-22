@@ -1,12 +1,12 @@
 package types
 
 type DB interface {
-	GetUser(string, User) (bool, error)
-	SetUser(User) error
+	User(userID string, worldID string) (*ServerUserJSON, error)
+	SaveUser(*ServerUserJSON) error
 
-	GetZone(zoneID string, world World, zone Zone) (bool, error)
-	SetZone(zoneID Zone, world World) error
+	Zone(zoneID string, worldID string) (*ServerZoneJSON, error)
+	SaveZone(*ServerZoneJSON) error
 
-	GetWorld(string, World) (bool, error)
-	SetWorld(World) error
+	GetWorld(worldID string) (*ServerWorldJSON, error)
+	SaveWorld(*ServerWorldJSON) error
 }
