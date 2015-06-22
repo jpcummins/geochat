@@ -52,7 +52,7 @@ func (suite *WorldTestSuite) SetupTest() {
 
 func (suite *WorldTestSuite) NewWorld() *World {
 	world := &World{
-		worldJSON: &worldJSON{
+		ServerWorldJSON: &types.ServerWorldJSON{
 			ID: rootWorldID,
 		},
 		db:     suite.db,
@@ -72,11 +72,10 @@ func (suite *WorldTestSuite) NewWorld() *World {
 }
 
 func (suite *WorldTestSuite) TestNewWorld() {
-	suite.db.On("GetZone", rootZoneID, mock.Anything, mock.Anything).Return(false, nil)
-	suite.db.On("SetZone", mock.Anything, mock.Anything).Return(nil)
+	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(nil, nil)
+	suite.db.On("SaveZone", mock.Anything, mock.Anything).Return(nil)
 
-	world := newWorld(rootWorldID)
-	err := world.init(suite.db, suite.pubsub)
+	world, err := newWorld(rootWorldID, suite.db, suite.pubsub)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rootWorldID, world.ID())
 	assert.Equal(suite.T(), rootZoneID, world.root.ID())
@@ -86,10 +85,9 @@ func (suite *WorldTestSuite) TestNewWorld() {
 
 func (suite *WorldTestSuite) TestInitReturnsError() {
 	worldErr := errors.New("err")
-	suite.db.On("GetZone", rootZoneID, mock.Anything, mock.Anything).Return(false, worldErr)
+	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(nil, worldErr)
 
-	world := newWorld(rootWorldID)
-	err := world.init(suite.db, suite.pubsub)
+	_, err := newWorld(rootWorldID, suite.db, suite.pubsub)
 	assert.Equal(suite.T(), worldErr, err)
 }
 
@@ -112,10 +110,10 @@ func (suite *WorldTestSuite) TestGetOrCreateZoneError() {
 	assert.Equal(suite.T(), mockError, err)
 }
 
-func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSetZoneError() {
+func (suite *WorldTestSuite) TestGetOrCreateZoneCacheMissAndSaveZoneError() {
 	err := errors.New("err")
 	suite.zones.On("Zone", rootZoneID).Return(nil, nil)
-	suite.zones.On("SetZone", mock.Anything).Return(err)
+	suite.zones.On("Save", mock.Anything).Return(err)
 
 	z, zerr := suite.world.GetOrCreateZone(rootZoneID)
 	assert.Equal(suite.T(), err, zerr)
@@ -233,16 +231,14 @@ func (suite *WorldTestSuite) TestFindOpenZone_ErrorOnNoOpenRooms() {
 }
 
 func (suite *WorldTestSuite) TestIntegration() {
-	suite.db.On("GetZone", mock.Anything, mock.Anything, mock.Anything).Return(false, nil)
-	suite.db.On("SetZone", mock.Anything, mock.Anything).Return(nil)
+	suite.db.On("Zone", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	suite.db.On("SaveZone", mock.Anything, mock.Anything).Return(nil)
 	suite.pubsub.On("Subscribe").Return(nil)
 
 	testCases := []string{"000", "z0z", "2k1", "bbc", "zzz", "c23nb"}
 
 	for _, test := range testCases {
-		world := newWorld(rootWorldID)
-		err := world.init(suite.db, suite.pubsub)
-
+		world, err := newWorld(rootWorldID, suite.db, suite.pubsub)
 		assert.NoError(suite.T(), err)
 		world.root.SetIsOpen(false)
 
@@ -264,8 +260,8 @@ func (suite *WorldTestSuite) TestIntegration() {
 
 //
 // func (suite *WorldTestSuite) TestIncomingEventsCallOnReceive() {
-// 	suite.db.On("GetZone", rootZoneID, mock.Anything, mock.Anything).Return(false, nil)
-// 	suite.db.On("SetZone", mock.Anything, mock.Anything).Return(nil)
+// 	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(false, nil)
+// 	suite.db.On("Save", mock.Anything, mock.Anything).Return(nil)
 //
 // 	mockEvent := &mocks.Event{}
 // 	mockEventData := &mocks.EventData{}
@@ -324,7 +320,7 @@ func (suite *WorldTestSuite) TestIntegration() {
 // }
 
 func (suite *WorldTestSuite) TestNewUser() {
-	suite.users.On("SetUser", mock.Anything).Return(nil)
+	suite.users.On("Save", mock.Anything).Return(nil)
 
 	world := suite.NewWorld()
 	user, err := world.NewUser("abc", "bob", seattle.lat, seattle.lng)
@@ -338,7 +334,7 @@ func (suite *WorldTestSuite) TestNewUser() {
 
 func (suite *WorldTestSuite) TestNewUserError() {
 	err1 := errors.New("err")
-	suite.users.On("SetUser", mock.Anything).Return(err1)
+	suite.users.On("Save", mock.Anything).Return(err1)
 
 	world := suite.NewWorld()
 	user, err2 := world.NewUser("abc", "bob", seattle.lat, seattle.lng)

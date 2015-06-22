@@ -1,24 +1,21 @@
 package chat
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/jpcummins/geochat/app/events"
 	"github.com/jpcummins/geochat/app/types"
 	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 const rootWorldID string = "0"
 
-type worldJSON struct {
-	ID string `json:"ID"`
-}
-
 type World struct {
-	*worldJSON
+	*sync.RWMutex
+	*types.ServerWorldJSON
 	root   types.Zone
 	db     types.DB
 	pubsub types.PubSub
@@ -27,33 +24,27 @@ type World struct {
 	zones  types.Zones
 }
 
-func newWorld(id string) *World {
-	return &World{
-		worldJSON: &worldJSON{
+func newWorld(id string, db types.DB, ps types.PubSub) (*World, error) {
+	w := &World{
+		ServerWorldJSON: &types.ServerWorldJSON{
 			ID: id,
 		},
 	}
-}
 
-func (w *World) init(db types.DB, ps types.PubSub) error {
 	w.db = db
 	w.pubsub = ps
-	w.users = newUsers(w)
-	w.zones = newZones(w)
+	w.users = newUsers(id, db)
+	w.zones = newZones(id, db)
 	w.events = events.NewEvents(w)
 
 	root, err := w.GetOrCreateZone(rootZoneID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	w.root = root
 	go w.manage() // It's a tough job.
-	return nil
-}
-
-func (w *World) UnmarshalJSON(b []byte) error {
-	return json.Unmarshal(b, &w.worldJSON)
+	return w, nil
 }
 
 func (w *World) manage() {
@@ -68,7 +59,7 @@ func (w *World) manage() {
 }
 
 func (w *World) ID() string {
-	return w.worldJSON.ID
+	return w.ServerWorldJSON.ID
 }
 
 func (w *World) Users() types.Users {
@@ -91,7 +82,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 			return nil, err
 		}
 
-		if err := w.zones.SetZone(zone); err != nil {
+		if err := w.zones.Save(zone); err != nil {
 			return nil, err
 		}
 	}
@@ -137,16 +128,19 @@ func (w *World) FindOpenZone(user types.User) (types.Zone, error) {
 }
 
 func (w *World) NewUser(id string, name string, lat float64, lng float64) (types.User, error) {
-	user := newUser(id, name, newLatLng(lat, lng))
-	if err := w.Users().SetUser(user); err != nil {
+	user := newUser(id, name, newLatLng(lat, lng), w)
+	if err := w.Users().Save(user); err != nil {
 		return nil, err
 	}
 	return user, nil
 }
 
 func (w *World) NewServerEvent(data types.ServerEventData) types.ServerEvent {
-	id := strconv.FormatInt(time.Now().UnixNano(), 10) + randomSequence(4)
-	return w.events.New(id, data)
+	return w.events.NewServerEvent(generateEventID(), data)
+}
+
+func (w *World) NewClientEvent(data types.ClientEventData) types.ClientEvent {
+	return w.events.NewClientEvent(generateEventID(), data)
 }
 
 func (w *World) Publish(event types.ServerEvent) error {
@@ -157,6 +151,26 @@ func (w *World) Publish(event types.ServerEvent) error {
 	return w.pubsub.Publish(event)
 }
 
+func (w *World) ServerJSON() types.ServerJSON {
+	return w.ServerWorldJSON
+}
+
+func (w *World) ClientJSON() types.ClientJSON {
+	return nil
+}
+
+func (w *World) Update(json types.ServerJSON) error {
+	worldJSON, ok := json.(*types.ServerWorldJSON)
+	if !ok {
+		return errors.New("Invalid json type.")
+	}
+
+	w.Lock()
+	defer w.Unlock()
+	w.ServerWorldJSON = worldJSON
+	return nil
+}
+
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 func randomSequence(n int) string {
@@ -165,4 +179,8 @@ func randomSequence(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+func generateEventID() string {
+	return strconv.FormatInt(time.Now().UnixNano(), 10) + randomSequence(4)
 }

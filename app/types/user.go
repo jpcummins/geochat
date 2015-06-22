@@ -1,6 +1,8 @@
 package types
 
 type User interface {
+	EventJSON
+
 	ID() string
 	Name() string
 	Location() LatLng
@@ -11,14 +13,10 @@ type User interface {
 	Broadcast(ClientEvent)
 	Connect() Connection
 	Disconnect(Connection)
-
-	ClientJSON() *ClientUserJSON
-	ServerJSON() *ServerUserJSON
-	Update(*ServerUserJSON) error
 }
 
 type ServerUserJSON struct {
-	ID           string `json:"id"`
+	*BaseServerJSON
 	CreatedAt    int    `json:"created_at"`
 	LastActivity int    `json:"last_activity"`
 	Name         string `json:"name"`
@@ -27,6 +25,6 @@ type ServerUserJSON struct {
 }
 
 type ClientUserJSON struct {
-	ID   string `json:"id"`
+	*BaseClientJSON
 	Name string `json:"name"`
 }

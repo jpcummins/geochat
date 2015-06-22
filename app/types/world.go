@@ -1,6 +1,8 @@
 package types
 
 type World interface {
+	EventJSON
+
 	ID() string
 
 	Zones() Zones
@@ -13,15 +15,8 @@ type World interface {
 	NewServerEvent(ServerEventData) ServerEvent
 	NewClientEvent(ClientEventData) ClientEvent
 	Publish(ServerEvent) error
-
-	ClientJSON() *ClientWorldJSON
-	ServerJSON() *ServerWorldJSON
 }
 
-type ServerWorldJSON struct {
-	ID string `json:"id"`
-}
+type ServerWorldJSON BaseServerJSON
 
-type ClientWorldJSON struct {
-	ID string `json:"id"`
-}
+type ClientWorldJSON BaseClientJSON

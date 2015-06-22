@@ -7,45 +7,54 @@ type DB struct {
 	mock.Mock
 }
 
-func (m *DB) GetUser(_a0 string, _a1 types.User) (bool, error) {
-	ret := m.Called(_a0, _a1)
+func (m *DB) User(userID string, worldID string) (*types.ServerUserJSON, error) {
+	ret := m.Called(userID, worldID)
 
-	r0 := ret.Get(0).(bool)
+	var r0 *types.ServerUserJSON
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*types.ServerUserJSON)
+	}
 	r1 := ret.Error(1)
 
 	return r0, r1
 }
-func (m *DB) SetUser(_a0 types.User) error {
-	ret := m.Called(_a0)
+func (m *DB) SaveUser(json types.ServerJSON) error {
+	ret := m.Called(json)
 
 	r0 := ret.Error(0)
 
 	return r0
 }
-func (m *DB) GetZone(zoneID string, world types.World, zone types.Zone) (bool, error) {
-	ret := m.Called(zoneID, world, zone)
+func (m *DB) Zone(zoneID string, worldID string) (*types.ServerZoneJSON, error) {
+	ret := m.Called(zoneID, worldID)
 
-	r0 := ret.Get(0).(bool)
+	var r0 *types.ServerZoneJSON
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*types.ServerZoneJSON)
+	}
 	r1 := ret.Error(1)
 
 	return r0, r1
 }
-func (m *DB) SetZone(zoneID types.Zone, world types.World) error {
-	ret := m.Called(zoneID, world)
+func (m *DB) SaveZone(json types.ServerJSON) error {
+	ret := m.Called(json)
 
 	r0 := ret.Error(0)
 
 	return r0
 }
-func (m *DB) GetWorld(_a0 string, _a1 types.World) (bool, error) {
-	ret := m.Called(_a0, _a1)
+func (m *DB) World(worldID string) (*types.ServerWorldJSON, error) {
+	ret := m.Called(worldID)
 
-	r0 := ret.Get(0).(bool)
+	var r0 *types.ServerWorldJSON
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*types.ServerWorldJSON)
+	}
 	r1 := ret.Error(1)
 
 	return r0, r1
 }
-func (m *DB) SetWorld(_a0 types.World) error {
+func (m *DB) SaveWorld(_a0 types.ServerJSON) error {
 	ret := m.Called(_a0)
 
 	r0 := ret.Error(0)

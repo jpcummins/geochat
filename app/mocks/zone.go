@@ -114,3 +114,25 @@ func (m *Zone) Message(_a0 types.User, _a1 string) (types.ClientEvent, error) {
 
 	return r0, r1
 }
+
+func (m *Zone) ClientJSON() types.ClientJSON {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.ClientJSON)
+
+	return r0
+}
+func (m *Zone) ServerJSON() types.ServerJSON {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.ServerJSON)
+
+	return r0
+}
+func (m *Zone) Update(_a0 types.ServerJSON) error {
+	ret := m.Called(_a0)
+
+	r0 := ret.Error(0)
+
+	return r0
+}

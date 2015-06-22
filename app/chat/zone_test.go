@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"encoding/json"
 	"github.com/jpcummins/geochat/app/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -107,7 +108,7 @@ func (suite *ZoneTestSuite) TestMarshalJSON() {
 	user2.On("ID").Return("user2")
 	zone.AddUser(user2)
 
-	b, err := zone.MarshalJSON()
+	b, err := json.Marshal(zone.ServerJSON())
 	assert.Equal(suite.T(), "{\"id\":\":0z\",\"user_ids\":[\"user1\",\"user2\"],\"is_open\":true,\"max_users\":2}", string(b))
 	assert.NoError(suite.T(), err)
 }

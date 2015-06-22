@@ -10,23 +10,19 @@ var App types.World
 func Init(redisServer, worldID string) error {
 	redisDB := db.NewRedisDB(redisServer)
 
-	world := &World{}
-	found, err := redisDB.GetWorld(worldID, world)
+	worlds := newWorlds(redisDB)
+	world, err := worlds.World(worldID)
 	if err != nil {
 		return err
 	}
 
 	pubsub := db.NewRedisPubSub(worldID, redisDB)
-	if found {
-		if err := world.init(redisDB, pubsub); err != nil {
+	if world == nil {
+		world, err = newWorld(worldID, redisDB, pubsub)
+		if err != nil {
 			return err
 		}
-	} else {
-		world = newWorld(worldID)
-		if err := world.init(redisDB, pubsub); err != nil {
-			return err
-		}
-		err = redisDB.SetWorld(world)
+		err = redisDB.SaveWorld(world.ServerJSON())
 	}
 
 	App = world

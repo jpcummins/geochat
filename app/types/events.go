@@ -1,5 +1,6 @@
 package types
 
 type Events interface {
-	New(string, ServerEventData) ServerEvent
+	NewServerEvent(string, ServerEventData) ServerEvent
+	NewClientEvent(string, ClientEventData) ClientEvent
 }

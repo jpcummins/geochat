@@ -1,6 +1,8 @@
 package types
 
 type Zone interface {
+	EventJSON
+
 	ID() string
 	World() World
 	SouthWest() LatLng
@@ -19,23 +21,19 @@ type Zone interface {
 	AddUser(User)
 	RemoveUser(string)
 
-	ClientJSON() *ClientZoneJSON
-	ServerJSON() *ServerZoneJSON
-	Update(*ServerZoneJSON) error
-
 	// Events
 	Join(User) (ClientEvent, error)
 	Message(User, string) (ClientEvent, error)
 }
 
 type ServerZoneJSON struct {
-	ID       string   `json:"id"`
+	*BaseServerJSON
 	UserIDs  []string `json:"user_ids"`
 	IsOpen   bool     `json:"is_open"`
 	MaxUsers int      `json:"max_users"`
 }
 
 type ClientZoneJSON struct {
-	ID    string            `json:"id"`
+	BaseClientJSON
 	Users []*ClientUserJSON `json:"users"`
 }

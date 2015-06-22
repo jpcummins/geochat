@@ -35,39 +35,45 @@ func NewRedisDB(redisServer string) *RedisDB {
 	return connection
 }
 
-func (r *RedisDB) GetUser(id string, user types.User) (bool, error) {
-	return r.getObject(getUserKey(id), user)
+func (r *RedisDB) User(id string, worldID string) (*types.ServerUserJSON, error) {
+	json := &types.ServerUserJSON{}
+	err := r.getObject(getUserKey(id, worldID), json)
+	return json, err
 }
 
-func (r *RedisDB) SetUser(user types.User) error {
-	return r.setObject(getUserKey(user.ID()), user)
+func (r *RedisDB) SaveUser(json types.ServerJSON) error {
+	return r.setObject(getUserKey(json.Key(), json.WorldKey()), json)
 }
 
-func (r *RedisDB) GetZone(id string, world types.World, zone types.Zone) (bool, error) {
-	return r.getObject(getZoneKey(id, world.ID()), zone)
+func (r *RedisDB) Zone(id string, worldID string) (*types.ServerZoneJSON, error) {
+	json := &types.ServerZoneJSON{}
+	err := r.getObject(getZoneKey(id, worldID), json)
+	return json, err
 }
 
-func (r *RedisDB) SetZone(zone types.Zone, world types.World) error {
-	return r.setObject(getZoneKey(zone.ID(), world.ID()), zone)
+func (r *RedisDB) SaveZone(json types.ServerJSON) error {
+	return r.setObject(getZoneKey(json.Key(), json.WorldKey()), json)
 }
 
-func (r *RedisDB) GetWorld(id string, world types.World) (bool, error) {
-	return r.getObject(getWorldKey(id), world)
+func (r *RedisDB) World(id string) (*types.ServerWorldJSON, error) {
+	json := &types.ServerWorldJSON{}
+	err := r.getObject(getWorldKey(id), json)
+	return json, err
 }
 
-func (r *RedisDB) SetWorld(world types.World) error {
-	return r.setObject(getWorldKey(world.ID()), world)
+func (r *RedisDB) SaveWorld(json types.ServerJSON) error {
+	return r.setObject(getWorldKey(json.Key()), json)
 }
 
-func (r *RedisDB) getObject(id string, v interface{}) (bool, error) {
+func (r *RedisDB) getObject(id string, v interface{}) error {
 	data, err := redis.Bytes(r.connection.Do("GET", id))
 	if err == redis.ErrNil {
-		return false, nil
+		return nil
 	}
 	if err != nil {
-		return data != nil, err
+		return err
 	}
-	return true, json.Unmarshal(data, v)
+	return json.Unmarshal(data, v)
 }
 
 func (r *RedisDB) setObject(id string, v interface{}) error {
@@ -82,14 +88,14 @@ func (r *RedisDB) setObject(id string, v interface{}) error {
 
 const userPrefix = "user_"
 
-func getUserKey(id string) string {
-	return userPrefix + id
+func getUserKey(id string, worldID string) string {
+	return userPrefix + id + "_" + getWorldKey(worldID)
 }
 
 const zonePrefix = "zone_"
 
 func getZoneKey(zoneID string, worldID string) string {
-	return zonePrefix + zoneID + ":" + getWorldKey(worldID)
+	return zonePrefix + zoneID + "_" + getWorldKey(worldID)
 }
 
 const worldPrefix = "world_"

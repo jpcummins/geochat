@@ -53,7 +53,7 @@ func (j *Join) BeforePublish(e types.ServerEvent) error {
 
 func (j *Join) OnReceive(e types.ServerEvent) error {
 
-	if w.World().Zones().FromCache(j.ServerJoinJSON.ZoneID) == nil {
+	if e.World().Zones().FromCache(j.ServerJoinJSON.ZoneID) == nil {
 		return nil
 	}
 

@@ -13,13 +13,19 @@ func (m *Zones) Zone(_a0 string) (types.Zone, error) {
 	if ret.Get(0) == nil {
 		return nil, ret.Error(1)
 	}
-
 	r0 := ret.Get(0).(types.Zone)
 	r1 := ret.Error(1)
 
 	return r0, r1
 }
-func (m *Zones) UpdateZone(_a0 string) (types.Zone, error) {
+func (m *Zones) FromCache(_a0 string) types.Zone {
+	ret := m.Called(_a0)
+
+	r0 := ret.Get(0).(types.Zone)
+
+	return r0
+}
+func (m *Zones) FromDB(_a0 string) (types.Zone, error) {
 	ret := m.Called(_a0)
 
 	r0 := ret.Get(0).(types.Zone)
@@ -27,7 +33,7 @@ func (m *Zones) UpdateZone(_a0 string) (types.Zone, error) {
 
 	return r0, r1
 }
-func (m *Zones) SetZone(_a0 types.Zone) error {
+func (m *Zones) Save(_a0 types.Zone) error {
 	ret := m.Called(_a0)
 
 	r0 := ret.Error(0)

@@ -14,13 +14,6 @@ func (m *World) ID() string {
 
 	return r0
 }
-func (m *World) Users() types.Users {
-	ret := m.Called()
-
-	r0 := ret.Get(0).(types.Users)
-
-	return r0
-}
 func (m *World) Zones() types.Zones {
 	ret := m.Called()
 
@@ -44,6 +37,13 @@ func (m *World) FindOpenZone(_a0 types.User) (types.Zone, error) {
 
 	return r0, r1
 }
+func (m *World) Users() types.Users {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.Users)
+
+	return r0
+}
 func (m *World) NewUser(id string, name string, lat float64, lng float64) (types.User, error) {
 	ret := m.Called(id, name, lat, lng)
 
@@ -59,7 +59,36 @@ func (m *World) NewServerEvent(_a0 types.ServerEventData) types.ServerEvent {
 
 	return r0
 }
+func (m *World) NewClientEvent(_a0 types.ClientEventData) types.ClientEvent {
+	ret := m.Called(_a0)
+
+	r0 := ret.Get(0).(types.ClientEvent)
+
+	return r0
+}
 func (m *World) Publish(_a0 types.ServerEvent) error {
+	ret := m.Called(_a0)
+
+	r0 := ret.Error(0)
+
+	return r0
+}
+
+func (m *World) ClientJSON() types.ClientJSON {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.ClientJSON)
+
+	return r0
+}
+func (m *World) ServerJSON() types.ServerJSON {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.ServerJSON)
+
+	return r0
+}
+func (m *World) Update(_a0 types.ServerJSON) error {
 	ret := m.Called(_a0)
 
 	r0 := ret.Error(0)

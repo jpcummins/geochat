@@ -7,57 +7,59 @@ import (
 
 type Users struct {
 	sync.RWMutex
-	world *World
-	users map[string]types.User
+	db      types.DB
+	worldID string
+	users   map[string]types.User
 }
 
-func newUsers(world *World) *Users {
+func newUsers(worldID string, db types.DB) *Users {
 	return &Users{
-		world: world,
-		users: make(map[string]types.User),
+		db:      db,
+		worldID: worldID,
+		users:   make(map[string]types.User),
 	}
 }
 
 func (u *Users) User(id string) (types.User, error) {
-	user, found := u.localUser(id)
-	if found {
-		return user, nil
+	if cachedUser := u.FromCache(id); cachedUser != nil {
+		return cachedUser, nil
 	}
-	return u.UpdateUser(id)
+
+	return u.FromDB(id)
 }
 
-func (u *Users) UpdateUser(id string) (types.User, error) {
-	user := &User{}
-	found, err := u.world.db.GetUser(id, user)
+func (u *Users) FromCache(id string) types.User {
+	u.RLock()
+	defer u.RUnlock()
+	return u.users[id]
+}
+
+func (u *Users) FromDB(id string) (types.User, error) {
+	json, err := u.db.User(id, u.worldID)
 	if err != nil {
 		return nil, err
 	}
 
-	if !found {
+	user := u.FromCache(id)
+	if user == nil {
 		return nil, nil
 	}
 
-	u.localSetUser(user)
+	user.Update(json)
+	u.updateCache(user)
 	return user, nil
 }
 
-func (u *Users) SetUser(user types.User) error {
-	if err := u.world.db.SetUser(user); err != nil {
+func (u *Users) Save(user types.User) error {
+	if err := u.db.SaveUser(user.ServerJSON()); err != nil {
 		return err
 	}
 
-	u.localSetUser(user)
+	u.updateCache(user)
 	return nil
 }
 
-func (u *Users) localUser(id string) (types.User, bool) {
-	u.RLock()
-	defer u.RUnlock()
-	user, found := u.users[id]
-	return user, found
-}
-
-func (u *Users) localSetUser(user types.User) {
+func (u *Users) updateCache(user types.User) {
 	u.Lock()
 	defer u.Unlock()
 	u.users[user.ID()] = user

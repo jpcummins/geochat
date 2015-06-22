@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"encoding/json"
 	"errors"
 	gh "github.com/TomiHiltunen/geohash-golang"
 	"github.com/jpcummins/geochat/app/events"
@@ -15,16 +14,9 @@ const rootZoneID = ":0z"
 
 const geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 
-type zoneJSON struct {
-	ID       string   `json:"id"`
-	UserIDs  []string `json:"user_ids"`
-	IsOpen   bool     `json:"is_open"`
-	MaxUsers int      `json:"max_users"`
-}
-
 type Zone struct {
 	sync.RWMutex
-	*zoneJSON
+	*types.ServerZoneJSON
 	world        types.World
 	southWest    types.LatLng
 	northEast    types.LatLng
@@ -47,8 +39,11 @@ func newZone(id string, world types.World, maxUsers int) (*Zone, error) {
 	northEast := gh.Decode(geohash + to).NorthEast()
 
 	zone := &Zone{
-		zoneJSON: &zoneJSON{
-			ID:       id,
+		ServerZoneJSON: &types.ServerZoneJSON{
+			BaseServerJSON: &types.BaseServerJSON{
+				ID:      id,
+				WorldID: world.ID(),
+			},
 			IsOpen:   true,
 			MaxUsers: maxUsers,
 		},
@@ -90,19 +85,8 @@ func validateZoneID(id string) (geohash string, from string, to string, err erro
 	return
 }
 
-func (z *Zone) MarshalJSON() ([]byte, error) {
-	z.RLock()
-	defer z.RUnlock()
-	z.zoneJSON.UserIDs = make([]string, 0, len(z.users))
-	for id := range z.users {
-		z.zoneJSON.UserIDs = append(z.zoneJSON.UserIDs, id)
-	}
-	sort.Strings(z.zoneJSON.UserIDs)
-	return json.Marshal(z.zoneJSON)
-}
-
 func (z *Zone) ID() string {
-	return z.zoneJSON.ID
+	return z.ServerZoneJSON.BaseServerJSON.ID
 }
 
 func (z *Zone) World() types.World {
@@ -142,7 +126,7 @@ func (z *Zone) RightZoneID() string {
 }
 
 func (z *Zone) MaxUsers() int {
-	return z.zoneJSON.MaxUsers
+	return z.ServerZoneJSON.MaxUsers
 }
 
 func (z *Zone) Count() int {
@@ -152,11 +136,11 @@ func (z *Zone) Count() int {
 }
 
 func (z *Zone) IsOpen() bool {
-	return z.zoneJSON.IsOpen
+	return z.ServerZoneJSON.IsOpen
 }
 
 func (z *Zone) SetIsOpen(isOpen bool) {
-	z.zoneJSON.IsOpen = isOpen
+	z.ServerZoneJSON.IsOpen = isOpen
 }
 
 func (z *Zone) AddUser(user types.User) {
@@ -178,6 +162,33 @@ func (z *Zone) Broadcast(event types.ClientEvent) {
 	for _, user := range z.users {
 		user.Broadcast(event)
 	}
+}
+
+func (z *Zone) ClientJSON() types.ClientJSON {
+	return nil
+}
+
+func (z *Zone) ServerJSON() types.ServerJSON {
+	z.RLock()
+	defer z.RUnlock()
+	z.ServerZoneJSON.UserIDs = make([]string, 0, len(z.users))
+	for id := range z.users {
+		z.ServerZoneJSON.UserIDs = append(z.ServerZoneJSON.UserIDs, id)
+	}
+	sort.Strings(z.ServerZoneJSON.UserIDs)
+	return z.ServerZoneJSON
+}
+
+func (z *Zone) Update(js types.ServerJSON) error {
+	json, ok := js.(*types.ServerZoneJSON)
+	if !ok {
+		return errors.New("Invalid json type.")
+	}
+
+	z.Lock()
+	defer z.Unlock()
+	z.ServerZoneJSON = json
+	return nil
 }
 
 func (z *Zone) Join(user types.User) (types.ClientEvent, error) {

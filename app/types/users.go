@@ -1,7 +1,8 @@
 package types
 
 type Users interface {
-	FromCache(string) (User, error)
+	User(string) (User, error)
+	FromCache(string) User
 	FromDB(string) (User, error)
 	Save(User) error
 }

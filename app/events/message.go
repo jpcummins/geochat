@@ -42,15 +42,15 @@ func (m *Message) BeforePublish(e types.ServerEvent) error {
 }
 
 func (m *Message) OnReceive(e types.ServerEvent) error {
-	user, err := e.World().Users().User(m.UserID)
-	if err != nil {
-		return errors.New("Unable to lookup user " + m.UserID)
-	}
-
-	zone := user.Zone()
-	if zone == nil {
-		return errors.New("User is not associated with a zone")
-	}
+	// user, err := e.World().Users().FromCache(m.UserID)
+	// if err != nil {
+	// 	return errors.New("Unable to lookup user " + m.UserID)
+	// }
+	//
+	// zone := user.Zone()
+	// if zone == nil {
+	// 	return errors.New("User is not associated with a zone")
+	// }
 
 	// zone.Broadcast(e)
 	return nil

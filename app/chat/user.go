@@ -1,7 +1,7 @@
 package chat
 
 import (
-	"encoding/json"
+	"errors"
 	"github.com/jpcummins/geochat/app/types"
 	"sync"
 	"time"
@@ -14,10 +14,13 @@ type User struct {
 	connections []*Connection
 }
 
-func newUser(id string, name string, location types.LatLng) *User {
+func newUser(id string, name string, location types.LatLng, world types.World) *User {
 	u := &User{
 		ServerUserJSON: &types.ServerUserJSON{
-			ID:           id,
+			BaseServerJSON: &types.BaseServerJSON{
+				ID:      id,
+				WorldID: world.ID(),
+			},
 			CreatedAt:    int(time.Now().Unix()),
 			LastActivity: int(time.Now().Unix()),
 			Name:         name,
@@ -42,6 +45,14 @@ func (u *User) Location() types.LatLng {
 
 func (u *User) Zone() types.Zone {
 	return u.zone
+}
+
+func (u *User) SetZone(zone types.Zone) {
+	u.Lock()
+	defer u.Unlock()
+
+	u.zone = zone
+	u.ServerUserJSON.ZoneID = zone.ID()
 }
 
 func (u *User) Broadcast(e types.ClientEvent) {
@@ -78,18 +89,22 @@ func (u *User) Disconnect(c types.Connection) {
 	}
 }
 
-func (u *User) ClientJSON() ([]byte, error) {
-	return nil, nil
+func (u *User) ClientJSON() types.ClientJSON {
+	return nil
 }
 
-func (u *User) ServerJSON() ([]byte, error) {
-	return json.Marshal(u.ServerUserJSON)
+func (u *User) ServerJSON() types.ServerJSON {
+	return u.ServerUserJSON
 }
 
-func (u *User) Update(js *types.ServerUserJSON) error {
+func (u *User) Update(js types.ServerJSON) error {
+	json, ok := js.(*types.ServerUserJSON)
+	if !ok {
+		return errors.New("Invalid json type.")
+	}
+
 	u.Lock()
 	defer u.Unlock()
-
-	u.ServerUserJSON = js
+	u.ServerUserJSON = json
 	return nil
 }

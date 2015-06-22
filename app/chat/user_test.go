@@ -15,7 +15,8 @@ type UserTestSuite struct {
 
 func (suite *UserTestSuite) SetupTest() {
 	suite.world = &mocks.World{}
-	suite.user = newUser("testid", "test", seattle)
+	suite.world.On("ID").Return("worldid")
+	suite.user = newUser("testid", "test", seattle, suite.world)
 }
 
 func (suite *UserTestSuite) TestNewUser() {
