@@ -40,6 +40,10 @@ func (u *Users) FromDB(id string) (types.User, error) {
 		return nil, err
 	}
 
+	if json == nil {
+		return nil, nil
+	}
+
 	user := u.FromCache(id)
 	if user == nil {
 		return nil, nil

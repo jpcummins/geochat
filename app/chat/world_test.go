@@ -53,7 +53,10 @@ func (suite *WorldTestSuite) SetupTest() {
 func (suite *WorldTestSuite) NewWorld() *World {
 	world := &World{
 		ServerWorldJSON: &types.ServerWorldJSON{
-			ID: rootWorldID,
+			BaseServerJSON: &types.BaseServerJSON{
+				ID: rootWorldID,
+			},
+			MaxUsers: 10,
 		},
 		db:     suite.db,
 		pubsub: suite.pubsub,
@@ -75,7 +78,7 @@ func (suite *WorldTestSuite) TestNewWorld() {
 	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(nil, nil)
 	suite.db.On("SaveZone", mock.Anything, mock.Anything).Return(nil)
 
-	world, err := newWorld(rootWorldID, suite.db, suite.pubsub)
+	world, err := newWorld(rootWorldID, suite.db, suite.pubsub, 10)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rootWorldID, world.ID())
 	assert.Equal(suite.T(), rootZoneID, world.root.ID())
@@ -87,7 +90,7 @@ func (suite *WorldTestSuite) TestInitReturnsError() {
 	worldErr := errors.New("err")
 	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(nil, worldErr)
 
-	_, err := newWorld(rootWorldID, suite.db, suite.pubsub)
+	_, err := newWorld(rootWorldID, suite.db, suite.pubsub, 10)
 	assert.Equal(suite.T(), worldErr, err)
 }
 
@@ -238,7 +241,7 @@ func (suite *WorldTestSuite) TestIntegration() {
 	testCases := []string{"000", "z0z", "2k1", "bbc", "zzz", "c23nb"}
 
 	for _, test := range testCases {
-		world, err := newWorld(rootWorldID, suite.db, suite.pubsub)
+		world, err := newWorld(rootWorldID, suite.db, suite.pubsub, 1)
 		assert.NoError(suite.T(), err)
 		world.root.SetIsOpen(false)
 
@@ -274,7 +277,7 @@ func (suite *WorldTestSuite) TestIncomingEventsCallOnReceive() {
 	mockEvent.On("Data").Return(mockEventData)
 	mockEvent.On("SetWorld", mock.Anything).Return()
 
-	newWorld(rootWorldID, suite.db, suite.pubsub)
+	newWorld(rootWorldID, suite.db, suite.pubsub, 10)
 
 	mockEventData.AssertNotCalled(suite.T(), "OnReceive", mockEvent)
 	suite.ch <- mockEvent

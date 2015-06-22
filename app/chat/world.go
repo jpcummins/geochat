@@ -24,17 +24,20 @@ type World struct {
 	zones  types.Zones
 }
 
-func newWorld(id string, db types.DB, ps types.PubSub) (*World, error) {
+func newWorld(id string, db types.DB, ps types.PubSub, maxUsers int) (*World, error) {
 	w := &World{
 		ServerWorldJSON: &types.ServerWorldJSON{
-			ID: id,
+			BaseServerJSON: &types.BaseServerJSON{
+				ID: id,
+			},
+			MaxUsers: maxUsers,
 		},
 	}
 
 	w.db = db
 	w.pubsub = ps
 	w.users = newUsers(id, db)
-	w.zones = newZones(id, db)
+	w.zones = newZones(w, db)
 	w.events = events.NewEvents(w)
 
 	root, err := w.GetOrCreateZone(rootZoneID)
@@ -62,6 +65,10 @@ func (w *World) ID() string {
 	return w.ServerWorldJSON.ID
 }
 
+func (w *World) MaxUsers() int {
+	return w.ServerWorldJSON.MaxUsers
+}
+
 func (w *World) Users() types.Users {
 	return w.users
 }
@@ -77,7 +84,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	}
 
 	if zone == nil {
-		zone, err = newZone(id, w, 10)
+		zone, err = newZone(id, w, w.MaxUsers())
 		if err != nil {
 			return nil, err
 		}

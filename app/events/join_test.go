@@ -16,7 +16,7 @@ type JoinTestSuite struct {
 	user  *mocks.User
 	users *mocks.Users
 	zones *mocks.Zones
-	event *mocks.Event
+	event *mocks.ServerEvent
 }
 
 func (suite *JoinTestSuite) SetupTest() {
@@ -25,7 +25,7 @@ func (suite *JoinTestSuite) SetupTest() {
 	suite.user = &mocks.User{}
 	suite.users = &mocks.Users{}
 	suite.zones = &mocks.Zones{}
-	suite.event = &mocks.Event{}
+	suite.event = &mocks.ServerEvent{}
 
 	suite.zone.On("ID").Return("zoneid")
 	suite.user.On("ID").Return("userid")

@@ -40,9 +40,13 @@ func (w *Worlds) FromDB(id string) (types.World, error) {
 		return nil, err
 	}
 
+	if json == nil {
+		return nil, nil
+	}
+
 	world := w.FromCache(id)
 	if world == nil {
-		world, err = newWorld(id, w.db, w.pubsub)
+		world, err = newWorld(id, w.db, w.pubsub, json.MaxUsers)
 		if err != nil {
 			return nil, err
 		}

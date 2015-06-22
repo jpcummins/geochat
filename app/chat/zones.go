@@ -7,16 +7,16 @@ import (
 
 type Zones struct {
 	sync.RWMutex
-	db      types.DB
-	worldID string
-	zones   map[string]types.Zone
+	db    types.DB
+	world types.World
+	zones map[string]types.Zone
 }
 
-func newZones(worldID string, db types.DB) *Zones {
+func newZones(world types.World, db types.DB) *Zones {
 	return &Zones{
-		db:      db,
-		worldID: worldID,
-		zones:   make(map[string]types.Zone),
+		db:    db,
+		world: world,
+		zones: make(map[string]types.Zone),
 	}
 }
 
@@ -35,14 +35,21 @@ func (z *Zones) FromCache(id string) types.Zone {
 }
 
 func (z *Zones) FromDB(id string) (types.Zone, error) {
-	json, err := z.db.Zone(id, z.worldID)
+	json, err := z.db.Zone(id, z.world.ID())
 	if err != nil {
 		return nil, err
 	}
 
+	if json == nil {
+		return nil, nil
+	}
+
 	zone := z.FromCache(id)
 	if zone == nil {
-		return nil, nil
+		zone, err = newZone(id, z.world, z.world.MaxUsers())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	zone.Update(json)

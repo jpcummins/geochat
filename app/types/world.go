@@ -4,6 +4,7 @@ type World interface {
 	EventJSON
 
 	ID() string
+	MaxUsers() int
 
 	Zones() Zones
 	GetOrCreateZone(string) (Zone, error)
@@ -17,6 +18,9 @@ type World interface {
 	Publish(ServerEvent) error
 }
 
-type ServerWorldJSON BaseServerJSON
+type ServerWorldJSON struct {
+	*BaseServerJSON
+	MaxUsers int `json:"max_users"`
+}
 
 type ClientWorldJSON BaseClientJSON
