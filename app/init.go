@@ -30,7 +30,7 @@ func init() {
 	}
 
 	revel.OnAppStart(func() {
-		if err := chat.Init(redisServer, "0"); err != nil {
+		if err := chat.Init(redisServer, "0", 10); err != nil {
 			panic(err)
 		}
 	})

@@ -37,7 +37,11 @@ func NewRedisDB(redisServer string) *RedisDB {
 
 func (r *RedisDB) User(id string, worldID string) (*types.ServerUserJSON, error) {
 	json := &types.ServerUserJSON{}
-	err := r.getObject(getUserKey(id, worldID), json)
+	found, err := r.getObject(getUserKey(id, worldID), json)
+
+	if !found {
+		return nil, err
+	}
 	return json, err
 }
 
@@ -47,7 +51,12 @@ func (r *RedisDB) SaveUser(json types.ServerJSON) error {
 
 func (r *RedisDB) Zone(id string, worldID string) (*types.ServerZoneJSON, error) {
 	json := &types.ServerZoneJSON{}
-	err := r.getObject(getZoneKey(id, worldID), json)
+	found, err := r.getObject(getZoneKey(id, worldID), json)
+
+	if !found {
+		return nil, err
+	}
+
 	return json, err
 }
 
@@ -57,7 +66,12 @@ func (r *RedisDB) SaveZone(json types.ServerJSON) error {
 
 func (r *RedisDB) World(id string) (*types.ServerWorldJSON, error) {
 	json := &types.ServerWorldJSON{}
-	err := r.getObject(getWorldKey(id), json)
+	found, err := r.getObject(getWorldKey(id), json)
+
+	if !found {
+		return nil, err
+	}
+
 	return json, err
 }
 
@@ -65,15 +79,15 @@ func (r *RedisDB) SaveWorld(json types.ServerJSON) error {
 	return r.setObject(getWorldKey(json.Key()), json)
 }
 
-func (r *RedisDB) getObject(id string, v interface{}) error {
+func (r *RedisDB) getObject(id string, v interface{}) (bool, error) {
 	data, err := redis.Bytes(r.connection.Do("GET", id))
 	if err == redis.ErrNil {
-		return nil
+		return false, nil
 	}
 	if err != nil {
-		return err
+		return false, err
 	}
-	return json.Unmarshal(data, v)
+	return true, json.Unmarshal(data, v)
 }
 
 func (r *RedisDB) setObject(id string, v interface{}) error {

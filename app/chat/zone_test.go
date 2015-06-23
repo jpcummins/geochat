@@ -75,7 +75,7 @@ func (suite *ZoneTestSuite) TestRemoveUser() {
 }
 
 // func (suite *ZoneTestSuite) TestBroadcast() {
-// 	event := &mocks.Event{}
+// 	event := &mocks.ServerEvent{}
 //
 // 	user1 := &mocks.User{}
 // 	user1.On("ID").Return("user1")
