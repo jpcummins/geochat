@@ -152,7 +152,9 @@ func (r *RedisPubSub) subscribe(ch chan types.ServerEvent) {
 		switch v := psc.Receive().(type) {
 		case redis.Message:
 			var event types.ServerEvent
+			println("got event 1")
 			if err := json.Unmarshal(v.Data, &event); err != nil {
+				println("err:", err.Error())
 				continue
 			}
 			ch <- event

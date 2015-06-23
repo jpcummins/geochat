@@ -56,6 +56,7 @@ func (w *World) manage() {
 	for {
 		select {
 		case event := <-subscription:
+			println("got event")
 			event.SetWorld(w)
 			event.Data().OnReceive(event)
 		}

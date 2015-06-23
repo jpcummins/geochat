@@ -9,13 +9,12 @@ import (
 type serverEventJSON struct {
 	ID   string                `json:"id"`
 	Type types.ServerEventType `json:"type"`
-	Data json.RawMessage       `json:"data,omitempty"`
+	Data types.ServerEventData `json:"data,omitempty"`
 }
 
 type ServerEvent struct {
 	*serverEventJSON
 	world types.World
-	data  types.ServerEventData
 }
 
 func newServerEvent(id string, world types.World, data types.ServerEventData) *ServerEvent {
@@ -23,9 +22,9 @@ func newServerEvent(id string, world types.World, data types.ServerEventData) *S
 		serverEventJSON: &serverEventJSON{
 			ID:   id,
 			Type: data.Type(),
+			Data: data,
 		},
 		world: world,
-		data:  data,
 	}
 }
 
@@ -46,24 +45,39 @@ func (e *ServerEvent) SetWorld(world types.World) {
 }
 
 func (e *ServerEvent) Data() types.ServerEventData {
-	return e.data
+	return e.serverEventJSON.Data
 }
 
 func (e *ServerEvent) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &e.serverEventJSON); err != nil {
+	type AnonEvent struct {
+		ID   string                `json:"id"`
+		Type types.ServerEventType `json:"type"`
+		Data json.RawMessage       `json:"data"`
+	}
+	var ae AnonEvent
+
+	println("AA")
+
+	if err := json.Unmarshal(b, &ae); err != nil {
 		return err
 	}
 
+	println("BB")
+
 	switch e.Type() {
 	case MessageServerEvent:
-		e.data = &Message{}
+		e.serverEventJSON.Data = &Message{}
 	case JoinSeverEvent:
-		e.data = &serverJoin{}
+		e.serverEventJSON.Data = &serverJoin{}
 	default:
 		return errors.New("Unable to unmarshal command: " + string(e.Type()))
 	}
 
-	return json.Unmarshal(e.serverEventJSON.Data, e.data)
+	println("CC")
+
+	e.serverEventJSON.ID = ae.ID
+	e.serverEventJSON.Type = ae.Type
+	return json.Unmarshal(ae.Data, e.Data)
 }
 
 type clientEventJSON struct {
