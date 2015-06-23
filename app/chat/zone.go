@@ -158,7 +158,7 @@ func (z *Zone) RemoveUser(id string) {
 func (z *Zone) Broadcast(event types.ClientEvent) {
 	z.RLock()
 	defer z.RUnlock()
-
+	println("zone broadcast")
 	for _, user := range z.users {
 		user.Broadcast(event)
 	}
@@ -192,11 +192,7 @@ func (z *Zone) Update(js types.ServerJSON) error {
 }
 
 func (z *Zone) Join(user types.User) (types.ClientEvent, error) {
-	joinEventData, err := events.NewJoin(z, user)
-	if err != nil {
-		return nil, err
-	}
-	event := z.world.NewServerEvent(joinEventData)
+	event := z.world.NewServerEvent(events.ServerJoin(z, user))
 	return nil, z.world.Publish(event)
 }
 

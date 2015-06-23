@@ -60,7 +60,7 @@ func (u *User) Broadcast(e types.ClientEvent) {
 	defer u.Unlock()
 
 	for _, connection := range u.connections {
-		connection.Events() <- e
+		connection.events <- e
 	}
 }
 
@@ -70,6 +70,7 @@ func (u *User) Connect() types.Connection {
 	u.Lock()
 	defer u.Unlock()
 
+	println("connected")
 	u.connections = append(u.connections, connection)
 	return connection
 }

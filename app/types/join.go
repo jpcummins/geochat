@@ -1,11 +1,10 @@
 package types
 
 type ServerJoinJSON struct {
-	ZoneID string `json:"zone_id"`
-	UserID string `json:"user_id"`
+	Zone ServerJSON `json:"zone"`
+	User ServerJSON `json:"user"`
 }
 
 type ClientJoinJSON struct {
-	ZoneID string         `json:"zone_id"`
-	User   ClientUserJSON `json:"user"`
+	User ClientJSON `json:"user"`
 }

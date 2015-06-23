@@ -7,39 +7,40 @@ import (
 
 const JoinSeverEvent types.ServerEventType = "join"
 
-type Join struct {
+type serverJoin struct {
 	*types.ServerJoinJSON
 	zone types.Zone
 	user types.User
 }
 
-func NewJoin(zone types.Zone, user types.User) (*Join, error) {
-	j := &Join{
+func ServerJoin(zone types.Zone, user types.User) *serverJoin {
+	j := &serverJoin{
 		ServerJoinJSON: &types.ServerJoinJSON{
-			ZoneID: zone.ID(),
-			UserID: user.ID(),
+			Zone: zone.ServerJSON(),
+			User: user.ServerJSON(),
 		},
 		zone: zone,
 		user: user,
 	}
-	return j, nil
+	return j
 }
 
-func (j *Join) Type() types.ServerEventType {
+func (j *serverJoin) Type() types.ServerEventType {
 	return JoinSeverEvent
 }
 
-func (j *Join) UnmarshalJSON(b []byte) error {
+func (j *serverJoin) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &j.ServerJoinJSON); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (j *Join) BeforePublish(e types.ServerEvent) error {
+func (j *serverJoin) BeforePublish(e types.ServerEvent) error {
 	if j.user.Zone() != nil && j.user.Zone() != j.zone {
 		// create and publish leave event
 	}
+	println("before publish")
 
 	j.zone.AddUser(j.user)
 	j.user.SetZone(j.zone)
@@ -51,22 +52,60 @@ func (j *Join) BeforePublish(e types.ServerEvent) error {
 	return e.World().Zones().Save(j.zone)
 }
 
-func (j *Join) OnReceive(e types.ServerEvent) error {
+func (j *serverJoin) OnReceive(e types.ServerEvent) error {
 
-	if e.World().Zones().FromCache(j.ServerJoinJSON.ZoneID) == nil {
+	println("1")
+	zone := e.World().Zones().FromCache(j.ServerJoinJSON.Zone.Key())
+	if zone == nil {
 		return nil
 	}
 
-	_, err := e.World().Users().FromDB(j.ServerJoinJSON.UserID)
-	if err != nil {
-		return err
+	println("2")
+	user := e.World().Users().FromCache(j.ServerJoinJSON.User.Key())
+	if user == nil {
+		var err error
+		user, err = e.World().Users().FromDB(j.ServerJoinJSON.User.Key())
+		if err != nil {
+			return err
+		}
+	} else {
+		println("3")
+		user.Update(j.ServerJoinJSON.User)
 	}
 
-	_, err = e.World().Zones().FromDB(j.ServerJoinJSON.ZoneID)
-	if err != nil {
-		return nil
-	}
+	println("4")
+	zone.Update(j.ServerJoinJSON.User)
 
-	// create and broadcast clientjoinevent
+	println("5")
+	join := e.World().NewClientEvent(ClientJoin(e.ID(), user, zone))
+	println("6")
+	zone.Broadcast(join)
+	println("7")
+	return nil
+}
+
+const joinClientEvent types.ClientEventType = "join"
+
+type clientJoin struct {
+	*types.BaseClientJSON
+	User types.ClientJSON `json:"user"`
+	Zone types.ClientJSON `json:"zone"`
+}
+
+func ClientJoin(id string, user types.User, zone types.Zone) *clientJoin {
+	return &clientJoin{
+		BaseClientJSON: &types.BaseClientJSON{
+			ID: id,
+		},
+		User: user.ClientJSON(),
+		Zone: zone.ClientJSON(),
+	}
+}
+
+func (c *clientJoin) Type() types.ClientEventType {
+	return joinClientEvent
+}
+
+func (c *clientJoin) BeforeBroadcast(data types.ClientEvent) error {
 	return nil
 }

@@ -15,9 +15,9 @@ func NewEvents(world types.World) types.Events {
 }
 
 func (f *Events) NewServerEvent(id string, data types.ServerEventData) types.ServerEvent {
-	return newEvent(id, f.world, data)
+	return newServerEvent(id, f.world, data)
 }
 
 func (f *Events) NewClientEvent(id string, data types.ClientEventData) types.ClientEvent {
-	return nil
+	return newClientEvent(id, data)
 }

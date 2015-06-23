@@ -3,10 +3,10 @@ package events
 import (
 	// "errors"
 	"github.com/jpcummins/geochat/app/mocks"
-	"github.com/stretchr/testify/assert"
+	// "github.com/stretchr/testify/assert"
 	// "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"testing"
+	// "testing"
 )
 
 type JoinTestSuite struct {
@@ -34,13 +34,6 @@ func (suite *JoinTestSuite) SetupTest() {
 	suite.world.On("Zone").Return(suite.zone)
 	suite.world.On("Users").Return(suite.users)
 	suite.world.On("Zones").Return(suite.zones)
-}
-
-func (suite *JoinTestSuite) TestNewJoinEvent() {
-	j, err := NewJoin(suite.zone, suite.user)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), suite.zone, j.zone)
-	assert.Equal(suite.T(), suite.user, j.user)
 }
 
 //
@@ -74,7 +67,7 @@ func (suite *JoinTestSuite) TestNewJoinEvent() {
 // 	err2 := j.BeforePublish(suite.event)
 // 	assert.Equal(suite.T(), err1, err2)
 // }
-
-func TestJointSuite(t *testing.T) {
-	suite.Run(t, new(JoinTestSuite))
-}
+//
+// func TestJointSuite(t *testing.T) {
+// 	suite.Run(t, new(JoinTestSuite))
+// }

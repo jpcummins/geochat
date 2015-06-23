@@ -23,13 +23,13 @@ type BaseClientJSON struct {
 type BaseServerJSON struct {
 	ServerJSON `json:"-"`
 	ID         string `json:"id"`
-	WorldID    string `json:"-"`
-}
-
-func (json *BaseServerJSON) WorldKey() string {
-	return json.WorldID
+	WorldID    string `json:"world_id"`
 }
 
 func (json *BaseServerJSON) Key() string {
 	return json.ID
+}
+
+func (json *BaseServerJSON) WorldKey() string {
+	return json.WorldID
 }

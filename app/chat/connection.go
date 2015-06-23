@@ -1,7 +1,7 @@
 package chat
 
 import (
-	// "github.com/jpcummins/geochat/app/events"
+	"github.com/jpcummins/geochat/app/events"
 	"github.com/jpcummins/geochat/app/types"
 )
 
@@ -17,10 +17,10 @@ func newConnection(user types.User) *Connection {
 	}
 }
 
-func (c *Connection) Events() chan types.ClientEvent {
+func (c *Connection) Events() <-chan types.ClientEvent {
 	return c.events
 }
 
 func (c *Connection) Ping() {
-	// c.events <- c.user.Zone().World().NewEvent(&events.Ping{})
+	c.events <- c.user.Zone().World().NewClientEvent(&events.Ping{})
 }

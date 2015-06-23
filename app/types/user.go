@@ -25,6 +25,6 @@ type ServerUserJSON struct {
 }
 
 type ClientUserJSON struct {
-	*BaseClientJSON
+	ID   string `json:"id"`
 	Name string `json:"name"`
 }

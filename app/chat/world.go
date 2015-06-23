@@ -14,7 +14,7 @@ import (
 const rootWorldID string = "0"
 
 type World struct {
-	*sync.RWMutex
+	sync.RWMutex
 	*types.ServerWorldJSON
 	root   types.Zone
 	db     types.DB
@@ -28,7 +28,8 @@ func newWorld(id string, db types.DB, ps types.PubSub, maxUsers int) (*World, er
 	w := &World{
 		ServerWorldJSON: &types.ServerWorldJSON{
 			BaseServerJSON: &types.BaseServerJSON{
-				ID: id,
+				ID:      id,
+				WorldID: id,
 			},
 			MaxUsers: maxUsers,
 		},

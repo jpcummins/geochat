@@ -22,12 +22,11 @@ func (suite *EventTestSuite) TestNewEvent() {
 	data := &mocks.ServerEventData{}
 	eventType := types.ServerEventType("test")
 	data.On("Type").Return(eventType)
-	e := newEvent("eventid", suite.world, data)
+	e := newServerEvent("eventid", suite.world, data)
 	assert.Equal(suite.T(), "eventid", e.ID())
 	assert.Equal(suite.T(), eventType, e.Type())
 	assert.Equal(suite.T(), data, e.Data())
 	assert.Equal(suite.T(), suite.world, e.World())
-	assert.Equal(suite.T(), suite.world.ID(), e.eventJSON.WorldID)
 }
 
 func (suite *EventTestSuite) TestUnmarshalMessage() {
@@ -37,7 +36,6 @@ func (suite *EventTestSuite) TestUnmarshalMessage() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "eventid", event.ID())
 	assert.Equal(suite.T(), eventType, event.Type())
-	assert.Equal(suite.T(), suite.world.ID(), event.WorldID())
 }
 
 func (suite *EventTestSuite) TestEventUnmarshalError() {
