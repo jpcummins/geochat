@@ -7,7 +7,8 @@ var React = require('react'),
     UserList = require('../components/UserList');
 
 var eventsCursor = stateTree.select('visibleEvents'),
-    zoneCursor = stateTree.select('zone');
+    zoneCursor = stateTree.select('zone'),
+    usersCursor = stateTree.select('users');
 
 var ZonePage = React.createClass({
 
@@ -24,11 +25,14 @@ var ZonePage = React.createClass({
         break;
       case "join":
         eventsCursor.push(chatEvent)
+        usersCursor.set(chatEvent.data.user.id, chatEvent.data.user)
+
         if (chatEvent.data.zone) {
           this.setState({
             zone: chatEvent.data.zone,
             users: chatEvent.data.zone.users
-          })
+          });
+          usersCursor.set(chatEvent.data.zone.users);
         }
         break;
       default:
@@ -80,7 +84,7 @@ var ZonePage = React.createClass({
                 <ChatMap zone={this.state.zone} />
               </div>
             </div>
-            <UserList zone={this.state.users} />
+            <UserList users={this.state.users} />
           </div>
         </div>
       </div>

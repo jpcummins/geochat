@@ -213,18 +213,14 @@ var React = require('react'),
 
 
 var UserList = React.createClass({displayName: "UserList",
-  getDefaultProps: function() {
-    return {
-      users: []
-    }
-  },
 
   render: function () {
-    var users = this.props.users.map(function (user) {
-      return (
-        React.createElement(User, {user: user, key: user.id})
-      )
-    });
+
+    var users = []
+    for (var id in this.props.users) {
+      var user = this.props.users[id];
+      users = users.concat(React.createElement(User, {user: user, key: user.id}));
+    }
 
     return (
 	    React.createElement("div", {className: "row gc-users"}, 
@@ -337,7 +333,8 @@ var React = require('react'),
     UserList = require('../components/UserList');
 
 var eventsCursor = stateTree.select('visibleEvents'),
-    zoneCursor = stateTree.select('zone');
+    zoneCursor = stateTree.select('zone'),
+    usersCursor = stateTree.select('users');
 
 var ZonePage = React.createClass({displayName: "ZonePage",
 
@@ -354,11 +351,14 @@ var ZonePage = React.createClass({displayName: "ZonePage",
         break;
       case "join":
         eventsCursor.push(chatEvent)
+        usersCursor.set(chatEvent.data.user.id, chatEvent.data.user)
+
         if (chatEvent.data.zone) {
           this.setState({
             zone: chatEvent.data.zone,
             users: chatEvent.data.zone.users
-          })
+          });
+          usersCursor.set(chatEvent.data.zone.users);
         }
         break;
       default:
@@ -410,7 +410,7 @@ var ZonePage = React.createClass({displayName: "ZonePage",
                 React.createElement(ChatMap, {zone: this.state.zone})
               )
             ), 
-            React.createElement(UserList, {zone: this.state.users})
+            React.createElement(UserList, {users: this.state.users})
           )
         )
       )
@@ -427,7 +427,8 @@ var ReactAddons = require('react/addons'),
 
 var stateTree = new Baobab({
   visibleEvents: [],
-  zone: {}
+  zone: {},
+  users: {},
 }, {
   mixins: [ReactAddons.PureRenderMixin],
   shiftReferences: true

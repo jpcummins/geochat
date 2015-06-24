@@ -23,5 +23,6 @@ func (e *message) Type() types.BroadcastEventType {
 }
 
 func (e *message) BeforeBroadcastToUser(user types.User, event types.BroadcastEvent) error {
+	println("message: " + e.Text)
 	return nil
 }

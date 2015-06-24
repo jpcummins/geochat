@@ -179,12 +179,12 @@ func (z *Zone) BroadcastJSON() interface{} {
 	defer z.RUnlock()
 	json := &types.ZoneBroadcastJSON{
 		ID:        z.ID(),
-		Users:     make([]*types.UserBroadcastJSON, 0, len(z.users)),
+		Users:     make(map[string]*types.UserBroadcastJSON),
 		SouthWest: z.southWest.BroadcastJSON().(*types.LatLngJSON),
 		NorthEast: z.northEast.BroadcastJSON().(*types.LatLngJSON),
 	}
 	for _, user := range z.users {
-		json.Users = append(json.Users, user.BroadcastJSON().(*types.UserBroadcastJSON))
+		json.Users[user.ID()] = user.BroadcastJSON().(*types.UserBroadcastJSON)
 	}
 	return json
 }

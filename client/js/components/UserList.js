@@ -4,18 +4,14 @@ var React = require('react'),
 
 
 var UserList = React.createClass({
-  getDefaultProps: function() {
-    return {
-      users: []
-    }
-  },
 
   render: function () {
-    var users = this.props.users.map(function (user) {
-      return (
-        <User user={user} key={user.id} />
-      )
-    });
+
+    var users = []
+    for (var id in this.props.users) {
+      var user = this.props.users[id];
+      users = users.concat(<User user={user} key={user.id} />);
+    }
 
     return (
 	    <div className="row gc-users">
