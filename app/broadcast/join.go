@@ -1,33 +1,33 @@
 package broadcast
 
 import (
-	"errors"
 	"github.com/jpcummins/geochat/app/types"
 )
 
 const joinType types.BroadcastEventType = "join"
 
 type join struct {
-	UserJSON *types.UserBroadcastJSON `json:"user"`
+	UserJSON interface{} `json:"user"`
+	ZoneJSON interface{} `json:"zone,omitempty"`
 	user     types.User
+	zone     types.Zone
 }
 
-func Join(user types.User) (*join, error) {
-	userJSON, ok := user.BroadcastJSON().(*types.UserBroadcastJSON)
-	if !ok {
-		return nil, errors.New("Unable to serialize UserBroadcastJSON")
-	}
-
+func Join(user types.User, zone types.Zone) *join {
 	return &join{
-		UserJSON: userJSON,
+		UserJSON: user.BroadcastJSON(),
 		user:     user,
-	}, nil
+		zone:     zone,
+	}
 }
 
 func (e *join) Type() types.BroadcastEventType {
 	return joinType
 }
 
-func (e *join) BeforeBroadcast(event types.BroadcastEvent) error {
+func (e *join) BeforeBroadcastToUser(user types.User, event types.BroadcastEvent) error {
+	if e.user == user {
+		e.ZoneJSON = e.zone.BroadcastJSON()
+	}
 	return nil
 }

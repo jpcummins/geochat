@@ -177,10 +177,11 @@ func (z *Zone) Broadcast(eventData types.BroadcastEventData) {
 func (z *Zone) BroadcastJSON() interface{} {
 	z.RLock()
 	defer z.RUnlock()
-
 	json := &types.ZoneBroadcastJSON{
-		ID:    z.ID(),
-		Users: make([]*types.UserBroadcastJSON, len(z.users)),
+		ID:        z.ID(),
+		Users:     make([]*types.UserBroadcastJSON, 0, len(z.users)),
+		SouthWest: z.southWest.BroadcastJSON().(*types.LatLngJSON),
+		NorthEast: z.northEast.BroadcastJSON().(*types.LatLngJSON),
 	}
 	for _, user := range z.users {
 		json.Users = append(json.Users, user.BroadcastJSON().(*types.UserBroadcastJSON))

@@ -70,12 +70,6 @@ func (j *join) OnReceive(e types.PubSubEvent) error {
 		user.Update(j.UserJSON)
 	}
 	zone.Update(j.ZoneJSON)
-
-	broadcastData, err := broadcast.Join(user)
-	if err != nil {
-		return err
-	}
-
-	zone.Broadcast(broadcastData)
+	zone.Broadcast(broadcast.Join(user, zone))
 	return nil
 }

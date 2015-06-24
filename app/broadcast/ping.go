@@ -1,7 +1,6 @@
 package broadcast
 
 import (
-	"errors"
 	"github.com/jpcummins/geochat/app/types"
 )
 
@@ -21,6 +20,6 @@ func (e *ping) Data() *ping {
 	return nil
 }
 
-func (p *ping) BeforeBroadcast(event types.BroadcastEvent) error {
-	return errors.New("Pings should not be published")
+func (e *ping) BeforeBroadcastToUser(user types.User, event types.BroadcastEvent) error {
+	return nil
 }
