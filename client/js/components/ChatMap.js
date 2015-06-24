@@ -1,16 +1,14 @@
 var React = require('react'),
     stateTree = require('../stateTree');
 
-var zoneCursor = stateTree.select('zone');
-
 var ChatMap = React.createClass({
 
   updateMap: function (e) {
-    var zone = e.data.data.data; // gross
+    var zone = this.props.zone;
 
 	  var mapOptions = {
 	    zoom: 1,
-	    center: new google.maps.LatLng(zone.boundary.swlat, zone.boundary.swlong),
+	    center: new google.maps.LatLng(zone.sw.lat, zone.sw.lng),
 	    disableDefaultUI: true
 	  };
 
@@ -24,15 +22,13 @@ var ChatMap = React.createClass({
 	    fillOpacity: 0.35,
 	    map: map,
 	    bounds: new google.maps.LatLngBounds(
-	      new google.maps.LatLng(zone.boundary.swlat, zone.boundary.swlong),
-	      new google.maps.LatLng(zone.boundary.nelat, zone.boundary.nelong))
+	      new google.maps.LatLng(zone.sw.lat, zone.sw.lng),
+	      new google.maps.LatLng(zone.ne.lat, zone.ne.lng))
 	  });
-
-    this.setState({ map: map });
   },
 
-  componentDidMount: function () {
-    zoneCursor.on('update', this.updateMap);
+  componentDidUpdate: function () {
+    this.updateMap();
   },
 
   render: function () {

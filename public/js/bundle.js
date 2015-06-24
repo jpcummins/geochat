@@ -66,23 +66,15 @@ var zoneCursor = stateTree.select('zone');
 
 var ChatHeader = React.createClass({displayName: "ChatHeader",
 
-  getInitialState: function () {
-    return { location: '' };
-  },
-
   componentDidMount: function () {
     zoneCursor.on('update', this.showZone);
-  },
-
-  showZone: function (e) {
-    this.setState({ location: e.data.data.data.id });
   },
 
   render: function () {
     return (
       React.createElement("div", {className: "row gc-header"}, 
         React.createElement("div", {className: "col-md-12"}, 
-          React.createElement("h4", null, "Location: ", this.state.location)
+          React.createElement("h4", null, "Location: ", this.props.zone.id)
         )
       )
     )
@@ -96,16 +88,14 @@ module.exports = ChatHeader
 var React = require('react'),
     stateTree = require('../stateTree');
 
-var zoneCursor = stateTree.select('zone');
-
 var ChatMap = React.createClass({displayName: "ChatMap",
 
   updateMap: function (e) {
-    var zone = e.data.data.data; // gross
+    var zone = this.props.zone;
 
 	  var mapOptions = {
 	    zoom: 1,
-	    center: new google.maps.LatLng(zone.boundary.swlat, zone.boundary.swlong),
+	    center: new google.maps.LatLng(zone.sw.lat, zone.sw.lng),
 	    disableDefaultUI: true
 	  };
 
@@ -119,15 +109,13 @@ var ChatMap = React.createClass({displayName: "ChatMap",
 	    fillOpacity: 0.35,
 	    map: map,
 	    bounds: new google.maps.LatLngBounds(
-	      new google.maps.LatLng(zone.boundary.swlat, zone.boundary.swlong),
-	      new google.maps.LatLng(zone.boundary.nelat, zone.boundary.nelong))
+	      new google.maps.LatLng(zone.sw.lat, zone.sw.lng),
+	      new google.maps.LatLng(zone.ne.lat, zone.ne.lng))
 	  });
-
-    this.setState({ map: map });
   },
 
-  componentDidMount: function () {
-    zoneCursor.on('update', this.updateMap);
+  componentDidUpdate: function () {
+    this.updateMap();
   },
 
   render: function () {
@@ -223,25 +211,16 @@ var React = require('react'),
     stateTree = require('../stateTree'),
     User = require('./User');
 
-var usersCursor = stateTree.select('users');
 
 var UserList = React.createClass({displayName: "UserList",
-
-  getInitialState: function() {
-    return { users: [] };
-  },
-
-  handleUserUpdate: function (e) {
-    var users = $.map(usersCursor.get(), function(e) { return e; });
-    this.setState({ users: users });
-  },
-
-  componentDidMount: function () {
-    usersCursor.on('update', this.handleUserUpdate);
+  getDefaultProps: function() {
+    return {
+      users: []
+    }
   },
 
   render: function () {
-    var users = this.state.users.map(function (user) {
+    var users = this.props.users.map(function (user) {
       return (
         React.createElement(User, {user: user, key: user.id})
       )
@@ -358,38 +337,26 @@ var React = require('react'),
     UserList = require('../components/UserList');
 
 var eventsCursor = stateTree.select('visibleEvents'),
-    usersCursor = stateTree.select('users'),
     zoneCursor = stateTree.select('zone');
 
 var ZonePage = React.createClass({displayName: "ZonePage",
 
   mixins: [React.addons.PureRenderMixin],
 
+  getInitialState: function () {
+    return { zone: {} }
+  },
+
   handleChatEvent: function (chatEvent) {
     switch (chatEvent.type) {
       case "message":
         eventsCursor.push(chatEvent);
         break;
-      case "zone":
-        stateTree.set('zone', chatEvent);
-        stateTree.set('users', chatEvent.data.users);
-        if (chatEvent.data.archive) {
-          for (var i = chatEvent.data.archive.events.length - 1; i >= 0; i--) {
-            this.handleChatEvent(chatEvent.data.archive.events[i]);
-          }
-        }
-        eventsCursor.push(chatEvent);
-        break;
       case "join":
-      case "online":
-      case "offline":
         eventsCursor.push(chatEvent)
-        usersCursor.set(chatEvent.data.id, chatEvent.data);
-        break;
-      case "leave":
-        chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
-        eventsCursor.push(chatEvent)
-        usersCursor.unset(chatEvent.data.user_id);
+        if (chatEvent.data.zone) {
+          this.setState({zone: chatEvent.data.zone})
+        }
         break;
       default:
     }
@@ -428,7 +395,7 @@ var ZonePage = React.createClass({displayName: "ZonePage",
   render: function () {
     return (
       React.createElement("div", {className: "container-fluid"}, 
-        React.createElement(ChatHeader, null), 
+        React.createElement(ChatHeader, {zone: this.state.zone}), 
         React.createElement("div", {className: "row gc-content"}, 
           React.createElement("div", {className: "col-md-8"}, 
             React.createElement(ChatWindow, null), 
@@ -437,10 +404,10 @@ var ZonePage = React.createClass({displayName: "ZonePage",
           React.createElement("div", {className: "col-md-4 gc-sidebar"}, 
             React.createElement("div", {className: "row gc-map"}, 
               React.createElement("div", {className: "col-md-12"}, 
-                React.createElement(ChatMap, null)
+                React.createElement(ChatMap, {zone: this.state.zone})
               )
             ), 
-            React.createElement(UserList, null)
+            React.createElement(UserList, {zone: this.state.zone})
           )
         )
       )
@@ -457,7 +424,6 @@ var ReactAddons = require('react/addons'),
 
 var stateTree = new Baobab({
   visibleEvents: [],
-  users: {},
   zone: {}
 }, {
   mixins: [ReactAddons.PureRenderMixin],

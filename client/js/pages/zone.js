@@ -7,38 +7,26 @@ var React = require('react'),
     UserList = require('../components/UserList');
 
 var eventsCursor = stateTree.select('visibleEvents'),
-    usersCursor = stateTree.select('users'),
     zoneCursor = stateTree.select('zone');
 
 var ZonePage = React.createClass({
 
   mixins: [React.addons.PureRenderMixin],
 
+  getInitialState: function () {
+    return { zone: {} }
+  },
+
   handleChatEvent: function (chatEvent) {
     switch (chatEvent.type) {
       case "message":
         eventsCursor.push(chatEvent);
         break;
-      case "zone":
-        stateTree.set('zone', chatEvent);
-        stateTree.set('users', chatEvent.data.users);
-        if (chatEvent.data.archive) {
-          for (var i = chatEvent.data.archive.events.length - 1; i >= 0; i--) {
-            this.handleChatEvent(chatEvent.data.archive.events[i]);
-          }
-        }
-        eventsCursor.push(chatEvent);
-        break;
       case "join":
-      case "online":
-      case "offline":
         eventsCursor.push(chatEvent)
-        usersCursor.set(chatEvent.data.id, chatEvent.data);
-        break;
-      case "leave":
-        chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
-        eventsCursor.push(chatEvent)
-        usersCursor.unset(chatEvent.data.user_id);
+        if (chatEvent.data.zone) {
+          this.setState({zone: chatEvent.data.zone})
+        }
         break;
       default:
     }
@@ -77,7 +65,7 @@ var ZonePage = React.createClass({
   render: function () {
     return (
       <div className="container-fluid">
-        <ChatHeader />
+        <ChatHeader zone={this.state.zone} />
         <div className="row gc-content">
           <div className="col-md-8">
             <ChatWindow />
@@ -86,10 +74,10 @@ var ZonePage = React.createClass({
           <div className="col-md-4 gc-sidebar">
             <div className="row gc-map">
               <div className="col-md-12">
-                <ChatMap />
+                <ChatMap zone={this.state.zone} />
               </div>
             </div>
-            <UserList />
+            <UserList zone={this.state.zone} />
           </div>
         </div>
       </div>

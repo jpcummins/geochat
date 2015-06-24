@@ -3,7 +3,6 @@ var ReactAddons = require('react/addons'),
 
 var stateTree = new Baobab({
   visibleEvents: [],
-  users: {},
   zone: {}
 }, {
   mixins: [ReactAddons.PureRenderMixin],

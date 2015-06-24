@@ -42,7 +42,7 @@ func (psZone *ZonePubSubJSON) Type() PubSubDataType {
 
 type ZoneBroadcastJSON struct {
 	ID        string               `json:"id"`
-	Users     []*UserBroadcastJSON `json:"user_ids"`
+	Users     []*UserBroadcastJSON `json:"users"`
 	SouthWest *LatLngJSON          `json:"sw"`
 	NorthEast *LatLngJSON          `json:"ne"`
 }
