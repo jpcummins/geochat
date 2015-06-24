@@ -1,7 +1,7 @@
 package types
 
 type World interface {
-	EventJSON
+	PubSubSerializable
 
 	ID() string
 	MaxUsers() int
@@ -13,14 +13,14 @@ type World interface {
 	Users() Users
 	NewUser(id string, name string, lat float64, lng float64) (User, error)
 
-	NewServerEvent(ServerEventData) ServerEvent
-	NewClientEvent(ClientEventData) ClientEvent
-	Publish(ServerEvent) error
+	Publish(PubSubEventData) error
 }
 
-type ServerWorldJSON struct {
-	*BaseServerJSON
-	MaxUsers int `json:"max_users"`
+type WorldPubSubJSON struct {
+	ID       string `json:"id"`
+	MaxUsers int    `json:"max_users"`
 }
 
-type ClientWorldJSON BaseClientJSON
+func (psWorld *WorldPubSubJSON) Type() PubSubDataType {
+	return "world"
+}

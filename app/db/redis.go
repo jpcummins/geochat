@@ -3,6 +3,7 @@ package db
 import (
 	"encoding/json"
 	"github.com/garyburd/redigo/redis"
+	"github.com/jpcummins/geochat/app/pubsub"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/soveran/redisurl"
 	"time"
@@ -35,8 +36,8 @@ func NewRedisDB(redisServer string) *RedisDB {
 	return connection
 }
 
-func (r *RedisDB) User(id string, worldID string) (*types.ServerUserJSON, error) {
-	json := &types.ServerUserJSON{}
+func (r *RedisDB) User(id string, worldID string) (*types.UserPubSubJSON, error) {
+	json := &types.UserPubSubJSON{}
 	found, err := r.getObject(getUserKey(id, worldID), json)
 
 	if !found {
@@ -45,12 +46,12 @@ func (r *RedisDB) User(id string, worldID string) (*types.ServerUserJSON, error)
 	return json, err
 }
 
-func (r *RedisDB) SaveUser(json types.ServerJSON) error {
-	return r.setObject(getUserKey(json.Key(), json.WorldKey()), json)
+func (r *RedisDB) SaveUser(json *types.UserPubSubJSON, worldID string) error {
+	return r.setObject(getUserKey(json.ID, worldID), json)
 }
 
-func (r *RedisDB) Zone(id string, worldID string) (*types.ServerZoneJSON, error) {
-	json := &types.ServerZoneJSON{}
+func (r *RedisDB) Zone(id string, worldID string) (*types.ZonePubSubJSON, error) {
+	json := &types.ZonePubSubJSON{}
 	found, err := r.getObject(getZoneKey(id, worldID), json)
 
 	if !found {
@@ -60,12 +61,12 @@ func (r *RedisDB) Zone(id string, worldID string) (*types.ServerZoneJSON, error)
 	return json, err
 }
 
-func (r *RedisDB) SaveZone(json types.ServerJSON) error {
-	return r.setObject(getZoneKey(json.Key(), json.WorldKey()), json)
+func (r *RedisDB) SaveZone(json *types.ZonePubSubJSON, worldID string) error {
+	return r.setObject(getZoneKey(json.ID, worldID), json)
 }
 
-func (r *RedisDB) World(id string) (*types.ServerWorldJSON, error) {
-	json := &types.ServerWorldJSON{}
+func (r *RedisDB) World(id string) (*types.WorldPubSubJSON, error) {
+	json := &types.WorldPubSubJSON{}
 	found, err := r.getObject(getWorldKey(id), json)
 
 	if !found {
@@ -75,8 +76,8 @@ func (r *RedisDB) World(id string) (*types.ServerWorldJSON, error) {
 	return json, err
 }
 
-func (r *RedisDB) SaveWorld(json types.ServerJSON) error {
-	return r.setObject(getWorldKey(json.Key()), json)
+func (r *RedisDB) SaveWorld(json *types.WorldPubSubJSON) error {
+	return r.setObject(getWorldKey(json.ID), json)
 }
 
 func (r *RedisDB) getObject(id string, v interface{}) (bool, error) {
@@ -127,7 +128,7 @@ func NewRedisPubSub(worldID string, db *RedisDB) *RedisPubSub {
 	return &RedisPubSub{worldID, db}
 }
 
-func (r *RedisPubSub) Publish(event types.ServerEvent) error {
+func (r *RedisPubSub) Publish(event types.PubSubEvent) error {
 	bytes, err := json.Marshal(event)
 	if err != nil {
 		return err
@@ -137,13 +138,13 @@ func (r *RedisPubSub) Publish(event types.ServerEvent) error {
 	return err
 }
 
-func (r *RedisPubSub) Subscribe() <-chan types.ServerEvent {
-	ch := make(chan types.ServerEvent)
+func (r *RedisPubSub) Subscribe() <-chan types.PubSubEvent {
+	ch := make(chan types.PubSubEvent)
 	go r.subscribe(ch)
 	return ch
 }
 
-func (r *RedisPubSub) subscribe(ch chan types.ServerEvent) {
+func (r *RedisPubSub) subscribe(ch chan types.PubSubEvent) {
 	psc := redis.PubSubConn{r.db.pool.Get()}
 	defer psc.Close()
 	psc.Subscribe(getWorldKey(r.worldID))
@@ -151,13 +152,12 @@ func (r *RedisPubSub) subscribe(ch chan types.ServerEvent) {
 	for {
 		switch v := psc.Receive().(type) {
 		case redis.Message:
-			var event types.ServerEvent
-			println("got event 1")
+			var event pubsub.Event
 			if err := json.Unmarshal(v.Data, &event); err != nil {
-				println("err:", err.Error())
+				println("Error unmarshaling from pubsub: ", err.Error())
 				continue
 			}
-			ch <- event
+			ch <- &event
 		}
 	}
 }

@@ -1,7 +1,8 @@
 package types
 
 type Zone interface {
-	EventJSON
+	PubSubSerializable
+	BroadcastSerializable
 
 	ID() string
 	World() World
@@ -17,23 +18,29 @@ type Zone interface {
 	Count() int
 	IsOpen() bool
 	SetIsOpen(bool)
-	Broadcast(ClientEvent)
 	AddUser(User)
 	RemoveUser(string)
 
-	// Events
-	Join(User) (ClientEvent, error)
-	Message(User, string) (ClientEvent, error)
+	// Broadcast
+	Broadcast(BroadcastEventData)
+
+	// Pubsubs
+	Join(User) (BroadcastEvent, error)
+	Message(User, string) (BroadcastEvent, error)
 }
 
-type ServerZoneJSON struct {
-	*BaseServerJSON
+type ZonePubSubJSON struct {
+	ID       string   `json:"id"`
 	UserIDs  []string `json:"user_ids"`
 	IsOpen   bool     `json:"is_open"`
 	MaxUsers int      `json:"max_users"`
 }
 
-type ClientZoneJSON struct {
-	BaseClientJSON
-	Users []*ClientUserJSON `json:"users"`
+func (psZone *ZonePubSubJSON) Type() PubSubDataType {
+	return "zone"
+}
+
+type ZoneBroadcastJSON struct {
+	ID    string               `json:"id"`
+	Users []*UserBroadcastJSON `json:"user_ids"`
 }

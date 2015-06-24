@@ -1,26 +1,27 @@
 package chat
 
 import (
-	"github.com/jpcummins/geochat/app/events"
+	"github.com/jpcummins/geochat/app/broadcast"
 	"github.com/jpcummins/geochat/app/types"
 )
 
 type Connection struct {
-	events chan types.ClientEvent
+	events chan types.BroadcastEvent
 	user   types.User
 }
 
 func newConnection(user types.User) *Connection {
 	return &Connection{
-		events: make(chan types.ClientEvent, 10),
+		events: make(chan types.BroadcastEvent, 10),
 		user:   user,
 	}
 }
 
-func (c *Connection) Events() <-chan types.ClientEvent {
+func (c *Connection) Events() <-chan types.BroadcastEvent {
 	return c.events
 }
 
 func (c *Connection) Ping() {
-	c.events <- c.user.Zone().World().NewClientEvent(&events.Ping{})
+	event := broadcast.NewEvent(generateEventID(), broadcast.Ping())
+	c.events <- event
 }

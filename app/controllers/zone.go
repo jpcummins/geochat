@@ -27,8 +27,11 @@ func (zc *ZoneController) setSession() revel.Result {
 	}
 
 	user, err := chat.App.Users().User(userID)
+	if err != nil {
+		return zc.RenderError(err)
+	}
 
-	if user == nil || err != nil {
+	if user == nil {
 		return zc.Redirect("/")
 	}
 
@@ -64,12 +67,10 @@ func (zc *ZoneController) Zone() revel.Result {
 
 // ZoneSocket action handles WebSocket communication
 func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
-
 	var zone types.Zone
 	var err error
 
 	if zc.user.Zone() == nil {
-		println("A")
 		zone, err = chat.App.FindOpenZone(zc.user)
 		if err != nil {
 			return zc.RenderError(err)
@@ -80,7 +81,6 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 
 	connection := zc.user.Connect()
 
-	println("B")
 	if _, err := zone.Join(zc.user); err != nil {
 		return zc.RenderError(err)
 	}
@@ -101,22 +101,17 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 
 	// Send events to the WebSocket
 	ping := time.NewTicker(30 * time.Second)
-	println("C")
 	events := connection.Events()
-	println("D")
 
 	for {
 		select {
 		case <-ping.C:
-			println("E")
 			connection.Ping()
 		case event := <-events:
-			println("F")
 			if err := websocket.JSON.Send(ws, &event); err != nil {
 				closeConnection <- true
 			}
 		case _ = <-closeConnection:
-			println("G")
 			zc.user.Disconnect(connection)
 			ws.Close()
 			return nil

@@ -2,7 +2,7 @@ package chat
 
 import (
 	"errors"
-	"github.com/jpcummins/geochat/app/events"
+	"github.com/jpcummins/geochat/app/pubsub"
 	"github.com/jpcummins/geochat/app/types"
 	"math/rand"
 	"strconv"
@@ -15,31 +15,28 @@ const rootWorldID string = "0"
 
 type World struct {
 	sync.RWMutex
-	*types.ServerWorldJSON
+	types.PubSubSerializable
+	*types.WorldPubSubJSON
+
 	root   types.Zone
 	db     types.DB
 	pubsub types.PubSub
-	events types.Events
 	users  types.Users
 	zones  types.Zones
 }
 
 func newWorld(id string, db types.DB, ps types.PubSub, maxUsers int) (*World, error) {
 	w := &World{
-		ServerWorldJSON: &types.ServerWorldJSON{
-			BaseServerJSON: &types.BaseServerJSON{
-				ID:      id,
-				WorldID: id,
-			},
+		WorldPubSubJSON: &types.WorldPubSubJSON{
+			ID:       id,
 			MaxUsers: maxUsers,
 		},
+		db:     db,
+		pubsub: ps,
 	}
 
-	w.db = db
-	w.pubsub = ps
-	w.users = newUsers(id, db)
+	w.users = newUsers(w, db)
 	w.zones = newZones(w, db)
-	w.events = events.NewEvents(w)
 
 	root, err := w.GetOrCreateZone(rootZoneID)
 	if err != nil {
@@ -56,7 +53,6 @@ func (w *World) manage() {
 	for {
 		select {
 		case event := <-subscription:
-			println("got event")
 			event.SetWorld(w)
 			event.Data().OnReceive(event)
 		}
@@ -64,11 +60,11 @@ func (w *World) manage() {
 }
 
 func (w *World) ID() string {
-	return w.ServerWorldJSON.ID
+	return w.WorldPubSubJSON.ID
 }
 
 func (w *World) MaxUsers() int {
-	return w.ServerWorldJSON.MaxUsers
+	return w.WorldPubSubJSON.MaxUsers
 }
 
 func (w *World) Users() types.Users {
@@ -144,39 +140,27 @@ func (w *World) NewUser(id string, name string, lat float64, lng float64) (types
 	return user, nil
 }
 
-func (w *World) NewServerEvent(data types.ServerEventData) types.ServerEvent {
-	return w.events.NewServerEvent(generateEventID(), data)
-}
-
-func (w *World) NewClientEvent(data types.ClientEventData) types.ClientEvent {
-	return w.events.NewClientEvent(generateEventID(), data)
-}
-
-func (w *World) Publish(event types.ServerEvent) error {
+func (w *World) Publish(data types.PubSubEventData) error {
+	event := pubsub.NewEvent(generateEventID(), w, data)
 	if err := event.Data().BeforePublish(event); err != nil {
 		return err
 	}
-
 	return w.pubsub.Publish(event)
 }
 
-func (w *World) ServerJSON() types.ServerJSON {
-	return w.ServerWorldJSON
+func (w *World) PubSubJSON() types.PubSubJSON {
+	return w.WorldPubSubJSON
 }
 
-func (w *World) ClientJSON() types.ClientJSON {
-	return nil
-}
-
-func (w *World) Update(json types.ServerJSON) error {
-	worldJSON, ok := json.(*types.ServerWorldJSON)
+func (w *World) Update(json types.PubSubJSON) error {
+	worldJSON, ok := json.(*types.WorldPubSubJSON)
 	if !ok {
 		return errors.New("Invalid json type.")
 	}
 
 	w.Lock()
 	defer w.Unlock()
-	w.ServerWorldJSON = worldJSON
+	w.WorldPubSubJSON = worldJSON
 	return nil
 }
 

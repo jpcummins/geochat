@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"errors"
 	"github.com/jpcummins/geochat/app/types"
 	"sync"
 )
@@ -46,19 +47,24 @@ func (z *Zones) FromDB(id string) (types.Zone, error) {
 
 	zone := z.FromCache(id)
 	if zone == nil {
-		zone, err = newZone(id, z.world, z.world.MaxUsers())
-		if err != nil {
+		if zone, err = newZone(id, z.world, z.world.MaxUsers()); err != nil {
 			return nil, err
 		}
 	}
+	if err := zone.Update(json); err != nil {
+		return nil, err
+	}
 
-	zone.Update(json)
-	z.updateCache(zone)
 	return zone, nil
 }
 
 func (z *Zones) Save(zone types.Zone) error {
-	if err := z.db.SaveZone(zone.ServerJSON()); err != nil {
+	json, ok := zone.PubSubJSON().(*types.ZonePubSubJSON)
+	if !ok {
+		return errors.New("Unable to serialize ZonePubSubJSON")
+	}
+
+	if err := z.db.SaveZone(json, z.world.ID()); err != nil {
 		return err
 	}
 

@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"errors"
 	"github.com/jpcummins/geochat/app/types"
 	"sync"
 )
@@ -46,19 +47,24 @@ func (w *Worlds) FromDB(id string) (types.World, error) {
 
 	world := w.FromCache(id)
 	if world == nil {
-		world, err = newWorld(id, w.db, w.pubsub, json.MaxUsers)
-		if err != nil {
+		if world, err = newWorld(id, w.db, w.pubsub, 10); err != nil {
 			return nil, err
 		}
 	}
 
-	world.Update(json)
-	w.updateCache(world)
+	if err := world.Update(json); err != nil {
+		return nil, err
+	}
+
 	return world, nil
 }
 
 func (w *Worlds) Save(world types.World) error {
-	json := world.ServerJSON()
+	json, ok := world.PubSubJSON().(*types.WorldPubSubJSON)
+	if !ok {
+		return errors.New("Unable to serialize WorldPubSubJSON")
+	}
+
 	if err := w.db.SaveWorld(json); err != nil {
 		return err
 	}

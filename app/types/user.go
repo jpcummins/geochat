@@ -1,7 +1,8 @@
 package types
 
 type User interface {
-	EventJSON
+	PubSubSerializable
+	BroadcastSerializable
 
 	ID() string
 	Name() string
@@ -10,21 +11,24 @@ type User interface {
 	Zone() Zone
 	SetZone(Zone)
 
-	Broadcast(ClientEvent)
+	Broadcast(BroadcastEventData)
+
 	Connect() Connection
 	Disconnect(Connection)
 }
 
-type ServerUserJSON struct {
-	*BaseServerJSON
-	CreatedAt    int    `json:"created_at"`
-	LastActivity int    `json:"last_activity"`
-	Name         string `json:"name"`
-	Location     LatLng `json:"location"`
-	ZoneID       string `json:"zone_id"`
+type UserPubSubJSON struct {
+	ID       string      `json:"id"`
+	Name     string      `json:"name"`
+	Location *LatLngJSON `json:"location"`
+	ZoneID   string      `json:"zone_id"`
 }
 
-type ClientUserJSON struct {
+func (psUser *UserPubSubJSON) Type() PubSubDataType {
+	return "user"
+}
+
+type UserBroadcastJSON struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }

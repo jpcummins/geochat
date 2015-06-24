@@ -3,9 +3,8 @@ package chat
 import (
 	"errors"
 	gh "github.com/TomiHiltunen/geohash-golang"
-	"github.com/jpcummins/geochat/app/events"
+	"github.com/jpcummins/geochat/app/pubsub"
 	"github.com/jpcummins/geochat/app/types"
-	"sort"
 	"strings"
 	"sync"
 )
@@ -16,7 +15,10 @@ const geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
 
 type Zone struct {
 	sync.RWMutex
-	*types.ServerZoneJSON
+	types.PubSubSerializable
+	types.BroadcastSerializable
+	*types.ZonePubSubJSON
+
 	world        types.World
 	southWest    types.LatLng
 	northEast    types.LatLng
@@ -39,11 +41,8 @@ func newZone(id string, world types.World, maxUsers int) (*Zone, error) {
 	northEast := gh.Decode(geohash + to).NorthEast()
 
 	zone := &Zone{
-		ServerZoneJSON: &types.ServerZoneJSON{
-			BaseServerJSON: &types.BaseServerJSON{
-				ID:      id,
-				WorldID: world.ID(),
-			},
+		ZonePubSubJSON: &types.ZonePubSubJSON{
+			ID:       id,
 			IsOpen:   true,
 			MaxUsers: maxUsers,
 		},
@@ -86,7 +85,7 @@ func validateZoneID(id string) (geohash string, from string, to string, err erro
 }
 
 func (z *Zone) ID() string {
-	return z.ServerZoneJSON.BaseServerJSON.ID
+	return z.ZonePubSubJSON.ID
 }
 
 func (z *Zone) World() types.World {
@@ -126,7 +125,7 @@ func (z *Zone) RightZoneID() string {
 }
 
 func (z *Zone) MaxUsers() int {
-	return z.ServerZoneJSON.MaxUsers
+	return z.ZonePubSubJSON.MaxUsers
 }
 
 func (z *Zone) Count() int {
@@ -136,71 +135,87 @@ func (z *Zone) Count() int {
 }
 
 func (z *Zone) IsOpen() bool {
-	return z.ServerZoneJSON.IsOpen
+	return z.ZonePubSubJSON.IsOpen
 }
 
 func (z *Zone) SetIsOpen(isOpen bool) {
-	z.ServerZoneJSON.IsOpen = isOpen
+	z.ZonePubSubJSON.IsOpen = isOpen
 }
 
 func (z *Zone) AddUser(user types.User) {
 	z.Lock()
-	defer z.Unlock()
 	z.users[user.ID()] = user
+	z.Unlock()
+	z.updateUserIDs()
 }
 
 func (z *Zone) RemoveUser(id string) {
 	z.Lock()
-	defer z.Unlock()
 	delete(z.users, id)
+	z.Unlock()
+	z.updateUserIDs()
 }
 
-func (z *Zone) Broadcast(event types.ClientEvent) {
+func (z *Zone) updateUserIDs() {
 	z.RLock()
 	defer z.RUnlock()
-	println("zone broadcast")
-	for _, user := range z.users {
-		user.Broadcast(event)
-	}
-}
-
-func (z *Zone) ClientJSON() types.ClientJSON {
-	return nil
-}
-
-func (z *Zone) ServerJSON() types.ServerJSON {
-	z.RLock()
-	defer z.RUnlock()
-	z.ServerZoneJSON.UserIDs = make([]string, 0, len(z.users))
+	z.ZonePubSubJSON.UserIDs = make([]string, 0, len(z.users))
 	for id := range z.users {
-		z.ServerZoneJSON.UserIDs = append(z.ServerZoneJSON.UserIDs, id)
+		z.ZonePubSubJSON.UserIDs = append(z.ZonePubSubJSON.UserIDs, id)
 	}
-	sort.Strings(z.ServerZoneJSON.UserIDs)
-	return z.ServerZoneJSON
 }
 
-func (z *Zone) Update(js types.ServerJSON) error {
-	json, ok := js.(*types.ServerZoneJSON)
+func (z *Zone) Broadcast(eventData types.BroadcastEventData) {
+	z.RLock()
+	defer z.RUnlock()
+
+	for _, user := range z.users {
+		user.Broadcast(eventData)
+	}
+}
+
+func (z *Zone) BroadcastJSON() interface{} {
+	z.RLock()
+	defer z.RUnlock()
+
+	json := &types.ZoneBroadcastJSON{
+		ID:    z.ID(),
+		Users: make([]*types.UserBroadcastJSON, len(z.users)),
+	}
+	for _, user := range z.users {
+		json.Users = append(json.Users, user.BroadcastJSON().(*types.UserBroadcastJSON))
+	}
+	return json
+}
+
+func (z *Zone) PubSubJSON() types.PubSubJSON {
+	return z.ZonePubSubJSON
+}
+
+func (z *Zone) Update(js types.PubSubJSON) error {
+	json, ok := js.(*types.ZonePubSubJSON)
 	if !ok {
-		return errors.New("Invalid json type.")
+		return errors.New("Unable to serialize to ZonePubSubJSON.")
 	}
 
 	z.Lock()
 	defer z.Unlock()
-	z.ServerZoneJSON = json
+	z.ZonePubSubJSON = json
 	return nil
 }
 
-func (z *Zone) Join(user types.User) (types.ClientEvent, error) {
-	event := z.world.NewServerEvent(events.ServerJoin(z, user))
-	return nil, z.world.Publish(event)
-}
-
-func (z *Zone) Message(user types.User, message string) (types.ClientEvent, error) {
-	messageEventData, err := events.NewMessage(user, message)
+func (z *Zone) Join(user types.User) (types.BroadcastEvent, error) {
+	data, err := pubsub.Join(z, user)
 	if err != nil {
 		return nil, err
 	}
-	event := z.world.NewServerEvent(messageEventData)
-	return nil, z.world.Publish(event)
+	return nil, z.world.Publish(data)
+}
+
+func (z *Zone) Message(user types.User, message string) (types.BroadcastEvent, error) {
+	data, err := pubsub.Message(user, message)
+	if err != nil {
+		return nil, err
+	}
+	return nil, z.world.Publish(data)
 }

@@ -1,12 +1,12 @@
 package types
 
 type DB interface {
-	User(userID string, worldID string) (*ServerUserJSON, error)
-	SaveUser(json ServerJSON) error
+	User(userID string, worldID string) (*UserPubSubJSON, error)
+	SaveUser(json *UserPubSubJSON, worldID string) error
 
-	Zone(zoneID string, worldID string) (*ServerZoneJSON, error)
-	SaveZone(json ServerJSON) error
+	Zone(zoneID string, worldID string) (*ZonePubSubJSON, error)
+	SaveZone(json *ZonePubSubJSON, worldID string) error
 
-	World(worldID string) (*ServerWorldJSON, error)
-	SaveWorld(ServerJSON) error
+	World(worldID string) (*WorldPubSubJSON, error)
+	SaveWorld(json *WorldPubSubJSON) error
 }
