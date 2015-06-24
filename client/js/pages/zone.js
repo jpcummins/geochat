@@ -14,7 +14,7 @@ var ZonePage = React.createClass({
   mixins: [React.addons.PureRenderMixin],
 
   getInitialState: function () {
-    return { zone: {} }
+    return { zone: {}, users: {} }
   },
 
   handleChatEvent: function (chatEvent) {
@@ -25,7 +25,10 @@ var ZonePage = React.createClass({
       case "join":
         eventsCursor.push(chatEvent)
         if (chatEvent.data.zone) {
-          this.setState({zone: chatEvent.data.zone})
+          this.setState({
+            zone: chatEvent.data.zone,
+            users: chatEvent.data.zone.users
+          })
         }
         break;
       default:
@@ -77,7 +80,7 @@ var ZonePage = React.createClass({
                 <ChatMap zone={this.state.zone} />
               </div>
             </div>
-            <UserList zone={this.state.zone} />
+            <UserList zone={this.state.users} />
           </div>
         </div>
       </div>
