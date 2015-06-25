@@ -143,6 +143,15 @@ func (z *Zone) SetIsOpen(isOpen bool) {
 func (z *Zone) AddUser(user types.User) {
 	z.Lock()
 	defer z.Unlock()
+
+	// If the user is already here, don't add.
+	users := z.ZonePubSubJSON.UserIDs
+	for i := range users {
+		if users[i] == user.ID() {
+			return
+		}
+	}
+
 	z.ZonePubSubJSON.UserIDs = append(z.ZonePubSubJSON.UserIDs, user.ID())
 }
 

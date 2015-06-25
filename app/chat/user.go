@@ -101,8 +101,9 @@ func (u *User) Disconnect(c types.Connection) {
 
 func (u *User) BroadcastJSON() interface{} {
 	return &types.UserBroadcastJSON{
-		ID:   u.ID(),
-		Name: u.Name(),
+		ID:       u.ID(),
+		Name:     u.Name(),
+		Location: u.Location().BroadcastJSON().(*types.LatLngJSON),
 	}
 }
 

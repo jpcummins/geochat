@@ -45,7 +45,6 @@ func (j *join) BeforePublish(e types.PubSubEvent) error {
 
 	j.zone.AddUser(j.user)
 	j.user.SetZone(j.zone)
-	println("ID: " + j.zone.PubSubJSON().(*types.ZonePubSubJSON).ID)
 
 	if err := e.World().Users().Save(j.user); err != nil {
 		return err
