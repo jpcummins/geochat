@@ -6,10 +6,12 @@ import (
 	"github.com/jpcummins/geochat/app/pubsub"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/soveran/redisurl"
+	"sync"
 	"time"
 )
 
 type RedisDB struct {
+	sync.RWMutex
 	pool       *redis.Pool
 	connection redis.Conn
 }
@@ -81,6 +83,9 @@ func (r *RedisDB) SaveWorld(json *types.WorldPubSubJSON) error {
 }
 
 func (r *RedisDB) getObject(id string, v interface{}) (bool, error) {
+	r.Lock()
+	defer r.Unlock()
+
 	data, err := redis.Bytes(r.connection.Do("GET", id))
 	if err == redis.ErrNil {
 		return false, nil
@@ -97,6 +102,8 @@ func (r *RedisDB) setObject(id string, v interface{}) error {
 		return err
 	}
 
+	r.Lock()
+	defer r.Unlock()
 	_, err = r.connection.Do("SET", id, string(bytes))
 	return err
 }
@@ -125,16 +132,21 @@ type RedisPubSub struct {
 }
 
 func NewRedisPubSub(worldID string, db *RedisDB) *RedisPubSub {
-	return &RedisPubSub{worldID, db}
+	return &RedisPubSub{
+		worldID: worldID,
+		db:      db,
+	}
 }
 
-func (r *RedisPubSub) Publish(event types.PubSubEvent) error {
+func (pubsub *RedisPubSub) Publish(event types.PubSubEvent) error {
 	bytes, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
 
-	_, err = r.db.connection.Do("PUBLISH", getWorldKey(r.worldID), string(bytes))
+	pubsub.db.Lock()
+	defer pubsub.db.Unlock()
+	_, err = pubsub.db.connection.Do("PUBLISH", getWorldKey(pubsub.worldID), string(bytes))
 	return err
 }
 

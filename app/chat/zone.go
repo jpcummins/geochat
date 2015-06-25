@@ -28,7 +28,6 @@ type Zone struct {
 	parentZoneID string
 	leftZoneID   string
 	rightZoneID  string
-	users        map[string]types.User
 }
 
 func newZone(id string, world types.World, maxUsers int) (*Zone, error) {
@@ -52,7 +51,6 @@ func newZone(id string, world types.World, maxUsers int) (*Zone, error) {
 		geohash:   geohash,
 		from:      from,
 		to:        to,
-		users:     make(map[string]types.User),
 	}
 
 	// Calculate left, right, and parent IDs
@@ -131,7 +129,7 @@ func (z *Zone) MaxUsers() int {
 func (z *Zone) Count() int {
 	z.RLock()
 	defer z.RUnlock()
-	return len(z.users)
+	return len(z.ZonePubSubJSON.UserIDs)
 }
 
 func (z *Zone) IsOpen() bool {
@@ -144,24 +142,20 @@ func (z *Zone) SetIsOpen(isOpen bool) {
 
 func (z *Zone) AddUser(user types.User) {
 	z.Lock()
-	z.users[user.ID()] = user
-	z.Unlock()
-	z.updateUserIDs()
+	defer z.Unlock()
+	z.ZonePubSubJSON.UserIDs = append(z.ZonePubSubJSON.UserIDs, user.ID())
 }
 
 func (z *Zone) RemoveUser(id string) {
 	z.Lock()
-	delete(z.users, id)
-	z.Unlock()
-	z.updateUserIDs()
-}
+	defer z.Unlock()
 
-func (z *Zone) updateUserIDs() {
-	z.RLock()
-	defer z.RUnlock()
-	z.ZonePubSubJSON.UserIDs = make([]string, 0, len(z.users))
-	for id := range z.users {
-		z.ZonePubSubJSON.UserIDs = append(z.ZonePubSubJSON.UserIDs, id)
+	users := z.ZonePubSubJSON.UserIDs
+	for i := range users {
+		if users[i] == id {
+			z.ZonePubSubJSON.UserIDs = append(users[:i], users[i+1:]...)
+			return
+		}
 	}
 }
 
@@ -169,8 +163,10 @@ func (z *Zone) Broadcast(eventData types.BroadcastEventData) {
 	z.RLock()
 	defer z.RUnlock()
 
-	for _, user := range z.users {
-		user.Broadcast(eventData)
+	for _, id := range z.ZonePubSubJSON.UserIDs {
+		if user, err := z.World().Users().User(id); user != nil && err == nil {
+			user.Broadcast(eventData)
+		}
 	}
 }
 
@@ -183,8 +179,10 @@ func (z *Zone) BroadcastJSON() interface{} {
 		SouthWest: z.southWest.BroadcastJSON().(*types.LatLngJSON),
 		NorthEast: z.northEast.BroadcastJSON().(*types.LatLngJSON),
 	}
-	for _, user := range z.users {
-		json.Users[user.ID()] = user.BroadcastJSON().(*types.UserBroadcastJSON)
+	for _, id := range z.ZonePubSubJSON.UserIDs {
+		if user, err := z.World().Users().User(id); err == nil {
+			json.Users[id] = user.BroadcastJSON().(*types.UserBroadcastJSON)
+		}
 	}
 	return json
 }

@@ -21,12 +21,16 @@ var ChatCompose = React.createClass({displayName: "ChatCompose",
       var message = inputBox.value;
 
       if (/\//.test(message)) {
-        message = message.replace(/\//, '').trim()
+        message = message.replace(/\//, '').split(/\s(.+)?/)
+        var command = message[0].trim()
+        var args = message[1] ? message[1].trim() : ""
+
         $.ajax({
           url: '/chat/command',
           method: 'POST',
           data: {
-            command: message
+            command: command,
+            args: args
           }
         });
       } else {
@@ -162,6 +166,10 @@ var ChatWindow = React.createClass({displayName: "ChatWindow",
       element = React.createElement(eventClasses[event.type], event)
       that.events = that.events.concat(element);
     })
+
+    if (this.events.length > 200) {
+      this.events = this.events.splice(200)
+    }
 
     this.forceUpdate();
   },

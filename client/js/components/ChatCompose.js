@@ -9,12 +9,16 @@ var ChatCompose = React.createClass({
       var message = inputBox.value;
 
       if (/\//.test(message)) {
-        message = message.replace(/\//, '').trim()
+        message = message.replace(/\//, '').split(/\s(.+)?/)
+        var command = message[0].trim()
+        var args = message[1] ? message[1].trim() : ""
+
         $.ajax({
           url: '/chat/command',
           method: 'POST',
           data: {
-            command: message
+            command: command,
+            args: args
           }
         });
       } else {

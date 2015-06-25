@@ -28,6 +28,10 @@ var ChatWindow = React.createClass({
       that.events = that.events.concat(element);
     })
 
+    if (this.events.length > 200) {
+      this.events = this.events.splice(200)
+    }
+
     this.forceUpdate();
   },
 

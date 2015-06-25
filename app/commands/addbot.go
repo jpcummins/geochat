@@ -1,13 +1,67 @@
-package chat
+package commands
 
 import (
-// "errors"
-// "math/rand"
-// "strconv"
-// "time"
+	// "errors"
+	"github.com/jpcummins/geochat/app/types"
+	"math/rand"
+	"strconv"
+	"strings"
+	// "time"
 )
 
 var botNames = []string{"Sophia", "Noah", "Emma", "Liam", "Olivia", "Jacob", "Isabella", "Mason", "Ava", "William", "Mia", "Ethan", "Emily", "Michael", "Abigail", "Alexander", "Madison", "Jayden", "Elizabeth", "Daniel", "Charlotte", "Elijah", "Avery", "Aiden", "Sofia", "James", "Chloe", "Benjamin", "Ella", "Matthew", "Harper", "Jackson", "Amelia", "Logan", "Aubrey", "David", "Addison", "Anthony", "Evelyn", "Joseph", "Natalie", "Joshua", "Grace", "Andrew", "Hannah", "Lucas", "Zoey", "Gabriel", "Victoria", "Samuel", "Lillian", "Christopher", "Lily", "John", "Brooklyn", "Dylan", "Samantha", "Isaac", "Layla", "Ryan", "Zoe", "Nathan", "Audrey", "Carter", "Leah", "Caleb", "Allison", "Luke", "Anna", "Christian", "Aaliyah", "Hunter", "Savannah", "Henry", "Gabriella", "Owen", "Camila", "Landon", "Aria", "Jack", "Kaylee", "Wyatt", "Scarlett", "Jonathan", "Hailey", "Eli", "Arianna", "Isaiah", "Riley", "Sebastian", "Alexis", "Jaxon", "Nevaeh", "Julian", "Sarah", "Brayden", "Claire", "Gavin", "Sadie", "Levi", "Peyton", "Aaron", "Aubree", "Oliver", "Serenity", "Jordan", "Ariana", "Nicholas", "Genesis", "Evan", "Penelope", "Connor", "Alyssa", "Charles", "Bella", "Jeremiah", "Taylor", "Cameron", "Alexa", "Adrian", "Kylie", "Thomas", "Mackenzie", "Robert", "Caroline", "Tyler", "Kennedy", "Colton", "Autumn", "Austin", "Lucy", "Jace", "Ashley", "Angel", "Madelyn", "Dominic", "Violet", "Josiah", "Stella", "Brandon", "Brianna", "Ayden", "Maya", "Kevin", "Skylar", "Zachary", "Ellie", "Parker", "Julia", "Blake", "Sophie", "Jose", "Katherine", "Chase", "Mila", "Grayson", "Khloe", "Jason", "Paisley", "Ian", "Annabelle", "Bentley", "Alexandra", "Adam", "Nora", "Xavier", "Melanie", "Cooper", "London", "Justin", "Gianna", "Nolan", "Naomi", "Hudson", "Eva", "Easton", "Faith", "Jase", "Madeline", "Carson", "Lauren", "Nathaniel", "Nicole", "Jaxson", "Ruby", "Kayden"}
+
+type addBot struct{}
+
+func (b *addBot) Execute(args string, user types.User) error {
+	split := strings.Split(args, " ")
+	bots := 1
+
+	if len(split) == 1 {
+		n, err := strconv.Atoi(split[0])
+		if err != nil {
+			return err
+		}
+		bots = n
+	}
+
+	zone := user.Zone()
+	world := zone.World()
+
+	for i := 0; i < bots; i++ {
+		go func(num int) {
+			name := botNames[rand.Intn(len(botNames))]
+
+			lat := (rand.Float64() * zone.SouthWest().Lat()) + zone.NorthEast().Lat()
+			lng := (rand.Float64() * zone.SouthWest().Lng()) + zone.NorthEast().Lng()
+
+			bot, err := world.NewUser(name+strconv.Itoa(num), name, lat, lng)
+			if err != nil {
+				return
+			}
+
+			if _, err := zone.Join(bot); err != nil {
+				println(err.Error())
+			}
+			// bot := NewUser(user.lat, user.long, name)
+			// bot.JoinZone(user.zone)
+			//
+			// // Bot event handler
+			// go func() {
+			// 	timer := time.NewTimer(time.Duration(timeout) * time.Second)
+			// 	for {
+			// 		select {
+			// 		case <-timer.C:
+			// 			bot.LeaveZone()
+			// 			return
+			// 		}
+			// 	}
+			// }()
+		}(i)
+	}
+
+	return nil
+}
 
 //
 // func addBot(args []string, user *User) (string, error) {
@@ -23,26 +77,7 @@ var botNames = []string{"Sophia", "Noah", "Emma", "Liam", "Olivia", "Jacob", "Is
 // 		return "", err
 // 	}
 //
-// 	for i := 0; i < number; i++ {
-// 		go func(num int) {
-// 			name := botNames[rand.Intn(len(botNames))]
-// 			bot := NewUser(user.lat, user.long, name)
-// 			bot.JoinZone(user.zone)
-//
-// 			// Bot event handler
-// 			go func() {
-// 				timer := time.NewTimer(time.Duration(timeout) * time.Second)
-// 				for {
-// 					select {
-// 					case <-timer.C:
-// 						bot.LeaveZone()
-// 						return
-// 					}
-// 				}
-// 			}()
-// 		}(i)
-// 	}
-//
+
 // 	return "ok", nil
 // }
 //

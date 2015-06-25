@@ -12,6 +12,7 @@ type User interface {
 	SetZone(Zone)
 
 	Broadcast(BroadcastEventData)
+	ExecuteCommand(command string, args string) error
 
 	Connect() Connection
 	Disconnect(Connection)

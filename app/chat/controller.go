@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"errors"
 	"github.com/jpcummins/geochat/app/db"
 	"github.com/jpcummins/geochat/app/types"
 )
@@ -23,12 +22,7 @@ func Init(redisServer, worldID string, maxUsers int) error {
 		if err != nil {
 			return err
 		}
-
-		worldJSON, ok := world.PubSubJSON().(*types.WorldPubSubJSON)
-		if !ok {
-			return errors.New("Unable to serialize WorldPubSubJSON")
-		}
-		err = redisDB.SaveWorld(worldJSON)
+		worlds.Save(world)
 	}
 
 	App = world

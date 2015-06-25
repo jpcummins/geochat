@@ -3,6 +3,7 @@ package chat
 import (
 	"errors"
 	"github.com/jpcummins/geochat/app/broadcast"
+	"github.com/jpcummins/geochat/app/commands"
 	"github.com/jpcummins/geochat/app/types"
 	"sync"
 )
@@ -50,12 +51,9 @@ func (u *User) SetZone(zone types.Zone) {
 	defer u.Unlock()
 
 	u.zone = zone
-	zoneID := ""
 	if zone != nil {
-		zoneID = u.UserPubSubJSON.ZoneID
+		u.UserPubSubJSON.ZoneID = zone.ID()
 	}
-
-	u.UserPubSubJSON.ZoneID = zoneID
 }
 
 func (u *User) Broadcast(data types.BroadcastEventData) {
@@ -70,6 +68,10 @@ func (u *User) Broadcast(data types.BroadcastEventData) {
 	for _, connection := range u.connections {
 		connection.events <- event
 	}
+}
+
+func (u *User) ExecuteCommand(command string, args string) error {
+	return commands.Execute(command, args, u)
 }
 
 func (u *User) Connect() types.Connection {

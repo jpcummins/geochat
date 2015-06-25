@@ -56,8 +56,12 @@ func (zc *ZoneController) Message(text string) revel.Result {
 }
 
 // Command action is used to issue administrative commands
-func (zc *ZoneController) Command(command string) revel.Result {
-	return zc.Redirect("/")
+func (zc *ZoneController) Command(command string, args string) revel.Result {
+	println(command, args)
+	if err := zc.user.ExecuteCommand(command, args); err != nil {
+		zc.RenderError(err)
+	}
+	return nil
 }
 
 // Zone action renders the main chat interface
