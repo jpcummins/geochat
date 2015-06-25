@@ -66,15 +66,19 @@ var zoneCursor = stateTree.select('zone');
 
 var ChatHeader = React.createClass({displayName: "ChatHeader",
 
+  updateHeader: function () {
+    this.forceUpdate();
+  },
+
   componentDidMount: function () {
-    zoneCursor.on('update', this.showZone);
+    zoneCursor.on('update', this.updateHeader);
   },
 
   render: function () {
     return (
       React.createElement("div", {className: "row gc-header"}, 
         React.createElement("div", {className: "col-md-12"}, 
-          React.createElement("h4", null, "Location: ", this.props.zone.id)
+          React.createElement("h4", null, "Location: ", zoneCursor.get().id)
         )
       )
     )
@@ -136,8 +140,6 @@ var React = require('react'),
     Join = require('./events/Join'),
     Leave = require('./events/Leave');
 
-var visibleEvents = stateTree.select('visibleEvents');
-
 var eventClasses = {
   "message": Message,
   "zone": Zone,
@@ -145,22 +147,27 @@ var eventClasses = {
   "leave": Leave,
 }
 
+var eventsCursor = stateTree.select('visibleEvents');
+
 var ChatWindow = React.createClass({displayName: "ChatWindow",
 
+  events: [],
+
   showEvent: function (e) {
-    var event = e.data.data[e.data.data.length - 1];
-    event.key = event.id;
+    var that = this;
+    var newEvents = e.data.data.filter(function(i) {return e.data.previousData.indexOf(i) < 0;});
 
-    // todo: optimize - use a hashtable instead.
-    for (var i = 0; i < this.state.events.length; i++) {
-      var key = this.state.events[i].key;
-      if (key == event.key) {
-        return;
-      }
-    }
+    newEvents.forEach(function (event) {
+      event.key = event.id
+      element = React.createElement(eventClasses[event.type], event)
+      that.events = that.events.concat(element);
+    })
 
-    var element = React.createElement(eventClasses[event.type], event);
-    this.setState({ events: this.state.events.concat(element) });
+    this.forceUpdate();
+  },
+
+  componentDidMount: function () {
+    eventsCursor.on('update', this.showEvent);
   },
 
   componentDidUpdate: function () {
@@ -168,19 +175,11 @@ var ChatWindow = React.createClass({displayName: "ChatWindow",
     chatWindow.scrollTop(chatWindow[0].scrollHeight - chatWindow.height());
   },
 
-  componentDidMount: function () {
-    visibleEvents.on('update', this.showEvent);
-  },
-
-  getInitialState: function () {
-    return { events: [] }
-  },
-
   render: function () {
     return (
       React.createElement("div", {className: "row gc-chat-window"}, 
         React.createElement("div", {className: "col-md-12", ref: "chatWindow"}, 
-          this.state.events
+          this.events
         )
       )
     )
@@ -211,16 +210,31 @@ var React = require('react'),
     stateTree = require('../stateTree'),
     User = require('./User');
 
+var usersCursor = stateTree.select('users')
 
 var UserList = React.createClass({displayName: "UserList",
 
+  users: [],
+
+  updateUsers: function(e) {
+    this.users = [];
+    for (var id in e.data.data) {
+      this.users.push(e.data.data[id]);
+    }
+    this.forceUpdate()
+  },
+
+  componentDidMount: function () {
+    usersCursor.on('update', this.updateUsers);
+  },
+
   render: function () {
 
-    var users = []
-    for (var id in this.props.users) {
-      var user = this.props.users[id];
-      users = users.concat(React.createElement(User, {user: user, key: user.id}));
-    }
+    var users = this.users.map(function (user) {
+      return (
+        React.createElement(User, {user: user, key: user.id})
+      )
+    });
 
     return (
 	    React.createElement("div", {className: "row gc-users"}, 
@@ -236,19 +250,17 @@ module.exports = UserList
 
 
 },{"../stateTree":13,"./User":6,"react":197}],8:[function(require,module,exports){
-var React = require('react')
+var React = require('react'),
+    stateTree = require('../../stateTree');
+
+var usersCursor = stateTree.select('users');
 
 var Join = React.createClass({displayName: "Join",
-
-  getInitialState: function () {
-    return this.props.data
-  },
-
   render: function () {
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-offset-1 col-md-10"}, 
-          this.state.name, " joined"
+          this.props.data.user.name, " joined"
         )
       )
     )
@@ -258,20 +270,18 @@ var Join = React.createClass({displayName: "Join",
 module.exports = Join
 
 
-},{"react":197}],9:[function(require,module,exports){
-var React = require('react')
+},{"../../stateTree":13,"react":197}],9:[function(require,module,exports){
+var React = require('react'),
+    stateTree = require('../../stateTree');
+
+var usersCursor = stateTree.select('users');
 
 var Leave = React.createClass({displayName: "Leave",
-
-  getInitialState: function () {
-    return this.props.data.user
-  },
-
   render: function () {
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-offset-1 col-md-10"}, 
-          this.state.name, " left"
+          this.props.data.user.name, " left"
         )
       )
     )
@@ -281,7 +291,7 @@ var Leave = React.createClass({displayName: "Leave",
 module.exports = Leave
 
 
-},{"react":197}],10:[function(require,module,exports){
+},{"../../stateTree":13,"react":197}],10:[function(require,module,exports){
 var React = require('react'),
     stateTree = require('../../stateTree');
 
@@ -292,7 +302,7 @@ var Message = React.createClass({displayName: "Message",
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-1 gc-name"}, 
-          usersCursor.get(this.props.data.user_id).name
+          this.props.data.user.name
         ), 
         React.createElement("div", {className: "col-md-10"}, 
           this.props.data.text
@@ -306,14 +316,17 @@ module.exports = Message
 
 
 },{"../../stateTree":13,"react":197}],11:[function(require,module,exports){
-var React = require('react');
+var React = require('react'),
+    stateTree = require('../../stateTree');
+
+var usersCursor = stateTree.select('users');
 
 var Zone = React.createClass({displayName: "Zone",
   render: function () {
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-offset-1 col-md-10"}, 
-          "Joined zone: \"", this.props.data.id, "\" with ", Object.keys(this.props.data.users).length - 1, " other users."
+          "Joined zone: \"", this.props.data.zone.id, "\" with ", Object.keys(this.props.data.zone.users).length - 1, " other users."
         )
       )
     )
@@ -323,7 +336,7 @@ var Zone = React.createClass({displayName: "Zone",
 module.exports = Zone
 
 
-},{"react":197}],12:[function(require,module,exports){
+},{"../../stateTree":13,"react":197}],12:[function(require,module,exports){
 var React = require('react'),
     stateTree = require('../stateTree'),
     ChatHeader = require('../components/ChatHeader'),
@@ -341,25 +354,28 @@ var ZonePage = React.createClass({displayName: "ZonePage",
   mixins: [React.addons.PureRenderMixin],
 
   getInitialState: function () {
-    return { zone: {}, users: {} }
+    return { zone: {}, users: {}, events: [] }
   },
 
   handleChatEvent: function (chatEvent) {
     switch (chatEvent.type) {
       case "message":
-        eventsCursor.push(chatEvent);
+        chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
+        eventsCursor.push(chatEvent)
+        break;
+      case "zone":
+        eventsCursor.push(chatEvent)
+        zoneCursor.set(chatEvent.data.zone)
+        usersCursor.set(chatEvent.data.zone.users)
         break;
       case "join":
-        eventsCursor.push(chatEvent)
         usersCursor.set(chatEvent.data.user.id, chatEvent.data.user)
-
-        if (chatEvent.data.zone) {
-          this.setState({
-            zone: chatEvent.data.zone,
-            users: chatEvent.data.zone.users
-          });
-          usersCursor.set(chatEvent.data.zone.users);
-        }
+        eventsCursor.push(chatEvent)
+        break;
+      case "leave":
+        chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
+        eventsCursor.push(chatEvent)
+        usersCursor.unset(chatEvent.data.user.id)
         break;
       default:
     }
@@ -398,7 +414,7 @@ var ZonePage = React.createClass({displayName: "ZonePage",
   render: function () {
     return (
       React.createElement("div", {className: "container-fluid"}, 
-        React.createElement(ChatHeader, {zone: this.state.zone}), 
+        React.createElement(ChatHeader, null), 
         React.createElement("div", {className: "row gc-content"}, 
           React.createElement("div", {className: "col-md-8"}, 
             React.createElement(ChatWindow, null), 
@@ -407,10 +423,10 @@ var ZonePage = React.createClass({displayName: "ZonePage",
           React.createElement("div", {className: "col-md-4 gc-sidebar"}, 
             React.createElement("div", {className: "row gc-map"}, 
               React.createElement("div", {className: "col-md-12"}, 
-                React.createElement(ChatMap, {zone: this.state.zone})
+                React.createElement(ChatMap, null)
               )
             ), 
-            React.createElement(UserList, {users: this.state.users})
+            React.createElement(UserList, null)
           )
         )
       )

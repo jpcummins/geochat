@@ -5,8 +5,6 @@ var React = require('react'),
     Join = require('./events/Join'),
     Leave = require('./events/Leave');
 
-var visibleEvents = stateTree.select('visibleEvents');
-
 var eventClasses = {
   "message": Message,
   "zone": Zone,
@@ -14,22 +12,27 @@ var eventClasses = {
   "leave": Leave,
 }
 
+var eventsCursor = stateTree.select('visibleEvents');
+
 var ChatWindow = React.createClass({
 
+  events: [],
+
   showEvent: function (e) {
-    var event = e.data.data[e.data.data.length - 1];
-    event.key = event.id;
+    var that = this;
+    var newEvents = e.data.data.filter(function(i) {return e.data.previousData.indexOf(i) < 0;});
 
-    // todo: optimize - use a hashtable instead.
-    for (var i = 0; i < this.state.events.length; i++) {
-      var key = this.state.events[i].key;
-      if (key == event.key) {
-        return;
-      }
-    }
+    newEvents.forEach(function (event) {
+      event.key = event.id
+      element = React.createElement(eventClasses[event.type], event)
+      that.events = that.events.concat(element);
+    })
 
-    var element = React.createElement(eventClasses[event.type], event);
-    this.setState({ events: this.state.events.concat(element) });
+    this.forceUpdate();
+  },
+
+  componentDidMount: function () {
+    eventsCursor.on('update', this.showEvent);
   },
 
   componentDidUpdate: function () {
@@ -37,19 +40,11 @@ var ChatWindow = React.createClass({
     chatWindow.scrollTop(chatWindow[0].scrollHeight - chatWindow.height());
   },
 
-  componentDidMount: function () {
-    visibleEvents.on('update', this.showEvent);
-  },
-
-  getInitialState: function () {
-    return { events: [] }
-  },
-
   render: function () {
     return (
       <div className="row gc-chat-window">
         <div className="col-md-12" ref="chatWindow">
-          {this.state.events}
+          {this.events}
         </div>
       </div>
     )

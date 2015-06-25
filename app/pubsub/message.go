@@ -10,13 +10,15 @@ const messageType types.PubSubEventType = "message"
 
 type message struct {
 	UserID  string `json:"user_id"`
+	ZoneID  string `json:"zone_id"`
 	Message string `json:"message"`
 	user    types.User
 }
 
-func Message(user types.User, text string) (*message, error) {
+func Message(user types.User, zone types.Zone, text string) (*message, error) {
 	m := &message{
 		UserID:  user.ID(),
+		ZoneID:  zone.ID(),
 		Message: text,
 		user:    user,
 	}
@@ -32,10 +34,16 @@ func (m *message) BeforePublish(e types.PubSubEvent) error {
 }
 
 func (m *message) OnReceive(e types.PubSubEvent) error {
+	zone := e.World().Zones().FromCache(m.ZoneID)
+	if zone == nil {
+		return nil
+	}
+
 	var user types.User
 	if user = e.World().Users().FromCache(m.UserID); user == nil {
 		return errors.New("Unknown user")
 	}
-	user.Zone().Broadcast(broadcast.Message(m.UserID, m.Message))
+
+	zone.Broadcast(broadcast.Message(m.UserID, m.Message))
 	return nil
 }

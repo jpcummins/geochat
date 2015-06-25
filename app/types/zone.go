@@ -26,6 +26,7 @@ type Zone interface {
 
 	// Pubsubs
 	Join(User) (BroadcastEvent, error)
+	Leave(User) (BroadcastEvent, error)
 	Message(User, string) (BroadcastEvent, error)
 }
 

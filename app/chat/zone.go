@@ -206,6 +206,12 @@ func (z *Zone) Update(js types.PubSubJSON) error {
 }
 
 func (z *Zone) Join(user types.User) (types.BroadcastEvent, error) {
+	if user.Zone() != nil && user.Zone() != z {
+		if _, err := user.Zone().Leave(user); err != nil {
+			return nil, err
+		}
+	}
+
 	data, err := pubsub.Join(z, user)
 	if err != nil {
 		return nil, err
@@ -213,8 +219,16 @@ func (z *Zone) Join(user types.User) (types.BroadcastEvent, error) {
 	return nil, z.world.Publish(data)
 }
 
+func (z *Zone) Leave(user types.User) (types.BroadcastEvent, error) {
+	data, err := pubsub.Leave(user, z)
+	if err != nil {
+		return nil, err
+	}
+	return nil, z.world.Publish(data)
+}
+
 func (z *Zone) Message(user types.User, message string) (types.BroadcastEvent, error) {
-	data, err := pubsub.Message(user, message)
+	data, err := pubsub.Message(user, z, message)
 	if err != nil {
 		return nil, err
 	}

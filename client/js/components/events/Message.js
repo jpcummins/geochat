@@ -8,7 +8,7 @@ var Message = React.createClass({
     return (
       <div className="row gc-message">
         <div className="col-md-1 gc-name">
-          {usersCursor.get(this.props.data.user_id).name}
+          {this.props.data.user.name}
         </div>
         <div className="col-md-10">
           {this.props.data.text}

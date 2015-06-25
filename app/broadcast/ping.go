@@ -20,6 +20,6 @@ func (e *ping) Data() *ping {
 	return nil
 }
 
-func (e *ping) BeforeBroadcastToUser(user types.User, event types.BroadcastEvent) error {
-	return nil
+func (e *ping) BeforeBroadcastToUser(user types.User, event types.BroadcastEvent) (bool, error) {
+	return true, nil
 }

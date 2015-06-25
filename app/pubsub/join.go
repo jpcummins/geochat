@@ -39,8 +39,8 @@ func (j *join) Type() types.PubSubEventType {
 }
 
 func (j *join) BeforePublish(e types.PubSubEvent) error {
-	if j.user.Zone() != nil && j.user.Zone() != j.zone {
-		// create and publish leave event
+	if j.user.Zone() != nil {
+		return errors.New("User is already in a zone.")
 	}
 
 	j.zone.AddUser(j.user)

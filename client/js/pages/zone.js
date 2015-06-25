@@ -15,25 +15,28 @@ var ZonePage = React.createClass({
   mixins: [React.addons.PureRenderMixin],
 
   getInitialState: function () {
-    return { zone: {}, users: {} }
+    return { zone: {}, users: {}, events: [] }
   },
 
   handleChatEvent: function (chatEvent) {
     switch (chatEvent.type) {
       case "message":
-        eventsCursor.push(chatEvent);
+        chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
+        eventsCursor.push(chatEvent)
+        break;
+      case "zone":
+        eventsCursor.push(chatEvent)
+        zoneCursor.set(chatEvent.data.zone)
+        usersCursor.set(chatEvent.data.zone.users)
         break;
       case "join":
-        eventsCursor.push(chatEvent)
         usersCursor.set(chatEvent.data.user.id, chatEvent.data.user)
-
-        if (chatEvent.data.zone) {
-          this.setState({
-            zone: chatEvent.data.zone,
-            users: chatEvent.data.zone.users
-          });
-          usersCursor.set(chatEvent.data.zone.users);
-        }
+        eventsCursor.push(chatEvent)
+        break;
+      case "leave":
+        chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
+        eventsCursor.push(chatEvent)
+        usersCursor.unset(chatEvent.data.user.id)
         break;
       default:
     }
@@ -72,7 +75,7 @@ var ZonePage = React.createClass({
   render: function () {
     return (
       <div className="container-fluid">
-        <ChatHeader zone={this.state.zone} />
+        <ChatHeader />
         <div className="row gc-content">
           <div className="col-md-8">
             <ChatWindow />
@@ -81,10 +84,10 @@ var ZonePage = React.createClass({
           <div className="col-md-4 gc-sidebar">
             <div className="row gc-map">
               <div className="col-md-12">
-                <ChatMap zone={this.state.zone} />
+                <ChatMap />
               </div>
             </div>
-            <UserList users={this.state.users} />
+            <UserList />
           </div>
         </div>
       </div>

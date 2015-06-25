@@ -10,7 +10,7 @@ type BroadcastEvent interface {
 
 type BroadcastEventData interface {
 	Type() BroadcastEventType
-	BeforeBroadcastToUser(User, BroadcastEvent) error
+	BeforeBroadcastToUser(User, BroadcastEvent) (bool, error)
 }
 
 type BroadcastSerializable interface {

@@ -50,13 +50,18 @@ func (u *User) SetZone(zone types.Zone) {
 	defer u.Unlock()
 
 	u.zone = zone
-	u.UserPubSubJSON.ZoneID = zone.ID()
+	zoneID := ""
+	if zone != nil {
+		zoneID = u.UserPubSubJSON.ZoneID
+	}
+
+	u.UserPubSubJSON.ZoneID = zoneID
 }
 
 func (u *User) Broadcast(data types.BroadcastEventData) {
 	event := broadcast.NewEvent(generateEventID(), data)
 
-	if err := data.BeforeBroadcastToUser(u, event); err != nil {
+	if ok, err := data.BeforeBroadcastToUser(u, event); !ok || err != nil {
 		return
 	}
 

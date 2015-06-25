@@ -70,22 +70,22 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 	var zone types.Zone
 	var err error
 
+	connection := zc.user.Connect()
+	closeConnection := make(chan bool)
+
 	if zc.user.Zone() == nil {
 		zone, err = chat.App.FindOpenZone(zc.user)
 		if err != nil {
+			println(err.Error())
+			return zc.RenderError(err)
+		}
+		if _, err := zone.Join(zc.user); err != nil {
+			println(err.Error())
 			return zc.RenderError(err)
 		}
 	} else {
 		zone = zc.user.Zone()
 	}
-
-	connection := zc.user.Connect()
-
-	if _, err := zone.Join(zc.user); err != nil {
-		return zc.RenderError(err)
-	}
-
-	closeConnection := make(chan bool)
 
 	// Listen for client disconnects
 	go func() {
@@ -112,6 +112,14 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 				closeConnection <- true
 			}
 		case _ = <-closeConnection:
+			// Leave the chat room
+			zone := zc.user.Zone()
+			if zone != nil {
+				if _, err := zone.Leave(zc.user); err != nil {
+					println(err.Error())
+				}
+			}
+
 			zc.user.Disconnect(connection)
 			ws.Close()
 			return nil
