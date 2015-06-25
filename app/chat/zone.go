@@ -1,138 +1,243 @@
 package chat
 
 import (
-	"encoding/json"
+	"errors"
 	gh "github.com/TomiHiltunen/geohash-golang"
-	"github.com/garyburd/redigo/redis"
+	"github.com/jpcummins/geochat/app/pubsub"
+	"github.com/jpcummins/geochat/app/types"
 	"strings"
+	"sync"
 )
 
+const rootZoneID = ":0z"
+
+const geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
+
 type Zone struct {
-	Zonehash string      `json:"zonehash"`
-	geohash  string      `json:"-"`
-	from     byte        `json:"-"`
-	to       byte        `json:"-"`
-	parent   *Zone       `json:"-"`
-	left     *Zone       `json:"-"`
-	right    *Zone       `json:"-"`
-	count    int         `json:"-"`
-	maxUsers int         `json:"-"`
-	publish  chan *Event `json:"-"`
+	sync.RWMutex
+	types.PubSubSerializable
+	types.BroadcastSerializable
+	*types.ZonePubSubJSON
+
+	world        types.World
+	southWest    types.LatLng
+	northEast    types.LatLng
+	geohash      string
+	from         string
+	to           string
+	parentZoneID string
+	leftZoneID   string
+	rightZoneID  string
 }
 
-type ZoneBoundary struct {
-	SouthWestLat  float64
-	SouthWestLong float64
-	NorthEastLat  float64
-	NorthEastLong float64
-}
-
-func (z *Zone) Type() string {
-	return "zone"
-}
-
-func newZone(geohash string, from byte, to byte, parent *Zone, maxUsers int) *Zone {
-	zone := &Zone{
-		Zonehash: geohash + ":" + string(from) + string(to),
-		geohash:  geohash,
-		from:     from,
-		to:       to,
-		parent:   parent,
-		maxUsers: maxUsers,
-		publish:  make(chan *Event, 10),
-	}
-	return zone
-}
-
-func (z *Zone) setCount(count int) {
-	if z.count == 0 && count > 0 {
-		// The following goroutines terminate on their own when count == 0
-		go z.redisSubscribe() // subscribe to redis channel and publishes events
-		go z.redisPublish()   // publishes publish events to redis channel
-	}
-
-	if count >= 0 {
-		z.count = count
-	}
-}
-
-func (z *Zone) GetBoundary() *ZoneBoundary {
-	sw := gh.Decode(z.geohash + string(z.from))
-	ne := gh.Decode(z.geohash + string(z.to))
-	return &ZoneBoundary{
-		SouthWestLat:  sw.SouthWest().Lat(),
-		SouthWestLong: sw.SouthWest().Lng(),
-		NorthEastLat:  ne.NorthEast().Lat(),
-		NorthEastLong: ne.NorthEast().Lng(),
-	}
-}
-
-func (z *Zone) createChildZones() {
-	from_i := strings.Index(geohashmap, string(z.from))
-	to_i := strings.Index(geohashmap, string(z.to))
-
-	if to_i-from_i > 1 {
-		split := (to_i - from_i) / 2
-		z.left = newZone(z.geohash, z.from, geohashmap[from_i+split], z, z.maxUsers)
-		z.right = newZone(z.geohash, geohashmap[from_i+split+1], z.to, z, z.maxUsers)
-	} else {
-		z.left = newZone(z.geohash+string(z.from), '0', 'z', z, z.maxUsers)
-		z.right = newZone(z.geohash+string(z.to), '0', 'z', z, z.maxUsers)
-	}
-}
-
-func (z *Zone) GetArchive(maxEvents int) (*Archive, error) {
-	c := connection.Get()
-	defer c.Close()
-
-	archiveJson, err := redis.Strings(c.Do("LRANGE", "zone_"+z.Zonehash, 0, maxEvents-1))
+func newZone(id string, world types.World, maxUsers int) (*Zone, error) {
+	geohash, from, to, err := validateZoneID(id)
 	if err != nil {
-		println("unable to get archive:", err.Error())
 		return nil, err
 	}
 
-	return newArchive(archiveJson), nil
-}
+	southWest := gh.Decode(geohash + from).SouthWest()
+	northEast := gh.Decode(geohash + to).NorthEast()
 
-func (z *Zone) Publish(event *Event) {
-	z.publish <- event
-}
-
-func (z *Zone) redisSubscribe() {
-	psc := redis.PubSubConn{connection.Get()}
-	defer psc.Close()
-	psc.Subscribe("zone_" + z.Zonehash)
-	for {
-		switch v := psc.Receive().(type) {
-		case redis.Message:
-
-			if z.count == 0 {
-				return
-			}
-
-			var event Event
-			if err := json.Unmarshal(v.Data, &event); err != nil {
-				continue
-			}
-			subscribers.PublishEventToZone(&event, z)
-		}
+	zone := &Zone{
+		ZonePubSubJSON: &types.ZonePubSubJSON{
+			ID:       id,
+			IsOpen:   true,
+			MaxUsers: maxUsers,
+		},
+		world:     world,
+		southWest: newLatLng(southWest.Lat(), southWest.Lng()),
+		northEast: newLatLng(northEast.Lat(), northEast.Lng()),
+		geohash:   geohash,
+		from:      from,
+		to:        to,
 	}
+
+	// Calculate left, right, and parent IDs
+	fromI := strings.Index(geohashmap, from)
+	toI := strings.Index(geohashmap, to)
+	if toI-fromI > 1 {
+		split := (toI - fromI) / 2
+		zone.leftZoneID = geohash + ":" + from + string(geohashmap[fromI+split])
+		zone.rightZoneID = geohash + ":" + string(geohashmap[fromI+split+1]) + to
+	} else {
+		zone.leftZoneID = geohash + from + rootZoneID
+		zone.rightZoneID = geohash + to + rootZoneID
+	}
+
+	return zone, nil
 }
 
-func (z *Zone) redisPublish() {
-	c := connection.Get() // Not sure if a long lived redis connection is a good idea
-	defer c.Close()
-	for {
+func validateZoneID(id string) (geohash string, from string, to string, err error) {
+	split := strings.Split(id, ":")
 
-		if z.count == 0 {
+	if len(split) != 2 || len(split[1]) != 2 {
+		return "", "", "", errors.New("Invalid id")
+	}
+
+	// TODO: Additional validation needed
+	geohash = split[0]
+	from = string(split[1][0])
+	to = string(split[1][1])
+	return
+}
+
+func (z *Zone) ID() string {
+	return z.ZonePubSubJSON.ID
+}
+
+func (z *Zone) World() types.World {
+	return z.world
+}
+
+func (z *Zone) SouthWest() types.LatLng {
+	return z.southWest
+}
+
+func (z *Zone) NorthEast() types.LatLng {
+	return z.northEast
+}
+
+func (z *Zone) Geohash() string {
+	return z.geohash
+}
+
+func (z *Zone) From() string {
+	return z.from
+}
+
+func (z *Zone) To() string {
+	return z.to
+}
+
+func (z *Zone) ParentZoneID() string {
+	return z.parentZoneID
+}
+
+func (z *Zone) LeftZoneID() string {
+	return z.leftZoneID
+}
+
+func (z *Zone) RightZoneID() string {
+	return z.rightZoneID
+}
+
+func (z *Zone) MaxUsers() int {
+	return z.ZonePubSubJSON.MaxUsers
+}
+
+func (z *Zone) Count() int {
+	z.RLock()
+	defer z.RUnlock()
+	return len(z.ZonePubSubJSON.UserIDs)
+}
+
+func (z *Zone) IsOpen() bool {
+	return z.ZonePubSubJSON.IsOpen
+}
+
+func (z *Zone) SetIsOpen(isOpen bool) {
+	z.ZonePubSubJSON.IsOpen = isOpen
+}
+
+func (z *Zone) AddUser(user types.User) {
+	z.Lock()
+	defer z.Unlock()
+
+	// If the user is already here, don't add.
+	users := z.ZonePubSubJSON.UserIDs
+	for i := range users {
+		if users[i] == user.ID() {
 			return
 		}
+	}
 
-		select {
-		case event := <-z.publish:
-			eventJson, _ := json.Marshal(event)
-			c.Do("LPUSH", "zone_"+z.Zonehash, eventJson)
-			c.Do("PUBLISH", "zone_"+z.Zonehash, eventJson)
+	z.ZonePubSubJSON.UserIDs = append(z.ZonePubSubJSON.UserIDs, user.ID())
+}
+
+func (z *Zone) RemoveUser(id string) {
+	z.Lock()
+	defer z.Unlock()
+
+	users := z.ZonePubSubJSON.UserIDs
+	for i := range users {
+		if users[i] == id {
+			z.ZonePubSubJSON.UserIDs = append(users[:i], users[i+1:]...)
+			return
 		}
 	}
+}
+
+func (z *Zone) Broadcast(eventData types.BroadcastEventData) {
+	z.RLock()
+	defer z.RUnlock()
+
+	for _, id := range z.ZonePubSubJSON.UserIDs {
+		if user, err := z.World().Users().User(id); user != nil && err == nil {
+			user.Broadcast(eventData)
+		}
+	}
+}
+
+func (z *Zone) BroadcastJSON() interface{} {
+	z.RLock()
+	defer z.RUnlock()
+	json := &types.ZoneBroadcastJSON{
+		ID:        z.ID(),
+		Users:     make(map[string]*types.UserBroadcastJSON),
+		SouthWest: z.southWest.BroadcastJSON().(*types.LatLngJSON),
+		NorthEast: z.northEast.BroadcastJSON().(*types.LatLngJSON),
+	}
+	for _, id := range z.ZonePubSubJSON.UserIDs {
+		if user, err := z.World().Users().User(id); err == nil {
+			json.Users[id] = user.BroadcastJSON().(*types.UserBroadcastJSON)
+		}
+	}
+	return json
+}
+
+func (z *Zone) PubSubJSON() types.PubSubJSON {
+	return z.ZonePubSubJSON
+}
+
+func (z *Zone) Update(js types.PubSubJSON) error {
+	json, ok := js.(*types.ZonePubSubJSON)
+	if !ok {
+		return errors.New("Unable to serialize to ZonePubSubJSON.")
+	}
+
+	z.Lock()
+	defer z.Unlock()
+	z.ZonePubSubJSON = json
+	return nil
+}
+
+func (z *Zone) Join(user types.User) (types.BroadcastEvent, error) {
+	if user.Zone() != nil && user.Zone() != z {
+		if _, err := user.Zone().Leave(user); err != nil {
+			return nil, err
+		}
+	}
+
+	data, err := pubsub.Join(z, user)
+	if err != nil {
+		return nil, err
+	}
+	return nil, z.world.Publish(data)
+}
+
+func (z *Zone) Leave(user types.User) (types.BroadcastEvent, error) {
+	data, err := pubsub.Leave(user, z)
+	if err != nil {
+		return nil, err
+	}
+	return nil, z.world.Publish(data)
+}
+
+func (z *Zone) Message(user types.User, message string) (types.BroadcastEvent, error) {
+	data, err := pubsub.Message(user, z, message)
+	if err != nil {
+		return nil, err
+	}
+	return nil, z.world.Publish(data)
 }

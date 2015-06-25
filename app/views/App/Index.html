@@ -58,7 +58,7 @@
     $(".gc-info").text("Logging in…")
 
     $.ajax({
-      url: '/auth/login',
+      url: '/auth',
       method: 'POST',
       data: {
         name: name,
@@ -67,24 +67,8 @@
       }
     })
     .done(function (response) {
-      $(".gc-info").text("Looking for chatzone…")
-
-      $.ajax({
-        url: '/s/subscribe',
-        method: 'POST',
-        data: {
-          lat: position.coords.latitude,
-          long: position.coords.longitude
-        }
-      })
-      .done(function (data) {
-        $(".gc-info").text("Chatzone found, loading room…")
-        window.location.replace("/s/" + data.id);
-      })
-      .fail(function () {
-        $(".gc-info").text("")
-        $(".gc-error").text("Login failed. Try again later.")
-      });
+      $(".gc-info").text("Loading room…")
+      window.location.replace("/chat/");
     })
     .fail(function () {
       $(".gc-info").text("")

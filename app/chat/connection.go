@@ -1,36 +1,27 @@
 package chat
 
 import (
-	"github.com/garyburd/redigo/redis"
-	"github.com/soveran/redisurl"
-	"time"
+	"github.com/jpcummins/geochat/app/broadcast"
+	"github.com/jpcummins/geochat/app/types"
 )
 
 type Connection struct {
-	pool *redis.Pool
+	events chan types.BroadcastEvent
+	user   types.User
 }
 
-func newConnection(redisServer string) *Connection {
-	connection := &Connection{}
-	pool := &redis.Pool{
-		MaxIdle:     3,
-		IdleTimeout: 240 * time.Second,
-		Dial: func() (redis.Conn, error) {
-			c, err := redisurl.ConnectToURL(redisServer)
-			if err != nil {
-				return nil, err
-			}
-			return c, err
-		},
-		TestOnBorrow: func(c redis.Conn, t time.Time) error {
-			_, err := c.Do("PING")
-			return err
-		},
+func newConnection(user types.User) *Connection {
+	return &Connection{
+		events: make(chan types.BroadcastEvent, 10),
+		user:   user,
 	}
-	connection.pool = pool
-	return connection
 }
 
-func (c *Connection) Get() redis.Conn {
-	return c.pool.Get()
+func (c *Connection) Events() <-chan types.BroadcastEvent {
+	return c.events
+}
+
+func (c *Connection) Ping() {
+	event := broadcast.NewEvent(generateEventID(), broadcast.Ping())
+	c.events <- event
 }

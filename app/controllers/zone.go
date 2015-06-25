@@ -1,114 +1,132 @@
 package controllers
 
 import (
-	"errors"
 	"github.com/jpcummins/geochat/app/chat"
+	"github.com/jpcummins/geochat/app/types"
 	"github.com/revel/revel"
 	"golang.org/x/net/websocket"
 	"time"
-	"fmt"
 )
 
-type Zone struct {
+// ZoneController is created for all requests handled by the Zone controller. It
+// contains a handle to the chat package.
+type ZoneController struct {
 	*revel.Controller
-	chat.Chat
+	user types.User
 }
 
-func (c Zone) Subscribe(lat float64, long float64) revel.Result {
-	user, err := chat.GetUser(c.Session["user"])
+func init() {
+	revel.InterceptMethod((*ZoneController).setSession, revel.BEFORE)
+}
+
+func (zc *ZoneController) setSession() revel.Result {
+	userID, ok := zc.Session[userIDSessionKey]
+
+	if !ok {
+		zc.Redirect("/")
+	}
+
+	user, err := chat.App.Users().User(userID)
 	if err != nil {
-		return c.RenderError(err)
+		return zc.RenderError(err)
 	}
-	zone, err := chat.GetOrCreateAvailableZone(lat, long)
+
+	if user == nil {
+		return zc.Redirect("/")
+	}
+
+	zc.user = user
+	return nil
+}
+
+// Message action sends a message to those in the subscriber's zone.
+func (zc *ZoneController) Message(text string) revel.Result {
+
+	if zc.user.Zone() == nil {
+		zc.Redirect("/")
+	}
+
+	event, err := zc.user.Zone().Message(zc.user, text)
+
 	if err != nil {
-		return c.RenderError(err)
+		return zc.RenderError(err)
 	}
 
-	subscription := c.Subscribers.Add(user, zone)
-	return c.RenderJson(subscription)
+	return zc.RenderJson(event)
 }
 
-func (c Zone) Message(geochat *chat.Chat, subscriptionId string, text string) revel.Result {
-	subscription := c.Subscribers.Get(subscriptionId)
-	if subscription == nil {
-		return c.RenderError(errors.New("Invalid subscription"))
+// Command action is used to issue administrative commands
+func (zc *ZoneController) Command(command string, args string) revel.Result {
+	println(command, args)
+	if err := zc.user.ExecuteCommand(command, args); err != nil {
+		zc.RenderError(err)
 	}
-
-	event := subscription.Broadcast(text)
-	return c.RenderJson(event)
+	return nil
 }
 
-func (c Zone) Command(geochat *chat.Chat, subscriptionId string, command string) revel.Result {
-	subscription := c.Subscribers.Get(subscriptionId)
-	if subscription == nil {
-		return c.RenderError(errors.New("Invalid subscription"))
-	}
-
-	json, err := chat.ExecuteCommand(command, subscription)
-	if err != nil {
-		return c.RenderError(err)
-	}
-	return c.RenderJson(json)
+// Zone action renders the main chat interface
+func (zc *ZoneController) Zone() revel.Result {
+	return zc.Render()
 }
 
-func (c Zone) Zone(subscriptionId string) revel.Result {
-	subscription := c.Subscribers.Get(subscriptionId)
-	if subscription == nil {
-		return c.Redirect("/")
+// ZoneSocket action handles WebSocket communication
+func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
+	var zone types.Zone
+	var err error
+
+	connection := zc.user.Connect()
+	closeConnection := make(chan bool)
+
+	if zc.user.Zone() == nil {
+		zone, err = chat.App.FindOpenZone(zc.user)
+		if err != nil {
+			println(err.Error())
+			return zc.RenderError(err)
+		}
+		if _, err := zone.Join(zc.user); err != nil {
+			println(err.Error())
+			return zc.RenderError(err)
+		}
+	} else {
+		zone = zc.user.Zone()
 	}
-
-	zonehash := subscription.Zonehash
-	zone, err := chat.GetOrCreateZone(zonehash)
-	if err != nil {
-		return c.RenderError(err)
-	}
-
-	boundary := zone.GetBoundary()
-	return c.Render(zonehash, boundary, subscriptionId)
-}
-
-func (c Zone) ZoneSocket(subscriptionId string, ws *websocket.Conn) revel.Result {
-	subscription := c.Subscribers.Get(subscriptionId)
-	if subscription == nil {
-		return c.RenderError(errors.New("Invalid subscription"))
-	}
-
-	subscription.Activate()
 
 	// Listen for client disconnects
 	go func() {
 		var msg string
 		for {
+			// The value of msg is ignored. Commands are not accepted over the websocket.
 			if websocket.Message.Receive(ws, &msg) != nil {
-				subscription.Deactivate()
+				closeConnection <- true
 				return
 			}
 		}
 	}()
 
-	zone, err := chat.GetOrCreateZone(subscription.Zonehash)
-	if err != nil {
-		return c.RenderError(err)
-	}
+	// Send events to the WebSocket
+	ping := time.NewTicker(30 * time.Second)
+	events := connection.Events()
 
-	// Send zone information
-	subscription.Events <- chat.NewEvent(zone)
-
-	// Send the archive
-	archive, _ := zone.GetArchive(10)
-	subscription.Events <- chat.NewEvent(archive)
-
-	ticker := time.NewTicker(30 * time.Second)
 	for {
 		select {
-		case <-ticker.C:
-			subscription.Events <- &chat.Event{Type: "ping", Data: nil, Timestamp: int(time.Now().Unix())}
-		case event := <-subscription.Events:
-			fmt.Printf("%+v\n", event)
-			if websocket.JSON.Send(ws, &event) != nil {
-				subscription.Deactivate()
-				return nil
+		case <-ping.C:
+			connection.Ping()
+		case event := <-events:
+			if err := websocket.JSON.Send(ws, &event); err != nil {
+				closeConnection <- true
 			}
+		case _ = <-closeConnection:
+			// Leave the chat room
+			zone := zc.user.Zone()
+			if zone != nil {
+				if _, err := zone.Leave(zc.user); err != nil {
+					println(err.Error())
+				}
+			}
+
+			zc.user.Disconnect(connection)
+			ws.Close()
+			return nil
 		}
 	}
 }

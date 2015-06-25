@@ -2,210 +2,178 @@ package chat
 
 import (
 	"errors"
-	gh "github.com/TomiHiltunen/geohash-golang"
+	"github.com/jpcummins/geochat/app/pubsub"
+	"github.com/jpcummins/geochat/app/types"
+	"math/rand"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
-var geohashmap = "0123456789bcdefghjkmnpqrstuvwxyz"
+const rootWorldID string = "0"
 
 type World struct {
-	root                            *Zone
-	getAvailableZone                chan (chan interface{})
-	getZone                         chan (chan interface{})
-	incrementZoneSubscriptionCounts chan (chan *Zone)
-	decrementZoneSubscriptionCounts chan (chan *Zone)
+	sync.RWMutex
+	types.PubSubSerializable
+	*types.WorldPubSubJSON
+
+	root   types.Zone
+	db     types.DB
+	pubsub types.PubSub
+	users  types.Users
+	zones  types.Zones
 }
 
-func newWorld() *World {
-	world := &World{
-		root:             newZone("", '0', 'z', nil, 2),
-		getAvailableZone: make(chan (chan interface{})),
-		getZone:          make(chan (chan interface{})),
-		incrementZoneSubscriptionCounts: make(chan (chan *Zone)),
-		decrementZoneSubscriptionCounts: make(chan (chan *Zone)),
+func newWorld(id string, db types.DB, ps types.PubSub, maxUsers int) (*World, error) {
+	w := &World{
+		WorldPubSubJSON: &types.WorldPubSubJSON{
+			ID:       id,
+			MaxUsers: maxUsers,
+		},
+		db:     db,
+		pubsub: ps,
 	}
-	go world.manage()
-	return world
+
+	w.users = newUsers(w, db)
+	w.zones = newZones(w, db)
+
+	root, err := w.GetOrCreateZone(rootZoneID)
+	if err != nil {
+		return nil, err
+	}
+
+	w.root = root
+	go w.manage() // It's a tough job.
+	return w, nil
 }
 
-func (w *World) manage() { // It's a tough job.
+func (w *World) manage() {
+	subscription := w.pubsub.Subscribe()
 	for {
 		select {
-		case ch := <-w.getAvailableZone:
-			geohash := (<-ch).(string)
-			zone, err := findChatZone(world.root, geohash)
-			ch <- zone
-			ch <- err
-		case ch := <-w.getZone:
-			id := (<-ch).(string)
-			zone, err := getOrCreateZone(id)
-			ch <- zone
-			ch <- err
-		case ch := <-w.incrementZoneSubscriptionCounts:
-			zone := <-ch
-			incrementZoneSubscriptionCounts(zone)
-			close(ch)
-		case ch := <-w.decrementZoneSubscriptionCounts:
-			zone := <-ch
-			decrementZoneSubscriptionCounts(zone)
-			close(ch)
+		case event := <-subscription:
+			event.SetWorld(w)
+			event.Data().OnReceive(event)
 		}
 	}
 }
 
-func IncrementZoneSubscriptionCounts(zone *Zone) {
-	ch := make(chan *Zone)
-	world.incrementZoneSubscriptionCounts <- ch
-	ch <- zone
-	<-ch
-	return
+func (w *World) ID() string {
+	return w.WorldPubSubJSON.ID
 }
 
-func incrementZoneSubscriptionCounts(zone *Zone) {
-	for {
-		if zone == nil {
-			return
-		}
-		zone.setCount(zone.count + 1)
-		zone = zone.parent
-	}
+func (w *World) MaxUsers() int {
+	return w.WorldPubSubJSON.MaxUsers
 }
 
-func DecrementZoneSubscriptionCounts(zone *Zone) {
-	ch := make(chan *Zone)
-	world.decrementZoneSubscriptionCounts <- ch
-	ch <- zone
-	<-ch
-	return
+func (w *World) Users() types.Users {
+	return w.users
 }
 
-func decrementZoneSubscriptionCounts(zone *Zone) {
-	for {
-		if zone == nil {
-			return
-		}
-		zone.setCount(zone.count - 1)
-		zone = zone.parent
-	}
+func (w *World) Zones() types.Zones {
+	return w.zones
 }
 
-func GetOrCreateAvailableZone(lat float64, long float64) (*Zone, error) {
-	geohash := gh.EncodeWithPrecision(lat, long, 6)
-	ch := make(chan interface{})
-	world.getAvailableZone <- ch
-	ch <- geohash
-	zone := (<-ch).(*Zone)
-	err := <-ch
-	close(ch)
-
+func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
+	zone, err := w.Zones().Zone(id)
 	if err != nil {
-		return nil, err.(error)
+		return nil, err
+	}
+
+	if zone == nil {
+		zone, err = newZone(id, w, w.MaxUsers())
+		if err != nil {
+			return nil, err
+		}
+
+		if err := w.zones.Save(zone); err != nil {
+			return nil, err
+		}
 	}
 
 	return zone, nil
 }
 
-func GetOrCreateZone(id string) (*Zone, error) {
-	ch := make(chan interface{})
-	world.getZone <- ch
-	ch <- id
-	zone := (<-ch).(*Zone)
-	err := <-ch
-	close(ch)
+func (w *World) FindOpenZone(user types.User) (types.Zone, error) {
+	root := w.root
+	for !root.IsOpen() {
+		suffix := strings.TrimPrefix(user.Location().Geohash(), root.Geohash())
 
-	if err != nil {
-		return nil, err.(error)
+		if len(suffix) == 0 {
+			return nil, errors.New("Unable to find zone")
+		}
+
+		rightZone, err := w.GetOrCreateZone(root.RightZoneID())
+		if err != nil {
+			return nil, err
+		}
+
+		leftZone, err := w.GetOrCreateZone(root.LeftZoneID())
+		if err != nil {
+			return nil, err
+		}
+
+		if rightZone.Geohash() == root.Geohash() {
+			if suffix[0] < rightZone.From()[0] {
+				root = leftZone
+			} else {
+				root = rightZone
+			}
+		} else {
+			if suffix[0] < rightZone.Geohash()[len(rightZone.Geohash())-1] {
+				root = leftZone
+			} else {
+				root = rightZone
+			}
+		}
 	}
 
-	return zone, nil
+	return root, nil
 }
 
-func getOrCreateZone(id string) (*Zone, error) {
-	// This algorithm is gross. I apologize if you have to read this.
-	split := strings.Split(id, ":")
-
-	// TODO: Validate string
-	if len(split) != 2 || len(split[1]) != 2 {
-		return nil, errors.New("Invalid id")
+func (w *World) NewUser(id string, name string, lat float64, lng float64) (types.User, error) {
+	user := newUser(id, name, newLatLng(lat, lng), w)
+	if err := w.Users().Save(user); err != nil {
+		return nil, err
 	}
-
-	geohash := split[0]
-	to := split[1][1]
-
-	geohashLength := len(geohash)
-	zone := world.root
-
-	for {
-		if zone.Zonehash == id {
-			return zone, nil
-		}
-		zonegeohashLength := len(zone.geohash)
-		if geohashLength > zonegeohashLength {
-			if zone.left == nil || zone.right == nil {
-				zone.createChildZones()
-			}
-
-			from_i := strings.Index(geohashmap, string(zone.from))
-			to_i := strings.Index(geohashmap, string(zone.to))
-			if to_i-from_i == 1 {
-				if geohash[len(zone.geohash)] == zone.from {
-					zone = zone.left
-				} else {
-					zone = zone.right
-				}
-				continue
-			}
-
-			if geohash[len(zone.geohash)] < zone.right.from {
-				zone = zone.left
-			} else {
-				zone = zone.right
-			}
-		}
-
-		if geohashLength == zonegeohashLength {
-			if zone.left == nil || zone.right == nil {
-				zone.createChildZones()
-			}
-			if to < zone.right.from {
-				zone = zone.left
-			} else {
-				zone = zone.right
-			}
-		}
-
-		if geohashLength < zonegeohashLength {
-			return nil, errors.New("Error locating geohash: " + geohash)
-		}
-	}
+	return user, nil
 }
 
-func findChatZone(root *Zone, geohash string) (*Zone, error) {
-	if root.left == nil && root.right == nil {
-		root.createChildZones()
+func (w *World) Publish(data types.PubSubEventData) error {
+	event := pubsub.NewEvent(generateEventID(), w, data)
+	if err := event.Data().BeforePublish(event); err != nil {
+		return err
+	}
+	return w.pubsub.Publish(event)
+}
+
+func (w *World) PubSubJSON() types.PubSubJSON {
+	return w.WorldPubSubJSON
+}
+
+func (w *World) Update(json types.PubSubJSON) error {
+	worldJSON, ok := json.(*types.WorldPubSubJSON)
+	if !ok {
+		return errors.New("Invalid json type.")
 	}
 
-	if root.count < root.maxUsers {
-		return root, nil
-	}
+	w.Lock()
+	defer w.Unlock()
+	w.WorldPubSubJSON = worldJSON
+	return nil
+}
 
-	suffix := strings.TrimPrefix(geohash, root.geohash)
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-	if len(suffix) == 0 {
-		return root, errors.New("Room full")
+func randomSequence(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
 	}
+	return string(b)
+}
 
-	if root.geohash == root.right.geohash {
-		if suffix[0] < root.right.from {
-			return findChatZone(root.left, geohash)
-		} else {
-			return findChatZone(root.right, geohash)
-		}
-	} else {
-		if suffix[0] < root.right.geohash[len(root.right.geohash)-1] {
-			return findChatZone(root.left, geohash)
-		} else {
-			return findChatZone(root.right, geohash)
-		}
-	}
+func generateEventID() string {
+	return strconv.FormatInt(time.Now().UnixNano(), 10) + randomSequence(4)
 }

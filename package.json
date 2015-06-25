@@ -1,0 +1,20 @@
+{
+  "name": "geochat",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "baobab": "^1.1.0",
+    "browserify": "10.1.0",
+    "gulp-sourcemaps": "1.5.2",
+    "gulp-util": "3.0.4",
+    "lodash.assign": "3.1.0",
+    "react": "0.13.2",
+    "reactify": "1.1.0",
+    "vinyl-buffer": "1.0.0",
+    "vinyl-source-stream": "1.1.0",
+    "watchify": "3.2.1"
+  },
+  "devDependencies": {
+    "gulp": "^3.8.11"
+  }
+}

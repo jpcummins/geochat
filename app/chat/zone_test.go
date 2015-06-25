@@ -1,6 +1,8 @@
 package chat
 
 import (
+	"encoding/json"
+	"github.com/jpcummins/geochat/app/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -8,58 +10,109 @@ import (
 
 type ZoneTestSuite struct {
 	suite.Suite
-	Zone *Zone
+	world *mocks.World
 }
 
 func (suite *ZoneTestSuite) SetupTest() {
-	suite.Zone = newZone("", '0', 'z', nil, 1)
+	suite.world = &mocks.World{}
+	suite.world.On("ID").Return("worldid")
 }
 
-var lat float64 = 47.6235616
-var long float64 = -122.330341
-
-func (suite *ZoneTestSuite) TestFindChatZone_EmptyWorld() {
-	root := suite.Zone
-	zone, _ := findChatZone(root, "c23nb")
-	assert.Equal(suite.T(), root, zone)
-	assert.Equal(suite.T(), ":0g", zone.left.Zonehash)
-	assert.Equal(suite.T(), ":hz", zone.right.Zonehash)
-}
-
-func (suite *ZoneTestSuite) TestFindChatZone_ZoneCreation() {
-	testCases := []string{"000", "z0z", "2k1", "bbc", "zzz", "c23nb"}
-
-	var root *Zone
-	var zone *Zone
-
-	for _, test := range testCases {
-		root = newZone("", '0', 'z', nil, 1)
-		root.count = 1
-		for i := 0; i < 5*len(test); i++ {
-			zone, _ = findChatZone(root, test)
-			zone.count = 1
-			if len(zone.geohash) == len(test) {
-				break
-			}
-		}
-		assert.Equal(suite.T(), test+":0z", zone.Zonehash)
-
-		// While we're at it, test GetZone() functionality.
-		world = &World{root, nil, nil, nil, nil}
-		z, err := getOrCreateZone(zone.Zonehash)
-		assert.NoError(suite.T(), err)
-		assert.Equal(suite.T(), zone, z)
-	}
-}
-
-func (suite *ZoneTestSuite) TestGetZone() {
-	root := newZone("", '0', 'z', nil, 1)
-	world = &World{root, nil, nil, nil, nil}
-	zone, err := getOrCreateZone(":0z")
+func (suite *ZoneTestSuite) TestNewZone() {
+	zone, err := newZone(rootZoneID, suite.world, 2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), world.root, zone)
+
+	assert.Equal(suite.T(), rootZoneID, zone.ID())
+	assert.Equal(suite.T(), float64(90), zone.NorthEast().Lat())
+	assert.Equal(suite.T(), float64(180), zone.NorthEast().Lng())
+	assert.Equal(suite.T(), float64(-90), zone.SouthWest().Lat())
+	assert.Equal(suite.T(), float64(-180), zone.SouthWest().Lng())
+	assert.Equal(suite.T(), "", zone.Geohash())
+	assert.Equal(suite.T(), "0", zone.From())
+	assert.Equal(suite.T(), "z", zone.To())
+	// assert.Nil(suite.T(), zone.ParentZoneID())
+	assert.Equal(suite.T(), ":0g", zone.LeftZoneID())
+	assert.Equal(suite.T(), ":hz", zone.RightZoneID())
+	assert.Equal(suite.T(), 0, zone.Count())
+	assert.True(suite.T(), zone.IsOpen())
 }
 
-func TestSuite(t *testing.T) {
+func (suite *ZoneTestSuite) TestAddUser() {
+	user := &mocks.User{}
+	user.On("ID").Return("user1")
+
+	zone, err := newZone(rootZoneID, suite.world, 2)
+	assert.NoError(suite.T(), err)
+
+	zone.AddUser(user)
+	assert.Equal(suite.T(), 1, zone.Count())
+	assert.True(suite.T(), zone.IsOpen())
+}
+
+func (suite *ZoneTestSuite) TestSetIsOpen() {
+	zone, err := newZone(rootZoneID, suite.world, 2)
+	assert.NoError(suite.T(), err)
+
+	assert.True(suite.T(), zone.IsOpen())
+	zone.SetIsOpen(false)
+	assert.False(suite.T(), zone.IsOpen())
+	zone.SetIsOpen(true)
+	assert.True(suite.T(), zone.IsOpen())
+}
+
+func (suite *ZoneTestSuite) TestRemoveUser() {
+	user1 := &mocks.User{}
+	user1.On("ID").Return("user1")
+
+	zone, err := newZone(rootZoneID, suite.world, 2)
+	assert.NoError(suite.T(), err)
+
+	assert.Equal(suite.T(), 0, zone.Count())
+	zone.AddUser(user1)
+	assert.Equal(suite.T(), 1, zone.Count())
+	zone.RemoveUser("user1")
+	assert.Equal(suite.T(), 0, zone.Count())
+}
+
+// func (suite *ZoneTestSuite) TestBroadcast() {
+// 	event := &mocks.ServerEvent{}
+//
+// 	user1 := &mocks.User{}
+// 	user1.On("ID").Return("user1")
+// 	user1.On("Broadcast", event).Return(nil)
+//
+// 	user2 := &mocks.User{}
+// 	user2.On("ID").Return("user2")
+// 	user2.On("Broadcast", event).Return(nil)
+//
+// 	zone, err := newZone(rootZoneID, suite.world, 2)
+// 	assert.NoError(suite.T(), err)
+//
+// 	zone.AddUser(user1)
+// 	zone.AddUser(user2)
+// 	zone.Broadcast(event)
+//
+// 	user1.AssertCalled(suite.T(), "Broadcast", event)
+// 	user2.AssertCalled(suite.T(), "Broadcast", event)
+// }
+
+func (suite *ZoneTestSuite) TestMarshalJSON() {
+	zone, err := newZone(rootZoneID, suite.world, 2)
+	assert.NoError(suite.T(), err)
+
+	user1 := &mocks.User{}
+	user1.On("ID").Return("user1")
+	zone.AddUser(user1)
+
+	user2 := &mocks.User{}
+	user2.On("ID").Return("user2")
+	zone.AddUser(user2)
+
+	b, err := json.Marshal(zone.ServerJSON())
+	assert.Equal(suite.T(), "{\"id\":\":0z\",\"user_ids\":[\"user1\",\"user2\"],\"is_open\":true,\"max_users\":2}", string(b))
+	assert.NoError(suite.T(), err)
+}
+
+func TestZoneTestSuit(t *testing.T) {
 	suite.Run(t, new(ZoneTestSuite))
 }

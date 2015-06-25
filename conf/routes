@@ -6,13 +6,12 @@ module:testrunner
 
 GET     /                                       App.Index
 
-POST    /auth/login                             Auth.Login
+POST    /auth                                   AuthController.Login
 
-POST    /s/subscribe                              Zone.Subscribe
-GET     /s/:subscriptionId                   Zone.Zone
-POST    /s/:subscriptionId/message           Zone.Message
-POST    /s/:subscriptionId/command           Zone.Command
-WS      /s/:subscriptionId/socket            Zone.ZoneSocket
+GET     /chat/                                  ZoneController.Zone
+POST    /chat/message                           ZoneController.Message
+POST    /chat/command                           ZoneController.Command
+WS      /chat/socket                            ZoneController.ZoneSocket
 
 # Ignore favicon requests
 GET     /favicon.ico                            404

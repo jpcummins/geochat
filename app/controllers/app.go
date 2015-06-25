@@ -7,10 +7,17 @@ import (
 
 type App struct {
 	*revel.Controller
-	User *chat.User
 }
 
-func (c App) Index(geochat *chat.Chat) revel.Result {
-	user, _ := chat.GetUser(c.Session["user"])
-	return c.Render(user)
+func (c App) Index() revel.Result {
+	if id, ok := c.Session["user_id"]; ok {
+
+		user, err := chat.App.Users().User(id)
+		if user != nil && err == nil {
+			return c.Redirect("/chat")
+		} else {
+			delete(c.Session, "user_id")
+		}
+	}
+	return c.Render()
 }
