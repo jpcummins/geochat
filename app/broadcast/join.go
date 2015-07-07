@@ -26,7 +26,7 @@ func (e *join) Type() types.BroadcastEventType {
 
 func (e *join) BeforeBroadcastToUser(user types.User, event types.BroadcastEvent) (bool, error) {
 	if e.user == user {
-		user.Broadcast(Zone(e.zone))
+		user.Broadcast(Zone(e.zone, user))
 		return false, nil
 	}
 	return true, nil

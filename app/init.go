@@ -23,7 +23,7 @@ func init() {
 		revel.ActionInvoker,           // Invoke the action.
 	}
 
-	redisServer := os.Getenv("REDISTOGO_URL")
+	redisServer := os.Getenv("OPENREDIS_URL")
 
 	if redisServer == "" {
 		redisServer = "redis://localhost:6379"

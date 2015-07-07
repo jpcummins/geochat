@@ -59,43 +59,7 @@ func (m *World) NewUser(id string, name string, lat float64, lng float64) (types
 
 	return r0, r1
 }
-func (m *World) NewServerEvent(_a0 types.ServerEventData) types.ServerEvent {
-	ret := m.Called(_a0)
-
-	r0 := ret.Get(0).(types.ServerEvent)
-
-	return r0
-}
-func (m *World) NewClientEvent(_a0 types.ClientEventData) types.ClientEvent {
-	ret := m.Called(_a0)
-
-	r0 := ret.Get(0).(types.ClientEvent)
-
-	return r0
-}
-func (m *World) Publish(_a0 types.ServerEvent) error {
-	ret := m.Called(_a0)
-
-	r0 := ret.Error(0)
-
-	return r0
-}
-
-func (m *World) ClientJSON() types.ClientJSON {
-	ret := m.Called()
-
-	r0 := ret.Get(0).(types.ClientJSON)
-
-	return r0
-}
-func (m *World) ServerJSON() types.ServerJSON {
-	ret := m.Called()
-
-	r0 := ret.Get(0).(types.ServerJSON)
-
-	return r0
-}
-func (m *World) Update(_a0 types.ServerJSON) error {
+func (m *World) Publish(_a0 types.PubSubEventData) error {
 	ret := m.Called(_a0)
 
 	r0 := ret.Error(0)

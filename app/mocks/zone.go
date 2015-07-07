@@ -1,19 +1,19 @@
 package mocks
 
-import (
-	"github.com/jpcummins/geochat/app/types"
-	"github.com/stretchr/testify/mock"
-)
+import "github.com/jpcummins/geochat/app/types"
+import "github.com/stretchr/testify/mock"
 
 type Zone struct {
 	mock.Mock
 }
 
-func (z *Zone) ID() string {
-	args := z.Called()
-	return args.String(0)
-}
+func (m *Zone) ID() string {
+	ret := m.Called()
 
+	r0 := ret.Get(0).(string)
+
+	return r0
+}
 func (m *Zone) World() types.World {
 	ret := m.Called()
 
@@ -21,118 +21,124 @@ func (m *Zone) World() types.World {
 
 	return r0
 }
+func (m *Zone) SouthWest() types.LatLng {
+	ret := m.Called()
 
-func (z *Zone) SouthWest() types.LatLng {
-	args := z.Called()
-	return args.Get(0).(types.LatLng)
+	r0 := ret.Get(0).(types.LatLng)
+
+	return r0
 }
+func (m *Zone) NorthEast() types.LatLng {
+	ret := m.Called()
 
-func (z *Zone) NorthEast() types.LatLng {
-	args := z.Called()
-	return args.Get(0).(types.LatLng)
+	r0 := ret.Get(0).(types.LatLng)
+
+	return r0
 }
+func (m *Zone) Geohash() string {
+	ret := m.Called()
 
-func (z *Zone) Geohash() string {
-	args := z.Called()
-	return args.String(0)
+	r0 := ret.Get(0).(string)
+
+	return r0
 }
+func (m *Zone) From() string {
+	ret := m.Called()
 
-func (z *Zone) From() string {
-	args := z.Called()
-	return args.String(0)
+	r0 := ret.Get(0).(string)
+
+	return r0
 }
+func (m *Zone) To() string {
+	ret := m.Called()
 
-func (z *Zone) To() string {
-	args := z.Called()
-	return args.Get(0).(string)
+	r0 := ret.Get(0).(string)
+
+	return r0
 }
+func (m *Zone) ParentZoneID() string {
+	ret := m.Called()
 
-func (z *Zone) ParentZoneID() string {
-	args := z.Called()
-	return args.String(0)
+	r0 := ret.Get(0).(string)
+
+	return r0
 }
+func (m *Zone) LeftZoneID() string {
+	ret := m.Called()
 
-func (z *Zone) LeftZoneID() string {
-	args := z.Called()
-	return args.String(0)
+	r0 := ret.Get(0).(string)
+
+	return r0
 }
+func (m *Zone) RightZoneID() string {
+	ret := m.Called()
 
-func (z *Zone) RightZoneID() string {
-	args := z.Called()
-	return args.String(0)
+	r0 := ret.Get(0).(string)
+
+	return r0
 }
+func (m *Zone) MaxUsers() int {
+	ret := m.Called()
 
-func (z *Zone) MaxUsers() int {
-	args := z.Called()
-	return args.Int(0)
+	r0 := ret.Get(0).(int)
+
+	return r0
 }
+func (m *Zone) Count() int {
+	ret := m.Called()
 
-func (z *Zone) Count() int {
-	args := z.Called()
-	return args.Int(0)
+	r0 := ret.Get(0).(int)
+
+	return r0
 }
+func (m *Zone) IsOpen() bool {
+	ret := m.Called()
 
-func (z *Zone) IsOpen() bool {
-	args := z.Called()
-	return args.Bool(0)
+	r0 := ret.Get(0).(bool)
+
+	return r0
 }
-
-func (z *Zone) SetIsOpen(isOpen bool) {
-	z.Called(isOpen)
+func (m *Zone) SetIsOpen(_a0 bool) {
+	m.Called(_a0)
 }
-
-func (z *Zone) Broadcast(event types.ClientEvent) {
-	z.Called(event)
+func (m *Zone) AddUser(_a0 types.User) {
+	m.Called(_a0)
 }
-
-func (z *Zone) AddUser(user types.User) {
-	z.Called(user)
+func (m *Zone) RemoveUser(_a0 string) {
+	m.Called(_a0)
 }
-
-func (z *Zone) RemoveUser(id string) {
-	z.Called(id)
+func (m *Zone) Broadcast(_a0 types.BroadcastEventData) {
+	m.Called(_a0)
 }
-
-func (z *Zone) MarshalJSON() ([]byte, error) {
-	args := z.Called()
-	return args.Get(0).([]byte), args.Error(1)
-}
-
-func (m *Zone) Join(_a0 types.User) (types.ClientEvent, error) {
+func (m *Zone) Join(_a0 types.User) (types.BroadcastEvent, error) {
 	ret := m.Called(_a0)
 
-	r0 := ret.Get(0).(types.ClientEvent)
+	r0 := ret.Get(0).(types.BroadcastEvent)
 	r1 := ret.Error(1)
 
 	return r0, r1
 }
-func (m *Zone) Message(_a0 types.User, _a1 string) (types.ClientEvent, error) {
+func (m *Zone) Leave(_a0 types.User) (types.BroadcastEvent, error) {
+	ret := m.Called(_a0)
+
+	r0 := ret.Get(0).(types.BroadcastEvent)
+	r1 := ret.Error(1)
+
+	return r0, r1
+}
+func (m *Zone) Message(_a0 types.User, _a1 string) (types.BroadcastEvent, error) {
 	ret := m.Called(_a0, _a1)
 
-	r0 := ret.Get(0).(types.ClientEvent)
+	r0 := ret.Get(0).(types.BroadcastEvent)
 	r1 := ret.Error(1)
 
 	return r0, r1
 }
-
-func (m *Zone) ClientJSON() types.ClientJSON {
-	ret := m.Called()
-
-	r0 := ret.Get(0).(types.ClientJSON)
-
-	return r0
-}
-func (m *Zone) ServerJSON() types.ServerJSON {
-	ret := m.Called()
-
-	r0 := ret.Get(0).(types.ServerJSON)
-
-	return r0
-}
-func (m *Zone) Update(_a0 types.ServerJSON) error {
+func (m *Zone) Split(_a0 types.User) (types.BroadcastEvent, error) {
 	ret := m.Called(_a0)
 
-	r0 := ret.Error(0)
+	r0 := ret.Get(0).(types.BroadcastEvent)
+	r1 := ret.Error(1)
 
-	return r0
+	return r0, r1
 }

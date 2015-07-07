@@ -22,12 +22,13 @@ type Zone interface {
 	RemoveUser(string)
 
 	// Broadcast
-	Broadcast(BroadcastEventData)
+	Broadcast(BroadcastEventData) error
 
 	// Pubsubs
-	Join(User) (BroadcastEvent, error)
-	Leave(User) (BroadcastEvent, error)
-	Message(User, string) (BroadcastEvent, error)
+	Join(User) (BroadcastEventData, error)
+	Leave(User) (BroadcastEventData, error)
+	Message(User, string) (BroadcastEventData, error)
+	Split() (BroadcastEventData, error)
 }
 
 type ZonePubSubJSON struct {

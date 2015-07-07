@@ -3,8 +3,10 @@ package chat
 import (
 	"errors"
 	gh "github.com/TomiHiltunen/geohash-golang"
+	"github.com/jpcummins/geochat/app/broadcast"
 	"github.com/jpcummins/geochat/app/pubsub"
 	"github.com/jpcummins/geochat/app/types"
+	log "gopkg.in/inconshreveable/log15.v2"
 	"strings"
 	"sync"
 )
@@ -19,7 +21,7 @@ type Zone struct {
 	types.BroadcastSerializable
 	*types.ZonePubSubJSON
 
-	world        types.World
+	world        *World
 	southWest    types.LatLng
 	northEast    types.LatLng
 	geohash      string
@@ -28,9 +30,10 @@ type Zone struct {
 	parentZoneID string
 	leftZoneID   string
 	rightZoneID  string
+	logger       log.Logger
 }
 
-func newZone(id string, world types.World, maxUsers int) (*Zone, error) {
+func newZone(id string, world *World, maxUsers int, logger log.Logger) (*Zone, error) {
 	geohash, from, to, err := validateZoneID(id)
 	if err != nil {
 		return nil, err
@@ -51,6 +54,7 @@ func newZone(id string, world types.World, maxUsers int) (*Zone, error) {
 		geohash:   geohash,
 		from:      from,
 		to:        to,
+		logger:    logger.New("zone", id),
 	}
 
 	// Calculate left, right, and parent IDs
@@ -168,7 +172,7 @@ func (z *Zone) RemoveUser(id string) {
 	}
 }
 
-func (z *Zone) Broadcast(eventData types.BroadcastEventData) {
+func (z *Zone) Broadcast(eventData types.BroadcastEventData) error {
 	z.RLock()
 	defer z.RUnlock()
 
@@ -177,6 +181,8 @@ func (z *Zone) Broadcast(eventData types.BroadcastEventData) {
 			user.Broadcast(eventData)
 		}
 	}
+
+	return nil
 }
 
 func (z *Zone) BroadcastJSON() interface{} {
@@ -212,7 +218,7 @@ func (z *Zone) Update(js types.PubSubJSON) error {
 	return nil
 }
 
-func (z *Zone) Join(user types.User) (types.BroadcastEvent, error) {
+func (z *Zone) Join(user types.User) (types.BroadcastEventData, error) {
 	if user.Zone() != nil && user.Zone() != z {
 		if _, err := user.Zone().Leave(user); err != nil {
 			return nil, err
@@ -226,7 +232,7 @@ func (z *Zone) Join(user types.User) (types.BroadcastEvent, error) {
 	return nil, z.world.Publish(data)
 }
 
-func (z *Zone) Leave(user types.User) (types.BroadcastEvent, error) {
+func (z *Zone) Leave(user types.User) (types.BroadcastEventData, error) {
 	data, err := pubsub.Leave(user, z)
 	if err != nil {
 		return nil, err
@@ -234,10 +240,62 @@ func (z *Zone) Leave(user types.User) (types.BroadcastEvent, error) {
 	return nil, z.world.Publish(data)
 }
 
-func (z *Zone) Message(user types.User, message string) (types.BroadcastEvent, error) {
+func (z *Zone) Message(user types.User, message string) (types.BroadcastEventData, error) {
 	data, err := pubsub.Message(user, z, message)
 	if err != nil {
 		return nil, err
 	}
 	return nil, z.world.Publish(data)
+}
+
+func (z *Zone) Split() (types.BroadcastEventData, error) {
+	// Close the zone and save
+	z.SetIsOpen(false)
+	z.World().Zones().Save(z)
+
+	// Update the user and zone objects
+	users := make(map[string]types.User)
+	zones := make(map[string]types.Zone)
+
+	for _, userID := range z.ZonePubSubJSON.UserIDs {
+		user, err := z.World().Users().User(userID)
+		if err != nil {
+			z.logger.Crit("User cache lookup error", "error", err.Error(), "user", userID)
+			return nil, err
+		}
+
+		newZone, err := z.world.findOpenZone(z, user)
+		if err != nil {
+			z.logger.Crit("Unable to find an open zone", "currentZone", z.ID(), "user", user.ID())
+			return nil, err
+		}
+		user.SetZone(newZone)
+		newZone.AddUser(user)
+
+		users[userID] = user
+		zones[newZone.ID()] = newZone
+	}
+
+	// clear the zone subscriber list
+	z.ZonePubSubJSON.UserIDs = z.ZonePubSubJSON.UserIDs[:0]
+
+	// Bulk save new zones, current zone, and users.
+	zones[z.ID()] = z
+	usersSlice := make([]*types.UserPubSubJSON, 0, len(users))
+	zonesSlice := make([]*types.ZonePubSubJSON, 0, len(zones))
+
+	for _, user := range users {
+		usersSlice = append(usersSlice, user.PubSubJSON().(*types.UserPubSubJSON))
+	}
+
+	for _, zone := range zones {
+		zonesSlice = append(zonesSlice, zone.PubSubJSON().(*types.ZonePubSubJSON))
+	}
+
+	if err := z.world.db.SaveUsersAndZones(usersSlice, zonesSlice, z.world.ID()); err != nil {
+		z.logger.Crit("Error saving users and/or zones", "error", err.Error())
+		return nil, err
+	}
+
+	return broadcast.Split(z.ID(), zones), nil
 }

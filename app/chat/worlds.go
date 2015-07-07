@@ -3,6 +3,7 @@ package chat
 import (
 	"errors"
 	"github.com/jpcummins/geochat/app/types"
+	log "gopkg.in/inconshreveable/log15.v2"
 	"sync"
 )
 
@@ -11,13 +12,15 @@ type Worlds struct {
 	db     types.DB
 	pubsub types.PubSub
 	worlds map[string]types.World
+	logger log.Logger
 }
 
-func newWorlds(db types.DB, ps types.PubSub) *Worlds {
+func newWorlds(db types.DB, ps types.PubSub, logger log.Logger) *Worlds {
 	return &Worlds{
 		db:     db,
 		pubsub: ps,
 		worlds: make(map[string]types.World),
+		logger: logger,
 	}
 }
 
@@ -47,7 +50,7 @@ func (w *Worlds) FromDB(id string) (types.World, error) {
 
 	world := w.FromCache(id)
 	if world == nil {
-		if world, err = newWorld(id, w.db, w.pubsub, 10); err != nil {
+		if world, err = newWorld(id, w.db, w.pubsub, 10, w.logger); err != nil {
 			return nil, err
 		}
 	}

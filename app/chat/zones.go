@@ -3,21 +3,24 @@ package chat
 import (
 	"errors"
 	"github.com/jpcummins/geochat/app/types"
+	log "gopkg.in/inconshreveable/log15.v2"
 	"sync"
 )
 
 type Zones struct {
 	sync.RWMutex
-	db    types.DB
-	world types.World
-	zones map[string]types.Zone
+	db     types.DB
+	world  *World
+	zones  map[string]types.Zone
+	logger log.Logger
 }
 
-func newZones(world types.World, db types.DB) *Zones {
+func newZones(world *World, db types.DB, logger log.Logger) *Zones {
 	return &Zones{
-		db:    db,
-		world: world,
-		zones: make(map[string]types.Zone),
+		db:     db,
+		world:  world,
+		zones:  make(map[string]types.Zone),
+		logger: logger,
 	}
 }
 
@@ -38,6 +41,7 @@ func (z *Zones) FromCache(id string) types.Zone {
 func (z *Zones) FromDB(id string) (types.Zone, error) {
 	json, err := z.db.Zone(id, z.world.ID())
 	if err != nil {
+		z.logger.Error("Error finding zone from db", "zone", id, "error", err.Error())
 		return nil, err
 	}
 
@@ -47,11 +51,13 @@ func (z *Zones) FromDB(id string) (types.Zone, error) {
 
 	zone := z.FromCache(id)
 	if zone == nil {
-		if zone, err = newZone(id, z.world, z.world.MaxUsers()); err != nil {
+		if zone, err = newZone(id, z.world, z.world.MaxUsers(), z.logger); err != nil {
+			z.logger.Error("Error creating zone", "zone", id, "error", err.Error())
 			return nil, err
 		}
 	}
 	if err := zone.Update(json); err != nil {
+		z.logger.Error("Error updating zone", "zone", id, "error", err.Error())
 		return nil, err
 	}
 

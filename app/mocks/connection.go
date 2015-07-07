@@ -9,9 +9,9 @@ type Connection struct {
 	mock.Mock
 }
 
-func (m *Connection) Events() chan types.ServerEvent {
+func (m *Connection) Events() chan types.PubSubEvent {
 	args := m.Called()
-	return args.Get(0).(chan types.ServerEvent)
+	return args.Get(0).(chan types.PubSubEvent)
 }
 
 func (m *Connection) Ping() {

@@ -5,6 +5,7 @@ var stateTree = new Baobab({
   visibleEvents: [],
   zone: {},
   users: {},
+  user: {},
 }, {
   mixins: [ReactAddons.PureRenderMixin],
   shiftReferences: true

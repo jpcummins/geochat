@@ -140,3 +140,9 @@ body,
   font-style: italic;
   color: #999;
 }
+
+h4 .loc-name {
+  margin-left: 20px;
+  font-size:14px;
+  color: #666;
+}

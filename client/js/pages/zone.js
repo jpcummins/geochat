@@ -8,7 +8,8 @@ var React = require('react'),
 
 var eventsCursor = stateTree.select('visibleEvents'),
     zoneCursor = stateTree.select('zone'),
-    usersCursor = stateTree.select('users');
+    usersCursor = stateTree.select('users'),
+    userCursor = stateTree.select('user');
 
 var ZonePage = React.createClass({
 
@@ -28,6 +29,7 @@ var ZonePage = React.createClass({
         eventsCursor.push(chatEvent)
         zoneCursor.set(chatEvent.data.zone)
         usersCursor.set(chatEvent.data.zone.users)
+        userCursor.set(chatEvent.data.user)
         break;
       case "join":
         usersCursor.set(chatEvent.data.user.id, chatEvent.data.user)
@@ -37,6 +39,11 @@ var ZonePage = React.createClass({
         chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
         eventsCursor.push(chatEvent)
         usersCursor.unset(chatEvent.data.user.id)
+        break;
+      case "split":
+        eventsCursor.push(chatEvent)
+        zoneCursor.set(chatEvent.data.next_zone)
+        usersCursor.set(chatEvent.data.next_zone.users)
         break;
       default:
     }

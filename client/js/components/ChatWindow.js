@@ -3,13 +3,15 @@ var React = require('react'),
     Message = require('./events/Message'),
     Zone = require('./events/Zone'),
     Join = require('./events/Join'),
-    Leave = require('./events/Leave');
+    Leave = require('./events/Leave'),
+    Split = require('./events/Split');
 
 var eventClasses = {
   "message": Message,
   "zone": Zone,
   "join": Join,
   "leave": Leave,
+  "split": Split,
 }
 
 var eventsCursor = stateTree.select('visibleEvents');

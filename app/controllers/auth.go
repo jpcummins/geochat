@@ -29,7 +29,7 @@ func (ac AuthController) Login(name string, lat float64, long float64) revel.Res
 		user, err = chat.App.NewUser(name, name, lat, long)
 		if err != nil {
 			delete(ac.Session, userIDSessionKey)
-			return ac.RenderError(err)
+			panic(err)
 		}
 		ac.Session[userIDSessionKey] = user.ID()
 	}

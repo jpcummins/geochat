@@ -6,17 +6,19 @@ import (
 	"github.com/jpcummins/geochat/app/pubsub"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/soveran/redisurl"
+	log "gopkg.in/inconshreveable/log15.v2"
+	"strings"
 	"sync"
 	"time"
 )
 
 type RedisDB struct {
 	sync.RWMutex
-	pool       *redis.Pool
-	connection redis.Conn
+	pool   *redis.Pool
+	logger log.Logger
 }
 
-func NewRedisDB(redisServer string) *RedisDB {
+func NewRedisDB(redisServer string, logger log.Logger) *RedisDB {
 	connection := &RedisDB{}
 	pool := &redis.Pool{
 		MaxIdle:     3,
@@ -34,7 +36,7 @@ func NewRedisDB(redisServer string) *RedisDB {
 		},
 	}
 	connection.pool = pool
-	connection.connection = pool.Get()
+	connection.logger = logger.New("redis", redisServer)
 	return connection
 }
 
@@ -56,8 +58,14 @@ func (r *RedisDB) Zone(id string, worldID string) (*types.ZonePubSubJSON, error)
 	json := &types.ZonePubSubJSON{}
 	found, err := r.getObject(getZoneKey(id, worldID), json)
 
-	if !found {
+	if err != nil {
+		r.logger.Error("Error retrieving zone", "id", id, "world", worldID, "error", err.Error())
 		return nil, err
+	}
+
+	if !found {
+		r.logger.Info("Zone not found", "id", id, "world", worldID)
+		return nil, nil
 	}
 
 	return json, err
@@ -86,7 +94,9 @@ func (r *RedisDB) getObject(id string, v interface{}) (bool, error) {
 	r.Lock()
 	defer r.Unlock()
 
-	data, err := redis.Bytes(r.connection.Do("GET", id))
+	connection := r.pool.Get()
+
+	data, err := redis.Bytes(connection.Do("GET", id))
 	if err == redis.ErrNil {
 		return false, nil
 	}
@@ -104,7 +114,59 @@ func (r *RedisDB) setObject(id string, v interface{}) error {
 
 	r.Lock()
 	defer r.Unlock()
-	_, err = r.connection.Do("SET", id, string(bytes))
+
+	connection := r.pool.Get()
+	_, err = connection.Do("SET", id, string(bytes))
+	return err
+}
+
+func (r *RedisDB) SaveUsersAndZones(users []*types.UserPubSubJSON, zones []*types.ZonePubSubJSON, worldID string) error {
+	r.Lock()
+	defer r.Unlock()
+	connection := r.pool.Get()
+
+	// Gather the object keys
+	keys := make([]string, len(users)+len(zones))
+	for _, user := range users {
+		keys = append(keys, getUserKey(user.ID, worldID))
+	}
+	for _, zone := range zones {
+		keys = append(keys, getZoneKey(zone.ID, worldID))
+	}
+
+	// Watch the keys for changes
+	connection.Send("WATCH", strings.Join(keys, " "))
+	connection.Send("MULTI")
+
+	for _, user := range users {
+		bytes, err := json.Marshal(user)
+		if err != nil {
+			r.logger.Error("Unable to marshal user", "user", user.ID)
+			return err
+		}
+		connection.Send("SET", getUserKey(user.ID, worldID), bytes)
+	}
+
+	for _, zone := range zones {
+		bytes, err := json.Marshal(zone)
+		if err != nil {
+			r.logger.Error("Unable to marshal zone", "zone", zone.ID)
+			return err
+		}
+		connection.Send("SET", getZoneKey(zone.ID, worldID), bytes)
+	}
+
+	if _, err := connection.Do("EXEC"); err != nil {
+		r.logger.Error("Error executing save", "error", err.Error())
+		return err
+	}
+
+	_, err := connection.Do("UNWATCH")
+
+	if err != nil {
+		r.logger.Error("Error unwatching", "error", err.Error())
+	}
+
 	return err
 }
 
@@ -146,7 +208,9 @@ func (pubsub *RedisPubSub) Publish(event types.PubSubEvent) error {
 
 	pubsub.db.Lock()
 	defer pubsub.db.Unlock()
-	_, err = pubsub.db.connection.Do("PUBLISH", getWorldKey(pubsub.worldID), string(bytes))
+
+	connection := pubsub.db.pool.Get()
+	_, err = connection.Do("PUBLISH", getWorldKey(pubsub.worldID), string(bytes))
 	return err
 }
 

@@ -28,7 +28,7 @@ func (zc *ZoneController) setSession() revel.Result {
 
 	user, err := chat.App.Users().User(userID)
 	if err != nil {
-		return zc.RenderError(err)
+		panic(err)
 	}
 
 	if user == nil {
@@ -49,7 +49,7 @@ func (zc *ZoneController) Message(text string) revel.Result {
 	event, err := zc.user.Zone().Message(zc.user, text)
 
 	if err != nil {
-		return zc.RenderError(err)
+		panic(err)
 	}
 
 	return zc.RenderJson(event)
@@ -59,7 +59,7 @@ func (zc *ZoneController) Message(text string) revel.Result {
 func (zc *ZoneController) Command(command string, args string) revel.Result {
 	println(command, args)
 	if err := zc.user.ExecuteCommand(command, args); err != nil {
-		zc.RenderError(err)
+		panic(err)
 	}
 	return nil
 }
@@ -80,12 +80,10 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 	if zc.user.Zone() == nil {
 		zone, err = chat.App.FindOpenZone(zc.user)
 		if err != nil {
-			println(err.Error())
-			return zc.RenderError(err)
+			panic(err)
 		}
 		if _, err := zone.Join(zc.user); err != nil {
-			println(err.Error())
-			return zc.RenderError(err)
+			panic(err)
 		}
 	} else {
 		zone = zc.user.Zone()
@@ -120,7 +118,7 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 			zone := zc.user.Zone()
 			if zone != nil {
 				if _, err := zone.Leave(zc.user); err != nil {
-					println(err.Error())
+					panic(err)
 				}
 			}
 

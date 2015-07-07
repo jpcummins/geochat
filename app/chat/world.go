@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/jpcummins/geochat/app/pubsub"
 	"github.com/jpcummins/geochat/app/types"
+	log "gopkg.in/inconshreveable/log15.v2"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -23,9 +24,10 @@ type World struct {
 	pubsub types.PubSub
 	users  types.Users
 	zones  types.Zones
+	logger log.Logger
 }
 
-func newWorld(id string, db types.DB, ps types.PubSub, maxUsers int) (*World, error) {
+func newWorld(id string, db types.DB, ps types.PubSub, maxUsers int, logger log.Logger) (*World, error) {
 	w := &World{
 		WorldPubSubJSON: &types.WorldPubSubJSON{
 			ID:       id,
@@ -33,13 +35,15 @@ func newWorld(id string, db types.DB, ps types.PubSub, maxUsers int) (*World, er
 		},
 		db:     db,
 		pubsub: ps,
+		logger: logger.New("world", id),
 	}
 
 	w.users = newUsers(w, db)
-	w.zones = newZones(w, db)
+	w.zones = newZones(w, db, logger)
 
 	root, err := w.GetOrCreateZone(rootZoneID)
 	if err != nil {
+		w.logger.Crit("Error creating root zone", "root", rootZoneID, "error", err.Error())
 		return nil, err
 	}
 
@@ -78,16 +82,19 @@ func (w *World) Zones() types.Zones {
 func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	zone, err := w.Zones().Zone(id)
 	if err != nil {
+		w.logger.Crit("Zone cache lookup error.", "zone", id, "error", err.Error())
 		return nil, err
 	}
 
 	if zone == nil {
-		zone, err = newZone(id, w, w.MaxUsers())
+		zone, err = newZone(id, w, w.MaxUsers(), w.logger)
 		if err != nil {
+			w.logger.Crit("Error creating zone", "zone", id, "maxUsers", w.MaxUsers(), "error", err.Error())
 			return nil, err
 		}
 
 		if err := w.zones.Save(zone); err != nil {
+			w.logger.Crit("Error saving zone", "zone", id, "error", err.Error())
 			return nil, err
 		}
 	}
@@ -96,21 +103,27 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 }
 
 func (w *World) FindOpenZone(user types.User) (types.Zone, error) {
-	root := w.root
+	return w.findOpenZone(w.root, user)
+}
+
+func (w *World) findOpenZone(root types.Zone, user types.User) (types.Zone, error) {
 	for !root.IsOpen() {
 		suffix := strings.TrimPrefix(user.Location().Geohash(), root.Geohash())
 
 		if len(suffix) == 0 {
+			w.logger.Crit("Unable to find an open zone", "user", user.ID())
 			return nil, errors.New("Unable to find zone")
 		}
 
 		rightZone, err := w.GetOrCreateZone(root.RightZoneID())
 		if err != nil {
+			w.logger.Crit("Error retrieving right zone", "zone", root.RightZoneID())
 			return nil, err
 		}
 
 		leftZone, err := w.GetOrCreateZone(root.LeftZoneID())
 		if err != nil {
+			w.logger.Crit("Error retrieving left zone", "zone", root.LeftZoneID())
 			return nil, err
 		}
 

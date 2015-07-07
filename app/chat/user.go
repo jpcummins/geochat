@@ -90,10 +90,10 @@ func (u *User) Disconnect(c types.Connection) {
 
 	for i, connection := range u.connections {
 		if connection == c {
-			close(connection.events)
 			copy(u.connections[i:], u.connections[i+1:])
 			u.connections[len(u.connections)-1] = nil // gc
 			u.connections = u.connections[:len(u.connections)-1]
+			close(connection.events)
 			break
 		}
 	}

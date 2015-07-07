@@ -8,11 +8,13 @@ const zoneType types.BroadcastEventType = "zone"
 
 type zone struct {
 	ZoneJSON *types.ZoneBroadcastJSON `json:"zone"`
+	UserJSON *types.UserBroadcastJSON `json:"user"`
 }
 
-func Zone(z types.Zone) *zone {
+func Zone(z types.Zone, user types.User) *zone {
 	return &zone{
 		ZoneJSON: z.BroadcastJSON().(*types.ZoneBroadcastJSON),
+		UserJSON: user.BroadcastJSON().(*types.UserBroadcastJSON),
 	}
 }
 
