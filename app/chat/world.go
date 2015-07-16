@@ -18,6 +18,8 @@ const defaultMaxUsers int = 30
 
 const defaultMinUsers int = 10
 
+const defaultSplitDelay time.Duration = time.Duration(60) * time.Second
+
 type World struct {
 	sync.RWMutex
 	types.PubSubSerializable
@@ -34,9 +36,10 @@ type World struct {
 func newWorld(id string, db types.DB, ps types.PubSub, logger log.Logger) (*World, error) {
 	w := &World{
 		WorldPubSubJSON: &types.WorldPubSubJSON{
-			ID:       id,
-			MaxUsers: defaultMaxUsers,
-			MinUsers: defaultMinUsers,
+			ID:         id,
+			MaxUsers:   defaultMaxUsers,
+			MinUsers:   defaultMinUsers,
+			SplitDelay: defaultSplitDelay,
 		},
 		db:     db,
 		pubsub: ps,
@@ -78,6 +81,10 @@ func (w *World) MaxUsers() int {
 
 func (w *World) MinUsers() int {
 	return w.WorldPubSubJSON.MinUsers
+}
+
+func (w *World) SplitDelay() time.Duration {
+	return w.WorldPubSubJSON.SplitDelay
 }
 
 func (w *World) DB() types.DB {

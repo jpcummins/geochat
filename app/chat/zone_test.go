@@ -170,7 +170,7 @@ func (suite *ZoneTestSuite) TestMarshalJSON() {
 	zone.AddUser(user2)
 
 	b, err := json.Marshal(zone.PubSubJSON())
-	assert.Equal(suite.T(), "{\"id\":\":0z\",\"user_ids\":[\"user1\",\"user2\"],\"is_open\":true,\"last_split_time\":0,\"last_merge_time\":0}", string(b))
+	assert.Equal(suite.T(), "{\"id\":\":0z\",\"user_ids\":[\"user1\",\"user2\"],\"is_open\":true,\"last_split\":\"0001-01-01T00:00:00Z\",\"last_merge\":\"0001-01-01T00:00:00Z\"}", string(b))
 	assert.NoError(suite.T(), err)
 }
 

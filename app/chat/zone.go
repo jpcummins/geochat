@@ -8,6 +8,7 @@ import (
 	log "gopkg.in/inconshreveable/log15.v2"
 	"strings"
 	"sync"
+	"time"
 )
 
 const rootZoneID = ":0z"
@@ -169,6 +170,14 @@ func (z *Zone) SetIsOpen(isOpen bool) {
 	z.World().Zones().UpdateCache(z)
 }
 
+func (z *Zone) SetLastSplit(time time.Time) {
+	z.ZonePubSubJSON.LastSplit = time
+}
+
+func (z *Zone) SetLastMerge(time time.Time) {
+	z.ZonePubSubJSON.LastMerge = time
+}
+
 func (z *Zone) AddUser(user types.User) {
 	z.Lock()
 	defer z.Unlock()
@@ -311,6 +320,7 @@ func (z *Zone) Split() (map[string]types.Zone, error) {
 
 	// clear the zone subscriber list
 	z.ZonePubSubJSON.UserIDs = z.ZonePubSubJSON.UserIDs[:0]
+	z.SetLastSplit(time.Now())
 
 	// Bulk save new zones, current zone, and users.
 	zones[z.ID()] = z
@@ -385,6 +395,7 @@ func (z *Zone) Merge() error {
 	}
 
 	z.SetIsOpen(true)
+	z.SetLastMerge(time.Now())
 
 	zones := make([]*types.ZonePubSubJSON, 3)
 	zones[0] = z.PubSubJSON().(*types.ZonePubSubJSON)
