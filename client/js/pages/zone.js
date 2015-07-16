@@ -16,6 +16,7 @@ var ZonePage = React.createClass({
   mixins: [React.addons.PureRenderMixin],
 
   getInitialState: function () {
+    userCursor.set(initData.user)
     return { zone: {}, users: {}, events: [] }
   },
 
@@ -25,15 +26,10 @@ var ZonePage = React.createClass({
         chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
         eventsCursor.push(chatEvent)
         break;
-      case "zone":
-        eventsCursor.push(chatEvent)
-        zoneCursor.set(chatEvent.data.zone)
-        usersCursor.set(chatEvent.data.zone.users)
-        userCursor.set(chatEvent.data.user)
-        break;
       case "join":
-        usersCursor.set(chatEvent.data.user.id, chatEvent.data.user)
         eventsCursor.push(chatEvent)
+        usersCursor.set(chatEvent.data.zone.users)
+        zoneCursor.set(chatEvent.data.zone)
         break;
       case "leave":
         chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
@@ -41,9 +37,10 @@ var ZonePage = React.createClass({
         usersCursor.unset(chatEvent.data.user.id)
         break;
       case "split":
+      case "merge":
         eventsCursor.push(chatEvent)
-        zoneCursor.set(chatEvent.data.next_zone)
-        usersCursor.set(chatEvent.data.next_zone.users)
+        zoneCursor.set(chatEvent.data.zone)
+        usersCursor.set(chatEvent.data.zone.users)
         break;
       default:
     }

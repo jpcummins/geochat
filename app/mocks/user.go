@@ -58,3 +58,18 @@ func (m *User) Connect() types.Connection {
 func (m *User) Disconnect(_a0 types.Connection) {
 	m.Called(_a0)
 }
+
+func (m *User) PubSubJSON() types.PubSubJSON {
+	ret := m.Called()
+	return ret.Get(0).(types.PubSubJSON)
+}
+
+func (m *User) Update(json types.PubSubJSON) error {
+	ret := m.Called(json)
+	return ret.Error(0)
+}
+
+func (m *User) BroadcastJSON() interface{} {
+	ret := m.Called()
+	return ret.Get(0)
+}

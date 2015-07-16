@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"github.com/jpcummins/geochat/app/chat"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/revel/revel"
@@ -46,27 +47,34 @@ func (zc *ZoneController) Message(text string) revel.Result {
 		zc.Redirect("/")
 	}
 
-	event, err := zc.user.Zone().Message(zc.user, text)
-
-	if err != nil {
+	if err := zc.user.Zone().Message(zc.user, text); err != nil {
 		panic(err)
 	}
 
-	return zc.RenderJson(event)
+	println("Sent message to zone " + zc.user.Zone().ID())
+
+	return zc.RenderJson(nil)
 }
 
 // Command action is used to issue administrative commands
 func (zc *ZoneController) Command(command string, args string) revel.Result {
 	println(command, args)
 	if err := zc.user.ExecuteCommand(command, args); err != nil {
-		panic(err)
+		revel.ERROR.Printf("Error: %s\n", err.Error())
 	}
 	return nil
 }
 
 // Zone action renders the main chat interface
 func (zc *ZoneController) Zone() revel.Result {
-	return zc.Render()
+	userData, err := json.Marshal(zc.user.BroadcastJSON())
+	userJSON := string(userData)
+
+	if err != nil {
+		return zc.RenderError(err)
+	}
+
+	return zc.Render(userJSON)
 }
 
 // ZoneSocket action handles WebSocket communication
@@ -78,11 +86,11 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 	closeConnection := make(chan bool)
 
 	if zc.user.Zone() == nil {
-		zone, err = chat.App.FindOpenZone(zc.user)
+		zone, err = chat.App.FindOpenZone(chat.App.Zone(), zc.user)
 		if err != nil {
 			panic(err)
 		}
-		if _, err := zone.Join(zc.user); err != nil {
+		if err := zone.Join(zc.user); err != nil {
 			panic(err)
 		}
 	} else {
@@ -117,7 +125,7 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 			// Leave the chat room
 			zone := zc.user.Zone()
 			if zone != nil {
-				if _, err := zone.Leave(zc.user); err != nil {
+				if err := zone.Leave(zc.user); err != nil {
 					panic(err)
 				}
 			}

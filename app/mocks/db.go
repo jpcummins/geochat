@@ -43,7 +43,7 @@ func (m *DB) SaveZone(json *types.ZonePubSubJSON, worldID string) error {
 
 	return r0
 }
-func (m *DB) BulkSaveUsersAndZones(users []*types.User, zones []*types.Zone, worldID string) error {
+func (m *DB) SaveUsersAndZones(users []*types.UserPubSubJSON, zones []*types.ZonePubSubJSON, worldID string) error {
 	ret := m.Called(users, zones, worldID)
 
 	r0 := ret.Error(0)

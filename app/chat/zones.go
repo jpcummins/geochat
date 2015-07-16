@@ -74,11 +74,11 @@ func (z *Zones) Save(zone types.Zone) error {
 		return err
 	}
 
-	z.updateCache(zone)
+	z.UpdateCache(zone)
 	return nil
 }
 
-func (z *Zones) updateCache(zone types.Zone) {
+func (z *Zones) UpdateCache(zone types.Zone) {
 	z.Lock()
 	defer z.Unlock()
 	z.zones[zone.ID()] = zone

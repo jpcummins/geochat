@@ -59,10 +59,6 @@ func (u *User) SetZone(zone types.Zone) {
 func (u *User) Broadcast(data types.BroadcastEventData) {
 	event := broadcast.NewEvent(generateEventID(), data)
 
-	if ok, err := data.BeforeBroadcastToUser(u, event); !ok || err != nil {
-		return
-	}
-
 	u.Lock()
 	defer u.Unlock()
 	for _, connection := range u.connections {

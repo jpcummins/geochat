@@ -1,91 +1,90 @@
 package chat
 
-//
-// import (
-// 	"errors"
-// 	"github.com/jpcummins/geochat/app/mocks"
-// 	"github.com/jpcummins/geochat/app/types"
-// 	"github.com/stretchr/testify/assert"
-// 	"github.com/stretchr/testify/mock"
-// 	"github.com/stretchr/testify/suite"
-// 	"testing"
-// )
-//
-// var seattle = &LatLng{47.6235616, -122.330341, "c23nb"}
-// var rome = &LatLng{41.9, 12.5, "sr2yk"}
-// var empty = &LatLng{0, 0, ""}
-//
-// var invalidZoneID = ":::::::"
-//
-// var leftZoneID = ":0g"
-// var rightZoneID = ":hz"
-//
-// type WorldTestSuite struct {
-// 	suite.Suite
-// 	world  *World
-// 	root   *mocks.Zone
-// 	zones  *mocks.Zones
-// 	user   *mocks.User
-// 	users  *mocks.Users
-// 	db     *mocks.DB
-// 	pubsub *mocks.PubSub
-// 	left   *mocks.Zone
-// 	right  *mocks.Zone
-// 	events *mocks.Events
-// 	ch     chan types.PubSubEvent
-// 	rch    <-chan types.PubSubEvent
-// }
-//
-// func (suite *WorldTestSuite) SetupTest() {
-// 	suite.ch = make(chan types.PubSubEvent)
-// 	suite.rch = suite.ch
-// 	suite.zones = &mocks.Zones{}
-// 	suite.user = &mocks.User{}
-// 	suite.users = &mocks.Users{}
-// 	suite.db = &mocks.DB{}
-// 	suite.pubsub = &mocks.PubSub{}
-// 	suite.root = &mocks.Zone{}
-// 	suite.left = &mocks.Zone{}
-// 	suite.right = &mocks.Zone{}
-// 	suite.events = &mocks.Events{}
-// 	suite.world = suite.NewWorld()
-// }
-//
-// func (suite *WorldTestSuite) NewWorld() *World {
-// 	world := &World{
-// 		ServerWorldJSON: &types.ServerWorldJSON{
-// 			BaseServerJSON: &types.BaseServerJSON{
-// 				ID: rootWorldID,
-// 			},
-// 			MaxUsers: 10,
-// 		},
-// 		db:     suite.db,
-// 		pubsub: suite.pubsub,
-// 		users:  suite.users,
-// 		zones:  suite.zones,
-// 		root:   suite.root,
-// 		events: suite.events,
-// 	}
-// 	suite.root.On("Geohash").Return("")
-// 	suite.root.On("RightZoneID").Return(rightZoneID)
-// 	suite.root.On("LeftZoneID").Return(leftZoneID)
-// 	suite.right.On("Geohash").Return("")
-// 	suite.right.On("From").Return("h")
-// 	suite.pubsub.On("Subscribe").Return(suite.rch)
-// 	return world
-// }
-//
-// func (suite *WorldTestSuite) TestNewWorld() {
-// 	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(nil, nil)
-// 	suite.db.On("SaveZone", mock.Anything, mock.Anything).Return(nil)
-//
-// 	world, err := newWorld(rootWorldID, suite.db, suite.pubsub, 10)
-// 	assert.NoError(suite.T(), err)
-// 	assert.Equal(suite.T(), rootWorldID, world.ID())
-// 	assert.Equal(suite.T(), rootZoneID, world.root.ID())
-// 	assert.Equal(suite.T(), suite.db, world.db)
-// 	assert.Equal(suite.T(), suite.pubsub, world.pubsub)
-// }
+import (
+	// "errors"
+	"github.com/jpcummins/geochat/app/mocks"
+	"github.com/jpcummins/geochat/app/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+	"testing"
+)
+
+var seattle = newLatLng(47.6235616, -122.330341)
+var rome = newLatLng(41.9, 12.5)
+var empty = newLatLng(0, 0)
+
+var invalidZoneID = ":::::::"
+
+var leftZoneID = ":0g"
+var rightZoneID = ":hz"
+
+type WorldTestSuite struct {
+	suite.Suite
+	world  *World
+	root   *mocks.Zone
+	zones  *mocks.Zones
+	user   *mocks.User
+	users  *mocks.Users
+	db     *mocks.DB
+	pubsub *mocks.PubSub
+	left   *mocks.Zone
+	right  *mocks.Zone
+	logger *mocks.Logger
+	ch     chan types.PubSubEvent
+	rch    <-chan types.PubSubEvent
+}
+
+func (suite *WorldTestSuite) SetupTest() {
+	suite.ch = make(chan types.PubSubEvent)
+	suite.rch = suite.ch
+	suite.zones = &mocks.Zones{}
+	suite.user = &mocks.User{}
+	suite.users = &mocks.Users{}
+	suite.db = &mocks.DB{}
+	suite.pubsub = &mocks.PubSub{}
+	suite.root = &mocks.Zone{}
+	suite.left = &mocks.Zone{}
+	suite.right = &mocks.Zone{}
+	suite.logger = &mocks.Logger{}
+	suite.world = suite.NewWorld()
+}
+
+func (suite *WorldTestSuite) NewWorld() *World {
+	world := &World{
+		WorldPubSubJSON: &types.WorldPubSubJSON{
+			ID:       rootWorldID,
+			MaxUsers: 10,
+		},
+		db:     suite.db,
+		pubsub: suite.pubsub,
+		users:  suite.users,
+		zones:  suite.zones,
+		root:   suite.root,
+		logger: suite.logger,
+	}
+	suite.root.On("Geohash").Return("")
+	suite.root.On("RightZoneID").Return(rightZoneID)
+	suite.root.On("LeftZoneID").Return(leftZoneID)
+	suite.right.On("Geohash").Return("")
+	suite.right.On("From").Return("h")
+	suite.pubsub.On("Subscribe").Return(suite.rch)
+	suite.logger.On("New", mock.Anything).Return(suite.logger)
+	return world
+}
+
+func (suite *WorldTestSuite) TestNewWorld() {
+	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(nil, nil)
+	suite.db.On("SaveZone", mock.Anything, mock.Anything).Return(nil)
+
+	world, err := newWorld(rootWorldID, suite.db, suite.pubsub, 10, suite.logger)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rootWorldID, world.ID())
+	assert.Equal(suite.T(), rootZoneID, world.root.ID())
+	assert.Equal(suite.T(), suite.db, world.db)
+	assert.Equal(suite.T(), suite.pubsub, world.pubsub)
+}
+
 //
 // func (suite *WorldTestSuite) TestInitReturnsError() {
 // 	worldErr := errors.New("err")
@@ -242,16 +241,16 @@ package chat
 // 	testCases := []string{"000", "z0z", "2k1", "bbc", "zzz", "c23nb"}
 //
 // 	for _, test := range testCases {
-// 		world, err := newWorld(rootWorldID, suite.db, suite.pubsub, 1)
+// 		world, err := newWorld(rootWorldID, suite.db, suite.pubsub, 1, suite.logger)
 // 		assert.NoError(suite.T(), err)
 // 		world.root.SetIsOpen(false)
 //
 // 		user := &mocks.User{}
-// 		user.On("Location").Return(&LatLng{0, 0, test})
+// 		user.On("Location").Return(&LatLng{geohash: test})
 //
 // 		var zone types.Zone
 // 		for i := 0; i < 5*len(test); i++ {
-// 			zone, err = world.FindOpenZone(user)
+// 			zone, err = world.FindOpenZone(world.Zone(), user)
 // 			assert.NoError(suite.T(), err)
 // 			zone.SetIsOpen(false)
 // 			if len(zone.Geohash()) == len(test) {
@@ -261,6 +260,7 @@ package chat
 // 		assert.Equal(suite.T(), test+rootZoneID, zone.ID())
 // 	}
 // }
+
 //
 // func (suite *WorldTestSuite) TestIncomingEventsCallOnReceive() {
 // 	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(nil, nil)
@@ -345,6 +345,14 @@ package chat
 // 	assert.Nil(suite.T(), user)
 // }
 //
-// func TestWorldSuite(t *testing.T) {
-// 	suite.Run(t, new(WorldTestSuite))
-// }
+
+func (suite *WorldTestSuite) TestParentID_Root() {
+	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(nil, nil)
+	suite.db.On("SaveZone", mock.Anything, mock.Anything).Return(nil)
+	world, _ := newWorld(rootWorldID, suite.db, suite.pubsub, 10, suite.logger)
+	assert.Equal(suite.T(), "", world.Zone().ParentZoneID())
+}
+
+func TestWorldSuite(t *testing.T) {
+	suite.Run(t, new(WorldTestSuite))
+}

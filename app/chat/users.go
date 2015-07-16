@@ -53,7 +53,7 @@ func (u *Users) FromDB(id string) (types.User, error) {
 		return nil, err
 	}
 
-	u.updateCache(user)
+	u.UpdateCache(user)
 	return user, nil
 }
 
@@ -66,11 +66,11 @@ func (u *Users) Save(user types.User) error {
 		return err
 	}
 
-	u.updateCache(user)
+	u.UpdateCache(user)
 	return nil
 }
 
-func (u *Users) updateCache(user types.User) {
+func (u *Users) UpdateCache(user types.User) {
 	u.Lock()
 	defer u.Unlock()
 	u.users[user.ID()] = user

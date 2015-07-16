@@ -21,7 +21,3 @@ func Message(userID string, text string) *message {
 func (e *message) Type() types.BroadcastEventType {
 	return messageType
 }
-
-func (e *message) BeforeBroadcastToUser(user types.User, event types.BroadcastEvent) (bool, error) {
-	return true, nil
-}

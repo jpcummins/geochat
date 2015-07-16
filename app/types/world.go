@@ -5,10 +5,12 @@ type World interface {
 
 	ID() string
 	MaxUsers() int
+	DB() DB
+	Zone() Zone
 
 	Zones() Zones
 	GetOrCreateZone(string) (Zone, error)
-	FindOpenZone(User) (Zone, error)
+	FindOpenZone(Zone, User) (Zone, error)
 
 	Users() Users
 	NewUser(id string, name string, lat float64, lng float64) (User, error)

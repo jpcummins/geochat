@@ -46,7 +46,7 @@ func (b *addBot) Execute(args string, user types.User) error {
 				return
 			}
 
-			if _, err := zone.Join(bot); err != nil {
+			if err := zone.Join(bot); err != nil {
 				println(err.Error())
 			}
 

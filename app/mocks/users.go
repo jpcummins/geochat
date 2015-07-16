@@ -22,6 +22,9 @@ func (m *Users) FromCache(_a0 string) types.User {
 
 	return r0
 }
+func (m *Users) UpdateCache(_a0 types.User) {
+	m.Called(_a0)
+}
 func (m *Users) FromDB(_a0 string) (types.User, error) {
 	ret := m.Called(_a0)
 

@@ -24,3 +24,15 @@ func (m *PubSub) Subscribe() <-chan types.PubSubEvent {
 
 	return r0
 }
+
+type PubSubJSON struct {
+	mock.Mock
+}
+
+func (m *PubSubJSON) Type() types.PubSubDataType {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(types.PubSubDataType)
+
+	return r0
+}

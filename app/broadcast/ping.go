@@ -15,7 +15,3 @@ func Ping() *ping {
 func (e *ping) Type() types.BroadcastEventType {
 	return pingType
 }
-
-func (e *ping) BeforeBroadcastToUser(user types.User, event types.BroadcastEvent) (bool, error) {
-	return true, nil
-}

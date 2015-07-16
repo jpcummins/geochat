@@ -71,12 +71,24 @@ func (w *World) MaxUsers() int {
 	return w.WorldPubSubJSON.MaxUsers
 }
 
+func (w *World) DB() types.DB {
+	return w.db
+}
+
 func (w *World) Users() types.Users {
 	return w.users
 }
 
+func (w *World) Zone() types.Zone {
+	return w.root
+}
+
 func (w *World) Zones() types.Zones {
 	return w.zones
+}
+
+func (w *World) PubSub() types.PubSub {
+	return w.pubsub
 }
 
 func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
@@ -102,11 +114,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	return zone, nil
 }
 
-func (w *World) FindOpenZone(user types.User) (types.Zone, error) {
-	return w.findOpenZone(w.root, user)
-}
-
-func (w *World) findOpenZone(root types.Zone, user types.User) (types.Zone, error) {
+func (w *World) FindOpenZone(root types.Zone, user types.User) (types.Zone, error) {
 	for !root.IsOpen() {
 		suffix := strings.TrimPrefix(user.Location().Geohash(), root.Geohash())
 

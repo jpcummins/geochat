@@ -8,22 +8,16 @@ const splitType types.BroadcastEventType = "split"
 
 type split struct {
 	PreviousZone interface{} `json:"previous_zone"`
-	NextZone     interface{} `json:"next_zone"`
-	zones        map[string]types.Zone
+	Zone         interface{} `json:"zone"`
 }
 
-func Split(previousZoneID string, zones map[string]types.Zone) *split {
+func Split(previousZone types.Zone, zone types.Zone) *split {
 	return &split{
-		PreviousZone: zones[previousZoneID].BroadcastJSON(),
-		zones:        zones,
+		PreviousZone: previousZone.BroadcastJSON(),
+		Zone:         zone.BroadcastJSON(),
 	}
 }
 
 func (e *split) Type() types.BroadcastEventType {
 	return splitType
-}
-
-func (e *split) BeforeBroadcastToUser(user types.User, event types.BroadcastEvent) (bool, error) {
-	e.NextZone = e.zones[user.Zone().ID()].BroadcastJSON()
-	return true, nil
 }

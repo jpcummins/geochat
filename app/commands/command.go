@@ -18,6 +18,8 @@ func Execute(command string, args string, user types.User) error {
 		return (&addBot{}).Execute(args, user)
 	case "split":
 		return (&split{}).Execute(args, user)
+	case "merge":
+		return (&merge{}).Execute(args, user)
 	}
 	return nil
 }

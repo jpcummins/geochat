@@ -16,6 +16,7 @@ type Zone interface {
 	RightZoneID() string
 	MaxUsers() int
 	Count() int
+	UserIDs() []string
 	IsOpen() bool
 	SetIsOpen(bool)
 	AddUser(User)
@@ -25,10 +26,11 @@ type Zone interface {
 	Broadcast(BroadcastEventData) error
 
 	// Pubsubs
-	Join(User) (BroadcastEventData, error)
-	Leave(User) (BroadcastEventData, error)
-	Message(User, string) (BroadcastEventData, error)
-	Split() (BroadcastEventData, error)
+	Join(User) error
+	Leave(User) error
+	Message(User, string) error
+	Split() (map[string]Zone, error)
+	Merge() error
 }
 
 type ZonePubSubJSON struct {

@@ -19,7 +19,3 @@ func Leave(user types.User) *leave {
 func (e *leave) Type() types.BroadcastEventType {
 	return leaveType
 }
-
-func (e *leave) BeforeBroadcastToUser(user types.User, event types.BroadcastEvent) (bool, error) {
-	return true, nil
-}
