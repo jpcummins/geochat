@@ -32,7 +32,7 @@ type Zone struct {
 	logger       log.Logger
 }
 
-func newZone(id string, world types.World, maxUsers int, logger log.Logger) (*Zone, error) {
+func newZone(id string, world types.World, logger log.Logger) (*Zone, error) {
 	geohash, from, to, err := validateZoneID(id)
 	if err != nil {
 		return nil, err
@@ -43,9 +43,8 @@ func newZone(id string, world types.World, maxUsers int, logger log.Logger) (*Zo
 
 	zone := &Zone{
 		ZonePubSubJSON: &types.ZonePubSubJSON{
-			ID:       id,
-			IsOpen:   true,
-			MaxUsers: maxUsers,
+			ID:     id,
+			IsOpen: true,
 		},
 		world:     world,
 		southWest: newLatLng(southWest.Lat(), southWest.Lng()),
@@ -147,10 +146,6 @@ func (z *Zone) LeftZoneID() string {
 
 func (z *Zone) RightZoneID() string {
 	return z.rightZoneID
-}
-
-func (z *Zone) MaxUsers() int {
-	return z.ZonePubSubJSON.MaxUsers
 }
 
 func (z *Zone) Count() int {

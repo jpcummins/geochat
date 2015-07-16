@@ -77,7 +77,7 @@ func (suite *WorldTestSuite) TestNewWorld() {
 	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(nil, nil)
 	suite.db.On("SaveZone", mock.Anything, mock.Anything).Return(nil)
 
-	world, err := newWorld(rootWorldID, suite.db, suite.pubsub, 10, suite.logger)
+	world, err := newWorld(rootWorldID, suite.db, suite.pubsub, suite.logger)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rootWorldID, world.ID())
 	assert.Equal(suite.T(), rootZoneID, world.root.ID())
@@ -349,7 +349,7 @@ func (suite *WorldTestSuite) TestNewWorld() {
 func (suite *WorldTestSuite) TestParentID_Root() {
 	suite.db.On("Zone", rootZoneID, mock.Anything, mock.Anything).Return(nil, nil)
 	suite.db.On("SaveZone", mock.Anything, mock.Anything).Return(nil)
-	world, _ := newWorld(rootWorldID, suite.db, suite.pubsub, 10, suite.logger)
+	world, _ := newWorld(rootWorldID, suite.db, suite.pubsub, suite.logger)
 	assert.Equal(suite.T(), "", world.Zone().ParentZoneID())
 }
 

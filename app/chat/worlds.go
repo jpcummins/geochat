@@ -50,7 +50,7 @@ func (w *Worlds) FromDB(id string) (types.World, error) {
 
 	world := w.FromCache(id)
 	if world == nil {
-		if world, err = newWorld(id, w.db, w.pubsub, 10, w.logger); err != nil {
+		if world, err = newWorld(id, w.db, w.pubsub, w.logger); err != nil {
 			return nil, err
 		}
 	}

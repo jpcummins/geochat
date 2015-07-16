@@ -21,6 +21,7 @@ type World interface {
 type WorldPubSubJSON struct {
 	ID       string `json:"id"`
 	MaxUsers int    `json:"max_users"`
+	MinUsers int    `json:"min_users"`
 }
 
 func (psWorld *WorldPubSubJSON) Type() PubSubDataType {

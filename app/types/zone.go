@@ -14,7 +14,6 @@ type Zone interface {
 	ParentZoneID() string
 	LeftZoneID() string
 	RightZoneID() string
-	MaxUsers() int
 	Count() int
 	UserIDs() []string
 	IsOpen() bool
@@ -34,10 +33,11 @@ type Zone interface {
 }
 
 type ZonePubSubJSON struct {
-	ID       string   `json:"id"`
-	UserIDs  []string `json:"user_ids"`
-	IsOpen   bool     `json:"is_open"`
-	MaxUsers int      `json:"max_users"`
+	ID            string   `json:"id"`
+	UserIDs       []string `json:"user_ids"`
+	IsOpen        bool     `json:"is_open"`
+	LastSplitTime int64    `json:"last_split_time"`
+	LastMergeTime int64    `json:"last_merge_time"`
 }
 
 func (psZone *ZonePubSubJSON) Type() PubSubDataType {

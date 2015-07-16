@@ -77,13 +77,6 @@ func (m *Zone) RightZoneID() string {
 
 	return r0
 }
-func (m *Zone) MaxUsers() int {
-	ret := m.Called()
-
-	r0 := ret.Get(0).(int)
-
-	return r0
-}
 func (m *Zone) Count() int {
 	ret := m.Called()
 

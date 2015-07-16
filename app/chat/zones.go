@@ -51,7 +51,7 @@ func (z *Zones) FromDB(id string) (types.Zone, error) {
 
 	zone := z.FromCache(id)
 	if zone == nil {
-		if zone, err = newZone(id, z.world, z.world.MaxUsers(), z.logger); err != nil {
+		if zone, err = newZone(id, z.world, z.logger); err != nil {
 			z.logger.Error("Error creating zone", "zone", id, "error", err.Error())
 			return nil, err
 		}

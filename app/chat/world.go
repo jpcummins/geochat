@@ -14,6 +14,10 @@ import (
 
 const rootWorldID string = "0"
 
+const defaultMaxUsers int = 30
+
+const defaultMinUsers int = 10
+
 type World struct {
 	sync.RWMutex
 	types.PubSubSerializable
@@ -27,11 +31,12 @@ type World struct {
 	logger log.Logger
 }
 
-func newWorld(id string, db types.DB, ps types.PubSub, maxUsers int, logger log.Logger) (*World, error) {
+func newWorld(id string, db types.DB, ps types.PubSub, logger log.Logger) (*World, error) {
 	w := &World{
 		WorldPubSubJSON: &types.WorldPubSubJSON{
 			ID:       id,
-			MaxUsers: maxUsers,
+			MaxUsers: defaultMaxUsers,
+			MinUsers: defaultMinUsers,
 		},
 		db:     db,
 		pubsub: ps,
@@ -99,7 +104,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	}
 
 	if zone == nil {
-		zone, err = newZone(id, w, w.MaxUsers(), w.logger)
+		zone, err = newZone(id, w, w.logger)
 		if err != nil {
 			w.logger.Crit("Error creating zone", "zone", id, "maxUsers", w.MaxUsers(), "error", err.Error())
 			return nil, err

@@ -8,7 +8,7 @@ import (
 
 var App types.World
 
-func Init(redisServer, worldID string, maxUsers int) error {
+func Init(redisServer, worldID string) error {
 	logger := log.Root()
 	redisDB := db.NewRedisDB(redisServer, logger)
 	pubsub := db.NewRedisPubSub(worldID, redisDB)
@@ -21,7 +21,7 @@ func Init(redisServer, worldID string, maxUsers int) error {
 	}
 
 	if world == nil {
-		world, err = newWorld(worldID, redisDB, pubsub, maxUsers, logger)
+		world, err = newWorld(worldID, redisDB, pubsub, logger)
 		if err != nil {
 			logger.Crit("Error when creating new world.", "error", err.Error())
 			return err
