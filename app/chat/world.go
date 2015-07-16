@@ -76,6 +76,10 @@ func (w *World) MaxUsers() int {
 	return w.WorldPubSubJSON.MaxUsers
 }
 
+func (w *World) MinUsers() int {
+	return w.WorldPubSubJSON.MinUsers
+}
+
 func (w *World) DB() types.DB {
 	return w.db
 }

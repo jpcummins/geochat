@@ -21,6 +21,13 @@ func (m *World) MaxUsers() int {
 
 	return r0
 }
+func (m *World) MinUsers() int {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(int)
+
+	return r0
+}
 func (m *World) Zones() types.Zones {
 	ret := m.Called()
 

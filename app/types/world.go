@@ -5,6 +5,7 @@ type World interface {
 
 	ID() string
 	MaxUsers() int
+	MinUsers() int
 	DB() DB
 	Zone() Zone
 

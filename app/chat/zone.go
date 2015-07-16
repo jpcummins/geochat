@@ -257,7 +257,12 @@ func (z *Zone) Join(user types.User) error {
 	if err != nil {
 		return err
 	}
-	return z.world.Publish(data)
+
+	if err := z.world.Publish(data); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (z *Zone) Leave(user types.User) error {
