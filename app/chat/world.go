@@ -18,7 +18,7 @@ const defaultMaxUsers int = 30
 
 const defaultMinUsers int = 10
 
-const defaultSplitDelay time.Duration = time.Duration(60) * time.Second
+const defaultSplitDelay time.Duration = time.Duration(30) * time.Second
 
 type World struct {
 	sync.RWMutex

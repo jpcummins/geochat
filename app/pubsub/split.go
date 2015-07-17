@@ -1,22 +1,27 @@
 package pubsub
 
 import (
+	"github.com/jpcummins/geochat/app/broadcast"
 	"github.com/jpcummins/geochat/app/types"
 )
 
 const splitType types.PubSubEventType = "split"
 
 type split struct {
-	UserID string `json:"user_id"`
-	ZoneID string `json:"zone_id"`
+	Parent *types.ZonePubSubJSON `json:"parent"`
+	Zones  []string              `json:"zones"`
 }
 
-func Split(zone types.Zone, user types.User) (*split, error) {
-	m := &split{
-		UserID: user.ID(),
-		ZoneID: zone.ID(),
+func Split(parent types.Zone, zones map[string]types.Zone) (*split, error) {
+	s := &split{}
+	s.Parent = parent.PubSubJSON().(*types.ZonePubSubJSON)
+	s.Zones = make([]string, 0, len(zones))
+
+	for id := range zones {
+		println(id)
+		s.Zones = append(s.Zones, id)
 	}
-	return m, nil
+	return s, nil
 }
 
 func (m *split) Type() types.PubSubEventType {
@@ -28,9 +33,20 @@ func (m *split) BeforePublish(e types.PubSubEvent) error {
 }
 
 func (m *split) OnReceive(e types.PubSubEvent) error {
-	zone := e.World().Zones().FromCache(m.ZoneID)
-	if zone == nil {
+	parent := e.World().Zones().FromCache(m.Parent.ID)
+	if parent == nil {
 		return nil
 	}
+
+	parent.Update(m.Parent)
+
+	for _, id := range m.Zones {
+		zone, err := e.World().Zones().FromDB(id)
+		if err != nil {
+			return err
+		}
+		zone.Broadcast(broadcast.Split(parent, zone))
+	}
+
 	return nil
 }

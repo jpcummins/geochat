@@ -174,8 +174,16 @@ func (z *Zone) SetLastSplit(time time.Time) {
 	z.ZonePubSubJSON.LastSplit = time
 }
 
+func (z *Zone) SetNextSplit(time time.Time) {
+	z.ZonePubSubJSON.NextSplit = time
+}
+
 func (z *Zone) SetLastMerge(time time.Time) {
 	z.ZonePubSubJSON.LastMerge = time
+}
+
+func (z *Zone) SetNextMerge(time time.Time) {
+	z.ZonePubSubJSON.NextMerge = time
 }
 
 func (z *Zone) AddUser(user types.User) {
@@ -229,6 +237,8 @@ func (z *Zone) BroadcastJSON() interface{} {
 		Users:     make(map[string]*types.UserBroadcastJSON),
 		SouthWest: z.southWest.BroadcastJSON().(*types.LatLngJSON),
 		NorthEast: z.northEast.BroadcastJSON().(*types.LatLngJSON),
+		NextSplit: z.ZonePubSubJSON.NextSplit,
+		NextMerge: z.ZonePubSubJSON.NextMerge,
 	}
 	for _, id := range z.ZonePubSubJSON.UserIDs {
 		if user, err := z.World().Users().User(id); err == nil {
@@ -262,6 +272,8 @@ func (z *Zone) Join(user types.User) error {
 		}
 	}
 
+	z.splitIfOverCapacity()
+
 	data, err := pubsub.Join(z, user)
 	if err != nil {
 		return err
@@ -272,6 +284,30 @@ func (z *Zone) Join(user types.User) error {
 	}
 
 	return nil
+}
+
+func (z *Zone) splitIfOverCapacity() {
+	if z.Count() > z.World().MaxUsers() && z.ZonePubSubJSON.NextSplit.Before(time.Now()) {
+		nextSplit := time.Now().Add(z.World().SplitDelay())
+		z.SetNextSplit(nextSplit)
+
+		func() {
+			select {
+			case <-time.After(z.World().SplitDelay()):
+				zones, err := z.Split()
+				if err != nil {
+					z.logger.Error("Error splitting zone", "error", err.Error())
+					return
+				}
+
+				split, _ := pubsub.Split(z, zones)
+				if err := z.world.Publish(split); err != nil {
+					z.logger.Error("Error broadcasting zone split", "error", err.Error())
+				}
+				return
+			}
+		}()
+	}
 }
 
 func (z *Zone) Leave(user types.User) error {
@@ -321,6 +357,7 @@ func (z *Zone) Split() (map[string]types.Zone, error) {
 	// clear the zone subscriber list
 	z.ZonePubSubJSON.UserIDs = z.ZonePubSubJSON.UserIDs[:0]
 	z.SetLastSplit(time.Now())
+	z.SetNextSplit(time.Time{})
 
 	// Bulk save new zones, current zone, and users.
 	zones[z.ID()] = z
@@ -396,6 +433,7 @@ func (z *Zone) Merge() error {
 
 	z.SetIsOpen(true)
 	z.SetLastMerge(time.Now())
+	z.SetNextMerge(time.Time{})
 
 	zones := make([]*types.ZonePubSubJSON, 3)
 	zones[0] = z.PubSubJSON().(*types.ZonePubSubJSON)

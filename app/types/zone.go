@@ -23,7 +23,9 @@ type Zone interface {
 	AddUser(User)
 	RemoveUser(string)
 	SetLastSplit(time.Time)
+	SetNextSplit(time.Time)
 	SetLastMerge(time.Time)
+	SetNextMerge(time.Time)
 
 	// Broadcast
 	Broadcast(BroadcastEventData) error
@@ -42,6 +44,8 @@ type ZonePubSubJSON struct {
 	IsOpen    bool      `json:"is_open"`
 	LastSplit time.Time `json:"last_split"`
 	LastMerge time.Time `json:"last_merge"`
+	NextSplit time.Time `json:"next_split"`
+	NextMerge time.Time `json:"next_merge"`
 }
 
 func (psZone *ZonePubSubJSON) Type() PubSubDataType {
@@ -53,4 +57,6 @@ type ZoneBroadcastJSON struct {
 	Users     map[string]*UserBroadcastJSON `json:"users"`
 	SouthWest *LatLngJSON                   `json:"sw"`
 	NorthEast *LatLngJSON                   `json:"ne"`
+	NextSplit time.Time                     `json:"next_split"`
+	NextMerge time.Time                     `json:"next_merge"`
 }
