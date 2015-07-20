@@ -272,7 +272,9 @@ func (z *Zone) Join(user types.User) error {
 		}
 	}
 
-	z.splitIfOverCapacity()
+	if z.shouldSplit() {
+		z.scheduleSplit()
+	}
 
 	data, err := pubsub.Join(z, user)
 	if err != nil {
@@ -286,28 +288,116 @@ func (z *Zone) Join(user types.User) error {
 	return nil
 }
 
-func (z *Zone) splitIfOverCapacity() {
-	if z.Count() > z.World().MaxUsers() && z.ZonePubSubJSON.NextSplit.Before(time.Now()) {
-		nextSplit := time.Now().Add(z.World().SplitDelay())
-		z.SetNextSplit(nextSplit)
+func (z *Zone) shouldSplit() bool {
+	return z.Count() > z.World().MaxUsers() && z.ZonePubSubJSON.NextSplit.Before(time.Now())
+}
 
-		func() {
-			select {
-			case <-time.After(z.World().SplitDelay()):
-				zones, err := z.Split()
-				if err != nil {
-					z.logger.Error("Error splitting zone", "error", err.Error())
-					return
-				}
+func (z *Zone) scheduleSplit() {
+	nextSplit := time.Now().Add(z.World().SplitDelay())
+	z.SetNextSplit(nextSplit)
 
-				split, _ := pubsub.Split(z, zones)
-				if err := z.world.Publish(split); err != nil {
-					z.logger.Error("Error broadcasting zone split", "error", err.Error())
-				}
+	func() {
+		select {
+		case <-time.After(z.World().SplitDelay()):
+			zones, err := z.Split()
+			if err != nil {
+				z.logger.Error("Error splitting zone", "error", err.Error())
 				return
 			}
-		}()
+
+			split, _ := pubsub.Split(z, zones)
+			if err := z.world.Publish(split); err != nil {
+				z.logger.Error("Error broadcasting zone split", "error", err.Error())
+			}
+			return
+		}
+	}()
+}
+
+func (z *Zone) shouldMerge() (bool, error) {
+	// a zone is eligable for merge if it and it's sibling are under capacity.
+	minCount := z.World().MinUsers()
+	if z.Count() >= minCount {
+		return false, nil
 	}
+
+	parent, err := z.World().Zones().Zone(z.ParentZoneID())
+	if err != nil {
+		z.logger.Error("Error retrieving parent zone", "parent", z.ParentZoneID())
+		return false, err
+	}
+
+	siblingID := parent.LeftZoneID()
+	if parent.LeftZoneID() == z.ID() {
+		siblingID = parent.RightZoneID()
+	}
+
+	sibling, err := z.World().Zones().Zone(siblingID)
+	if err != nil {
+		z.logger.Error("Error retrieving sibling zone", "sibling", siblingID)
+		return false, err
+	}
+
+	if sibling.Count() >= minCount {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// This method is titled "scheduleMerge", however, I'm not convinced merges need
+// to be scheduled. I'm sticking to this name so that it's consistant with
+// "scheduleSplit", but I'll likely rename it if, after testing, I determine a
+// merge delay is not needed.
+func (z *Zone) scheduleMerge() {
+	parent, err := z.World().Zones().Zone(z.ParentZoneID())
+	if err != nil {
+		z.logger.Error("Error retrieving parent zone", "parent", z.ParentZoneID())
+		return
+	}
+
+	siblingID := parent.LeftZoneID()
+	if parent.LeftZoneID() == z.ID() {
+		siblingID = parent.RightZoneID()
+	}
+
+	sibling, err := z.World().Zones().Zone(siblingID)
+	if err != nil {
+		z.logger.Error("Error retrieving sibling zone", "sibling", siblingID)
+		return
+	}
+
+	users := make([]*types.UserPubSubJSON, 0, z.Count()+sibling.Count())
+
+	for _, id := range append(z.UserIDs(), sibling.UserIDs()...) {
+		user, err := z.World().Users().User(id)
+		if err != nil {
+			z.logger.Error("Error retrieving user", "user", id)
+			return
+		}
+		parent.AddUser(user)
+		user.SetZone(parent)
+		users = append(users, user.PubSubJSON().(*types.UserPubSubJSON))
+	}
+
+	z.SetIsOpen(false)
+	sibling.SetIsOpen(false)
+	parent.SetIsOpen(true)
+
+	zones := make([]*types.ZonePubSubJSON, 3)
+	zones[0] = z.PubSubJSON().(*types.ZonePubSubJSON)
+	zones[1] = sibling.PubSubJSON().(*types.ZonePubSubJSON)
+	zones[2] = sibling.PubSubJSON().(*types.ZonePubSubJSON)
+
+	if err := z.World().DB().SaveUsersAndZones(users, zones, z.World().ID()); err != nil {
+		z.logger.Error("Error saving users and zones", "error", err.Error())
+	}
+
+	merge, _ := pubsub.Merge(parent, z, sibling)
+	if err := z.world.Publish(merge); err != nil {
+		z.logger.Error("Error broadcasting zone merge", "error", err.Error())
+	}
+	return
 }
 
 func (z *Zone) Leave(user types.User) error {
@@ -315,6 +405,17 @@ func (z *Zone) Leave(user types.User) error {
 	if err != nil {
 		return err
 	}
+
+	shouldMerge, err := z.shouldMerge()
+	if err != nil {
+		z.logger.Error("Error while determining if zone should merge.", "error", err)
+		return err
+	}
+
+	if shouldMerge {
+		z.scheduleMerge()
+	}
+
 	return z.world.Publish(data)
 }
 

@@ -18,7 +18,6 @@ func Split(parent types.Zone, zones map[string]types.Zone) (*split, error) {
 	s.Zones = make([]string, 0, len(zones))
 
 	for id := range zones {
-		println(id)
 		s.Zones = append(s.Zones, id)
 	}
 	return s, nil

@@ -56,7 +56,8 @@ func (b *addBot) Execute(args string, user types.User) error {
 				for {
 					select {
 					case <-timer.C:
-						zone.Leave(bot)
+						botzone := bot.Zone()
+						botzone.Leave(bot)
 						return
 					}
 				}
