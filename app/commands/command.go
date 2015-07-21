@@ -20,6 +20,8 @@ func Execute(command string, args string, user types.User) error {
 		return (&split{}).Execute(args, user)
 	case "merge":
 		return (&merge{}).Execute(args, user)
+	case "minusers":
+		return (&minusers{}).Execute(args, user)
 	}
 	return nil
 }

@@ -15,8 +15,10 @@ func (s *split) Execute(args string, user types.User) error {
 		return err
 	}
 
+	println("Splitting zone: " + prvZone.ID())
 	for _, zone := range zones {
 		split := broadcast.Split(prvZone, zone)
+		println("New zone: " + zone.ID())
 		if err := zone.Broadcast(split); err != nil {
 			return err
 		}

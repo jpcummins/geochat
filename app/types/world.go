@@ -6,8 +6,13 @@ type World interface {
 	PubSubSerializable
 
 	ID() string
+
 	MaxUsers() int
+	SetMaxUsers(int)
+
 	MinUsers() int
+	SetMinUsers(int)
+
 	SplitDelay() time.Duration
 	DB() DB
 	Zone() Zone

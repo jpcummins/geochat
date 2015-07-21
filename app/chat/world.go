@@ -79,8 +79,16 @@ func (w *World) MaxUsers() int {
 	return w.WorldPubSubJSON.MaxUsers
 }
 
+func (w *World) SetMaxUsers(maxUsers int) {
+	w.WorldPubSubJSON.MaxUsers = maxUsers
+}
+
 func (w *World) MinUsers() int {
 	return w.WorldPubSubJSON.MinUsers
+}
+
+func (w *World) SetMinUsers(minUsers int) {
+	w.WorldPubSubJSON.MinUsers = minUsers
 }
 
 func (w *World) SplitDelay() time.Duration {

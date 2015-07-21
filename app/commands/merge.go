@@ -2,7 +2,6 @@ package commands
 
 import (
 	"errors"
-	"github.com/jpcummins/geochat/app/broadcast"
 	"github.com/jpcummins/geochat/app/types"
 )
 
@@ -26,9 +25,5 @@ func (m *merge) Execute(args string, user types.User) error {
 		return err
 	}
 
-	if err := parentZone.Merge(); err != nil {
-		return err
-	}
-
-	return parentZone.Broadcast(broadcast.Merge(parentZone))
+	return parentZone.Merge()
 }
