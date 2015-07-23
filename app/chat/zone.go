@@ -2,14 +2,13 @@ package chat
 
 import (
 	"errors"
-	"fmt"
 	gh "github.com/TomiHiltunen/geohash-golang"
 	"github.com/jpcummins/geochat/app/pubsub"
 	"github.com/jpcummins/geochat/app/types"
 	log "gopkg.in/inconshreveable/log15.v2"
-	"runtime/debug"
 	"strings"
 	"sync"
+	"time"
 )
 
 const rootZoneID = ":0z"
@@ -168,12 +167,14 @@ func (z *Zone) IsOpen() bool {
 
 func (z *Zone) SetIsOpen(isOpen bool) {
 	z.ZonePubSubJSON.IsOpen = isOpen
+	z.ZonePubSubJSON.LastModified = time.Now()
 	z.World().Zones().UpdateCache(z)
 }
 
 func (z *Zone) AddUser(user types.User) {
 	z.Lock()
 	defer z.Unlock()
+	z.ZonePubSubJSON.LastModified = time.Now()
 
 	// If the user is already here, don't add.
 	users := z.ZonePubSubJSON.UserIDs
@@ -190,6 +191,7 @@ func (z *Zone) AddUser(user types.User) {
 func (z *Zone) RemoveUser(id string) {
 	z.Lock()
 	defer z.Unlock()
+	z.ZonePubSubJSON.LastModified = time.Now()
 
 	users := z.ZonePubSubJSON.UserIDs
 	for i := range users {
@@ -236,10 +238,14 @@ func (z *Zone) PubSubJSON() types.PubSubJSON {
 }
 
 func (z *Zone) Update(js types.PubSubJSON) error {
-	debug.PrintStack()
 	json, ok := js.(*types.ZonePubSubJSON)
 	if !ok {
 		return errors.New("Unable to serialize to ZonePubSubJSON.")
+	}
+	z.logger.Info("Update", "IsOpen", json.IsOpen)
+
+	if json.LastModified.Before(z.ZonePubSubJSON.LastModified) {
+		return errors.New("Update failed; JSON data is out of date.")
 	}
 
 	z.Lock()
@@ -250,11 +256,26 @@ func (z *Zone) Update(js types.PubSubJSON) error {
 }
 
 func (z *Zone) Join(user types.User) error {
+	z.logger.Info("Join", "user", user.ID())
+
+	if !z.IsOpen() {
+		z.logger.Error("Zone is not open", "user", user.ID())
+		return errors.New("Zone is not open")
+	}
+
 	if user.ZoneID() != "" {
+		z.logger.Error("User already belongs to a zone.", "user", user.ID(), "inZone", user.ZoneID())
 		return errors.New("User already belongs to a zone.")
 	}
 
-	z.logger.Info("Join", "user", user.ID())
+	if z.ShouldSplit() {
+		z.logger.Info("Zone full", "count", z.Count())
+		if _, err := z.Split(); err != nil {
+			z.logger.Error("Error splitting zone", "error", err.Error())
+			return err
+		}
+	}
+
 	data, err := pubsub.Join(z, user)
 	if err != nil {
 		return err
@@ -264,27 +285,11 @@ func (z *Zone) Join(user types.User) error {
 		return err
 	}
 
-	if z.shouldSplit() {
-		zones, err := z.Split()
-		if err != nil {
-			z.logger.Error("Error splitting zone", "error", err.Error())
-			return err
-		}
-
-		split, _ := pubsub.Split(z, zones)
-
-		z.logger.Info("Publishing split")
-		if err := z.world.Publish(split); err != nil {
-			z.logger.Error("Error broadcasting zone split", "error", err.Error())
-			return err
-		}
-	}
-
 	return nil
 }
 
-func (z *Zone) shouldSplit() bool {
-	return z.Count() > z.World().MaxUsers()
+func (z *Zone) ShouldSplit() bool {
+	return z.Count() >= z.World().MaxUsers()
 }
 
 func (z *Zone) shouldMerge() (bool, error) {
@@ -366,7 +371,6 @@ func (z *Zone) Message(user types.User, message string) error {
 func (z *Zone) Split() (map[string]types.Zone, error) {
 	z.logger.Info("Split")
 	z.SetIsOpen(false)
-	fmt.Printf("split1: %+v\n", z)
 
 	// Update the user and zone objects
 	users := make(map[string]types.User)
@@ -379,26 +383,18 @@ func (z *Zone) Split() (map[string]types.Zone, error) {
 			return nil, err
 		}
 
-		fmt.Printf("split2: %+v\n", z)
-
 		newZone, err := z.world.FindOpenZone(z, user)
 		if err != nil {
 			z.logger.Crit("Unable to find an open zone", "currentZone", z.ID(), "user", user.ID())
 			return nil, err
 		}
 
-		fmt.Printf("split3: %+v\n", z)
-
 		z.logger.Info("Moving user to zone", "user", user.ID(), "newZone", newZone.ID())
 		user.SetZoneID(newZone.ID())
 		newZone.AddUser(user)
 
-		fmt.Printf("split4: %+v\n", z)
-
 		users[userID] = user
 		zones[newZone.ID()] = newZone
-
-		fmt.Printf("split5: %+v\n", z)
 	}
 
 	// clear the zone subscriber list
@@ -417,11 +413,28 @@ func (z *Zone) Split() (map[string]types.Zone, error) {
 		zonesSlice = append(zonesSlice, zone.PubSubJSON().(*types.ZonePubSubJSON))
 	}
 
-	z.logger.Info("Saving users and zones")
 	if err := z.world.DB().SaveUsersAndZones(usersSlice, zonesSlice, z.world.ID()); err != nil {
 		z.logger.Crit("Error saving users and/or zones", "error", err.Error())
 		return nil, err
 	}
+
+	// Publish split
+	split, _ := pubsub.Split(z, zones)
+	if err := z.world.Publish(split); err != nil {
+		z.logger.Error("Error broadcasting zone split", "error", err.Error())
+		return nil, err
+	}
+
+	// Do child zones need to split?
+	for _, zone := range zones {
+		if zone.ShouldSplit() {
+			if _, err := zone.Split(); err != nil {
+				z.logger.Error("Error splitting child zone", "error", err.Error(), "child", zone.ID())
+				return zones, err
+			}
+		}
+	}
+
 	return zones, nil
 }
 

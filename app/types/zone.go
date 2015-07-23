@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 type Zone interface {
 	PubSubSerializable
 	BroadcastSerializable
@@ -24,18 +26,20 @@ type Zone interface {
 	// Broadcast
 	Broadcast(BroadcastEventData) error
 
-	// Pubsubs
 	Join(User) error
 	Leave(User) error
 	Message(User, string) error
+
+	ShouldSplit() bool
 	Split() (map[string]Zone, error)
 	Merge() error
 }
 
 type ZonePubSubJSON struct {
-	ID      string   `json:"id"`
-	UserIDs []string `json:"user_ids"`
-	IsOpen  bool     `json:"is_open"`
+	ID           string    `json:"id"`
+	UserIDs      []string  `json:"user_ids"`
+	IsOpen       bool      `json:"is_open"`
+	LastModified time.Time `json:"last_modified"`
 }
 
 func (psZone *ZonePubSubJSON) Type() PubSubDataType {

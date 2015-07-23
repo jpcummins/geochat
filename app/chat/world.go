@@ -2,7 +2,6 @@ package chat
 
 import (
 	"errors"
-	"fmt"
 	"github.com/jpcummins/geochat/app/pubsub"
 	"github.com/jpcummins/geochat/app/types"
 	log "gopkg.in/inconshreveable/log15.v2"
@@ -140,7 +139,6 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 }
 
 func (w *World) FindOpenZone(root types.Zone, user types.User) (types.Zone, error) {
-	fmt.Printf("foz: %+v\n", root)
 	for !root.IsOpen() {
 		suffix := strings.TrimPrefix(user.Location().Geohash(), root.Geohash())
 
