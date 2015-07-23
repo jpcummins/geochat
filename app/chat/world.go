@@ -177,6 +177,23 @@ func (w *World) FindOpenZone(root types.Zone, user types.User) (types.Zone, erro
 	return root, nil
 }
 
+func (w *World) Join(user types.User) (types.Zone, error) {
+	zone, err := w.FindOpenZone(w.root, user)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the next available zone is at capacity, split the zone and try again.
+	if zone.Count() >= w.MaxUsers() {
+		if _, err := zone.Split(); err != nil {
+			return nil, err
+		}
+		return w.Join(user)
+	} else {
+		return zone, zone.Join(user)
+	}
+}
+
 func (w *World) NewUser(id string, name string, lat float64, lng float64) (types.User, error) {
 	user := newUser(id, name, newLatLng(lat, lng), w)
 	if err := w.Users().Save(user); err != nil {

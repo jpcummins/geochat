@@ -39,18 +39,7 @@ func (j *join) Type() types.PubSubEventType {
 }
 
 func (j *join) BeforePublish(e types.PubSubEvent) error {
-	if j.user.ZoneID() != "" {
-		return errors.New("User is already in a zone.")
-	}
-
-	j.zone.AddUser(j.user)
-	j.user.SetZoneID(j.zone.ID())
-
-	if err := e.World().Users().Save(j.user); err != nil {
-		return err
-	}
-
-	return e.World().Zones().Save(j.zone)
+	return nil
 }
 
 func (j *join) OnReceive(e types.PubSubEvent) error {

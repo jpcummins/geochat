@@ -83,18 +83,11 @@ func (zc *ZoneController) Zone() revel.Result {
 
 // ZoneSocket action handles WebSocket communication
 func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
-	var zone types.Zone
-	var err error
-
 	connection := zc.user.Connect()
 	closeConnection := make(chan bool)
 
 	if zc.user.ZoneID() == "" {
-		zone, err = chat.App.FindOpenZone(chat.App.Zone(), zc.user)
-		if err != nil {
-			panic(err)
-		}
-		if err := zone.Join(zc.user); err != nil {
+		if _, err := zc.world.Join(zc.user); err != nil {
 			panic(err)
 		}
 	}

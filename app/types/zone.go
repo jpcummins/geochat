@@ -29,8 +29,6 @@ type Zone interface {
 	Join(User) error
 	Leave(User) error
 	Message(User, string) error
-
-	ShouldSplit() bool
 	Split() (map[string]Zone, error)
 	Merge() error
 }

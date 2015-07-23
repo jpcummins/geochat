@@ -37,12 +37,7 @@ func (b *addBot) Execute(args string, user types.User, world types.World) error 
 			return err
 		}
 
-		botZone, err := world.FindOpenZone(zone, bot)
-		if err != nil {
-			return err
-		}
-
-		if err := botZone.Join(bot); err != nil {
+		if _, err := world.Join(bot); err != nil {
 			return err
 		}
 	}

@@ -268,12 +268,14 @@ func (z *Zone) Join(user types.User) error {
 		return errors.New("User already belongs to a zone.")
 	}
 
-	if z.ShouldSplit() {
-		z.logger.Info("Zone full", "count", z.Count())
-		if _, err := z.Split(); err != nil {
-			z.logger.Error("Error splitting zone", "error", err.Error())
-			return err
-		}
+	// Add user
+	z.AddUser(user)
+	user.SetZoneID(z.ID())
+	if err := z.world.Users().Save(user); err != nil {
+		return err
+	}
+	if err := z.world.Zones().Save(z); err != nil {
+		return err
 	}
 
 	data, err := pubsub.Join(z, user)
@@ -281,15 +283,7 @@ func (z *Zone) Join(user types.User) error {
 		return err
 	}
 
-	if err := z.world.Publish(data); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (z *Zone) ShouldSplit() bool {
-	return z.Count() >= z.World().MaxUsers()
+	return z.world.Publish(data)
 }
 
 func (z *Zone) shouldMerge() (bool, error) {
@@ -425,16 +419,6 @@ func (z *Zone) Split() (map[string]types.Zone, error) {
 		return nil, err
 	}
 
-	// Do child zones need to split?
-	for _, zone := range zones {
-		if zone.ShouldSplit() {
-			if _, err := zone.Split(); err != nil {
-				z.logger.Error("Error splitting child zone", "error", err.Error(), "child", zone.ID())
-				return zones, err
-			}
-		}
-	}
-
 	return zones, nil
 }
 
@@ -450,6 +434,18 @@ func (z *Zone) Merge() error {
 	right, err := z.World().Zones().Zone(z.rightZoneID)
 	if err != nil {
 		z.logger.Error("Error retrieving right zone", "right", z.rightZoneID)
+		return err
+	}
+
+	if left == nil && right == nil {
+		return nil
+	}
+
+	if err := left.Merge(); err != nil {
+		return err
+	}
+
+	if err := right.Merge(); err != nil {
 		return err
 	}
 

@@ -20,6 +20,7 @@ type World interface {
 	Zones() Zones
 	GetOrCreateZone(string) (Zone, error)
 	FindOpenZone(Zone, User) (Zone, error)
+	Join(User) (Zone, error)
 
 	Users() Users
 	NewUser(id string, name string, lat float64, lng float64) (User, error)
