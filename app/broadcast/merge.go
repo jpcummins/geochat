@@ -7,12 +7,16 @@ import (
 const mergeType types.BroadcastEventType = "merge"
 
 type merge struct {
-	Zone interface{} `json:"zone"`
+	Zone  interface{} `json:"zone"`
+	Left  interface{} `json:"left"`
+	Right interface{} `json:"right"`
 }
 
-func Merge(zone types.Zone) *merge {
+func Merge(zone types.Zone, left types.Zone, right types.Zone) *merge {
 	return &merge{
-		Zone: zone.BroadcastJSON(),
+		Zone:  zone.BroadcastJSON(),
+		Left:  left.BroadcastJSON(),
+		Right: right.BroadcastJSON(),
 	}
 }
 

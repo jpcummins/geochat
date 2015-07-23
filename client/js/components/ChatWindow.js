@@ -5,7 +5,8 @@ var React = require('react'),
     Join = require('./events/Join'),
     Leave = require('./events/Leave'),
     Split = require('./events/Split'),
-    Merge = require('./events/Merge');
+    Merge = require('./events/Merge'),
+    Announcement = require('./events/Announcement');
 
 var eventClasses = {
   "message": Message,
@@ -14,6 +15,7 @@ var eventClasses = {
   "leave": Leave,
   "split": Split,
   "merge": Merge,
+  "announcement": Announcement,
 }
 
 var eventsCursor = stateTree.select('visibleEvents');

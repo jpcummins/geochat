@@ -38,14 +38,16 @@ func (m *merge) OnReceive(e types.PubSubEvent) error {
 
 	parent.Update(m.Parent)
 
-	if left := e.World().Zones().FromCache(m.Left.ID); left != nil {
+	left := e.World().Zones().FromCache(m.Left.ID)
+	if left != nil {
 		left.Update(m.Left)
 	}
 
-	if right := e.World().Zones().FromCache(m.Right.ID); right != nil {
+	right := e.World().Zones().FromCache(m.Right.ID)
+	if right != nil {
 		right.Update(m.Right)
 	}
 
-	parent.Broadcast(broadcast.Merge(parent))
+	parent.Broadcast(broadcast.Merge(parent, left, right))
 	return nil
 }

@@ -13,7 +13,8 @@ import (
 // contains a handle to the chat package.
 type ZoneController struct {
 	*revel.Controller
-	user types.User
+	user  types.User
+	world types.World
 }
 
 func init() {
@@ -37,21 +38,24 @@ func (zc *ZoneController) setSession() revel.Result {
 	}
 
 	zc.user = user
+	zc.world = chat.App
 	return nil
 }
 
 // Message action sends a message to those in the subscriber's zone.
 func (zc *ZoneController) Message(text string) revel.Result {
-
-	if zc.user.Zone() == nil {
+	if zc.user.ZoneID() == "" {
 		zc.Redirect("/")
 	}
 
-	if err := zc.user.Zone().Message(zc.user, text); err != nil {
+	zone, err := zc.world.Zones().Zone(zc.user.ZoneID())
+	if err != nil {
 		panic(err)
 	}
 
-	println("Sent message to zone " + zc.user.Zone().ID())
+	if err := zone.Message(zc.user, text); err != nil {
+		panic(err)
+	}
 
 	return zc.RenderJson(nil)
 }
@@ -85,7 +89,7 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 	connection := zc.user.Connect()
 	closeConnection := make(chan bool)
 
-	if zc.user.Zone() == nil {
+	if zc.user.ZoneID() == "" {
 		zone, err = chat.App.FindOpenZone(chat.App.Zone(), zc.user)
 		if err != nil {
 			panic(err)
@@ -93,8 +97,6 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 		if err := zone.Join(zc.user); err != nil {
 			panic(err)
 		}
-	} else {
-		zone = zc.user.Zone()
 	}
 
 	// Listen for client disconnects
@@ -123,8 +125,13 @@ func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
 			}
 		case _ = <-closeConnection:
 			// Leave the chat room
-			zone := zc.user.Zone()
-			if zone != nil {
+			zoneID := zc.user.ZoneID()
+
+			if zoneID != "" {
+				zone, err := zc.world.Zones().Zone(zoneID)
+				if err != nil {
+					panic(err)
+				}
 				if err := zone.Leave(zc.user); err != nil {
 					panic(err)
 				}

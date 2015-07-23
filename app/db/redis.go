@@ -111,7 +111,6 @@ func (r *RedisDB) setObject(id string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-
 	r.Lock()
 	defer r.Unlock()
 

@@ -69,11 +69,9 @@ func (z *Zones) Save(zone types.Zone) error {
 	if !ok {
 		return errors.New("Unable to serialize ZonePubSubJSON")
 	}
-
 	if err := z.db.SaveZone(json, z.world.ID()); err != nil {
 		return err
 	}
-
 	z.UpdateCache(zone)
 	return nil
 }

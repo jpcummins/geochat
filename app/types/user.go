@@ -8,8 +8,8 @@ type User interface {
 	Name() string
 	Location() LatLng
 
-	Zone() Zone
-	SetZone(Zone)
+	ZoneID() string
+	SetZoneID(string)
 
 	Broadcast(BroadcastEventData)
 	ExecuteCommand(command string, args string) error

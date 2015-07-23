@@ -9,13 +9,13 @@ import (
 	"strings"
 )
 
-type minusers struct{}
+type maxusers struct{}
 
-func (m *minusers) Execute(args string, user types.User, world types.World) error {
+func (m *maxusers) Execute(args string, user types.User, world types.World) error {
 	splitArgs := strings.Split(strings.TrimSpace(args), " ")
 
 	if len(splitArgs) == 1 && splitArgs[0] == "" {
-		user.Broadcast(broadcast.Announcement("Min users: " + strconv.Itoa(world.MinUsers())))
+		user.Broadcast(broadcast.Announcement("Max users: " + strconv.Itoa(world.MaxUsers())))
 		return nil
 	}
 
@@ -27,12 +27,12 @@ func (m *minusers) Execute(args string, user types.User, world types.World) erro
 	if err != nil {
 		return err
 	}
-	world.SetMinUsers(num)
+	world.SetMaxUsers(num)
 
 	json := world.PubSubJSON().(*types.WorldPubSubJSON)
 	world.DB().SaveWorld(json)
 	_, err = pubsub.World(json)
 
-	user.Broadcast(broadcast.Announcement("Min users: " + strconv.Itoa(num)))
+	user.Broadcast(broadcast.Announcement("Max users: " + strconv.Itoa(num)))
 	return err
 }

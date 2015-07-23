@@ -1,7 +1,6 @@
 package pubsub
 
 import (
-	"errors"
 	"github.com/jpcummins/geochat/app/broadcast"
 	"github.com/jpcummins/geochat/app/types"
 )
@@ -31,7 +30,7 @@ func (l *leave) Type() types.PubSubEventType {
 
 func (l *leave) BeforePublish(e types.PubSubEvent) error {
 	l.zone.RemoveUser(l.UserID)
-	l.user.SetZone(nil)
+	l.user.SetZoneID("")
 
 	if err := e.World().Users().Save(l.user); err != nil {
 		return err
@@ -41,18 +40,19 @@ func (l *leave) BeforePublish(e types.PubSubEvent) error {
 }
 
 func (l *leave) OnReceive(e types.PubSubEvent) error {
-	zone := e.World().Zones().FromCache(l.ZoneID)
-	if zone == nil {
-		return nil
+
+	// refresh cache. At some point this should be optimize. I don't think a
+	// db hit is nessesary.
+	zone, err := e.World().Zones().FromDB(l.ZoneID)
+	if err != nil {
+		return err
 	}
 
-	user := e.World().Users().FromCache(l.UserID)
-	if user == nil {
-		return errors.New("Unable to find user: " + l.UserID)
+	user, err := e.World().Users().FromDB(l.UserID)
+	if err != nil {
+		return err
 	}
 
-	user.SetZone(nil)
-	zone.RemoveUser(l.UserID)
 	zone.Broadcast(broadcast.Leave(user))
 	return nil
 }

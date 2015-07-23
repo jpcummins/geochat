@@ -7,23 +7,31 @@ import (
 
 type merge struct{}
 
-func (m *merge) Execute(args string, user types.User) error {
+func (m *merge) Execute(args string, user types.User, world types.World) error {
 
-	currentZone := user.Zone()
+	currentZoneID := user.ZoneID()
+	currentZone, err := world.Zones().Zone(currentZoneID)
+	if err != nil {
+		return err
+	}
 
 	if currentZone == nil {
 		return errors.New("User is not in a zone")
 	}
 
-	if currentZone.ID() == ":0z" {
+	if currentZoneID == ":0z" {
 		return errors.New("Unable to merge root zone")
 	}
 
-	parentZone, err := currentZone.World().Zones().Zone(currentZone.ParentZoneID())
+	parentZone, err := world.Zones().Zone(currentZone.ParentZoneID())
 
 	if err != nil {
 		return err
 	}
 
-	return parentZone.Merge()
+	if err := parentZone.Merge(); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -42,6 +42,9 @@ var ZonePage = React.createClass({
         zoneCursor.set(chatEvent.data.zone)
         usersCursor.set(chatEvent.data.zone.users)
         break;
+      case "announcement":
+        eventsCursor.push(chatEvent)
+        break;
       default:
     }
     stateTree.commit();
