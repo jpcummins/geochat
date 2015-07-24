@@ -250,7 +250,7 @@ var React = require('react');
 var User = React.createClass({displayName: "User",
   render: function () {
     return (
-	    React.createElement("div", {className:  this.props.user.is_online ? 'online' : 'offline'}, 
+	    React.createElement("div", {className: "online"}, 
         this.props.user.name
 	    )
     )
