@@ -2,6 +2,7 @@ package mocks
 
 import "github.com/jpcummins/geochat/app/types"
 import "github.com/stretchr/testify/mock"
+import "time"
 
 type World struct {
 	mock.Mock
@@ -18,6 +19,20 @@ func (m *World) MaxUsers() int {
 	ret := m.Called()
 
 	r0 := ret.Get(0).(int)
+
+	return r0
+}
+func (m *World) MinUsers() int {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(int)
+
+	return r0
+}
+func (m *World) SplitDelay() time.Duration {
+	ret := m.Called()
+
+	r0 := ret.Get(0).(time.Duration)
 
 	return r0
 }

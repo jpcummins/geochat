@@ -14,6 +14,12 @@ import (
 
 const rootWorldID string = "0"
 
+const defaultMaxUsers int = 30
+
+const defaultMinUsers int = 10
+
+const defaultSplitDelay time.Duration = time.Duration(30) * time.Second
+
 type World struct {
 	sync.RWMutex
 	types.PubSubSerializable
@@ -27,11 +33,13 @@ type World struct {
 	logger log.Logger
 }
 
-func newWorld(id string, db types.DB, ps types.PubSub, maxUsers int, logger log.Logger) (*World, error) {
+func newWorld(id string, db types.DB, ps types.PubSub, logger log.Logger) (*World, error) {
 	w := &World{
 		WorldPubSubJSON: &types.WorldPubSubJSON{
-			ID:       id,
-			MaxUsers: maxUsers,
+			ID:         id,
+			MaxUsers:   defaultMaxUsers,
+			MinUsers:   defaultMinUsers,
+			SplitDelay: defaultSplitDelay,
 		},
 		db:     db,
 		pubsub: ps,
@@ -71,6 +79,22 @@ func (w *World) MaxUsers() int {
 	return w.WorldPubSubJSON.MaxUsers
 }
 
+func (w *World) SetMaxUsers(maxUsers int) {
+	w.WorldPubSubJSON.MaxUsers = maxUsers
+}
+
+func (w *World) MinUsers() int {
+	return w.WorldPubSubJSON.MinUsers
+}
+
+func (w *World) SetMinUsers(minUsers int) {
+	w.WorldPubSubJSON.MinUsers = minUsers
+}
+
+func (w *World) SplitDelay() time.Duration {
+	return w.WorldPubSubJSON.SplitDelay
+}
+
 func (w *World) DB() types.DB {
 	return w.db
 }
@@ -99,7 +123,7 @@ func (w *World) GetOrCreateZone(id string) (types.Zone, error) {
 	}
 
 	if zone == nil {
-		zone, err = newZone(id, w, w.MaxUsers(), w.logger)
+		zone, err = newZone(id, w, w.logger)
 		if err != nil {
 			w.logger.Crit("Error creating zone", "zone", id, "maxUsers", w.MaxUsers(), "error", err.Error())
 			return nil, err
@@ -151,6 +175,23 @@ func (w *World) FindOpenZone(root types.Zone, user types.User) (types.Zone, erro
 	}
 
 	return root, nil
+}
+
+func (w *World) Join(user types.User) (types.Zone, error) {
+	zone, err := w.FindOpenZone(w.root, user)
+	if err != nil {
+		return nil, err
+	}
+
+	// If the next available zone is at capacity, split the zone and try again.
+	if zone.Count() >= w.MaxUsers() {
+		if _, err := zone.Split(); err != nil {
+			return nil, err
+		}
+		return w.Join(user)
+	} else {
+		return zone, zone.Join(user)
+	}
 }
 
 func (w *World) NewUser(id string, name string, lat float64, lng float64) (types.User, error) {

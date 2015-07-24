@@ -14,7 +14,7 @@ type User struct {
 	types.BroadcastSerializable
 	*types.UserPubSubJSON
 	location    types.LatLng
-	zone        types.Zone
+	world       types.World
 	connections []*Connection
 }
 
@@ -25,6 +25,7 @@ func newUser(id string, name string, location types.LatLng, world types.World) *
 			Name: name,
 		},
 		location:    location,
+		world:       world,
 		connections: make([]*Connection, 0),
 	}
 	return u
@@ -42,18 +43,14 @@ func (u *User) Location() types.LatLng {
 	return u.location
 }
 
-func (u *User) Zone() types.Zone {
-	return u.zone
+func (u *User) ZoneID() string {
+	return u.UserPubSubJSON.ZoneID
 }
 
-func (u *User) SetZone(zone types.Zone) {
+func (u *User) SetZoneID(id string) {
 	u.Lock()
 	defer u.Unlock()
-
-	u.zone = zone
-	if zone != nil {
-		u.UserPubSubJSON.ZoneID = zone.ID()
-	}
+	u.UserPubSubJSON.ZoneID = id
 }
 
 func (u *User) Broadcast(data types.BroadcastEventData) {
@@ -67,7 +64,7 @@ func (u *User) Broadcast(data types.BroadcastEventData) {
 }
 
 func (u *User) ExecuteCommand(command string, args string) error {
-	return commands.Execute(command, args, u)
+	return commands.Execute(command, args, u, u.world)
 }
 
 func (u *User) Connect() types.Connection {

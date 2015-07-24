@@ -36,7 +36,7 @@ func (suite *ZoneTestSuite) SetupTest() {
 }
 
 func (suite *ZoneTestSuite) TestNewZone() {
-	zone, err := newZone(rootZoneID, suite.world, 2, suite.logger)
+	zone, err := newZone(rootZoneID, suite.world, suite.logger)
 	assert.NoError(suite.T(), err)
 
 	assert.Equal(suite.T(), rootZoneID, zone.ID())
@@ -51,12 +51,11 @@ func (suite *ZoneTestSuite) TestNewZone() {
 	assert.Equal(suite.T(), ":0g", zone.LeftZoneID())
 	assert.Equal(suite.T(), ":hz", zone.RightZoneID())
 	assert.Equal(suite.T(), 0, zone.Count())
-	assert.Equal(suite.T(), 2, zone.MaxUsers())
 	assert.True(suite.T(), zone.IsOpen())
 }
 
 func (suite *ZoneTestSuite) TestNewZone_Error() {
-	_, err := newZone(invalidZoneID, suite.world, 2, suite.logger)
+	_, err := newZone(invalidZoneID, suite.world, suite.logger)
 	assert.Error(suite.T(), err)
 }
 
@@ -64,7 +63,7 @@ func (suite *ZoneTestSuite) TestAddUser() {
 	user := &mocks.User{}
 	user.On("ID").Return("user1")
 
-	zone, err := newZone(rootZoneID, suite.world, 2, suite.logger)
+	zone, err := newZone(rootZoneID, suite.world, suite.logger)
 	assert.NoError(suite.T(), err)
 
 	zone.AddUser(user)
@@ -77,7 +76,7 @@ func (suite *ZoneTestSuite) TestAddUser_Exists() {
 	user := &mocks.User{}
 	user.On("ID").Return("user1")
 
-	zone, err := newZone(rootZoneID, suite.world, 2, suite.logger)
+	zone, err := newZone(rootZoneID, suite.world, suite.logger)
 	assert.NoError(suite.T(), err)
 
 	zone.AddUser(user)
@@ -87,7 +86,7 @@ func (suite *ZoneTestSuite) TestAddUser_Exists() {
 }
 
 func (suite *ZoneTestSuite) TestSetIsOpen() {
-	zone, err := newZone(rootZoneID, suite.world, 2, suite.logger)
+	zone, err := newZone(rootZoneID, suite.world, suite.logger)
 	assert.NoError(suite.T(), err)
 
 	assert.True(suite.T(), zone.IsOpen())
@@ -101,7 +100,7 @@ func (suite *ZoneTestSuite) TestRemoveUser() {
 	user1 := &mocks.User{}
 	user1.On("ID").Return("user1")
 
-	zone, err := newZone(rootZoneID, suite.world, 2, suite.logger)
+	zone, err := newZone(rootZoneID, suite.world, suite.logger)
 	assert.NoError(suite.T(), err)
 
 	assert.Equal(suite.T(), 0, zone.Count())
@@ -125,7 +124,7 @@ func (suite *ZoneTestSuite) TestBroadcast() {
 	suite.users.On("User", "user1").Return(user1, nil)
 	suite.users.On("User", "user2").Return(user2, nil)
 
-	zone, err := newZone(rootZoneID, suite.world, 2, suite.logger)
+	zone, err := newZone(rootZoneID, suite.world, suite.logger)
 	assert.NoError(suite.T(), err)
 
 	zone.AddUser(user1)
@@ -137,7 +136,7 @@ func (suite *ZoneTestSuite) TestBroadcast() {
 }
 
 func (suite *ZoneTestSuite) TestBroadcastJSON() {
-	zone, err := newZone(rootZoneID, suite.world, 2, suite.logger)
+	zone, err := newZone(rootZoneID, suite.world, suite.logger)
 	assert.NoError(suite.T(), err)
 
 	user1 := &mocks.User{}
@@ -159,7 +158,7 @@ func (suite *ZoneTestSuite) TestBroadcastJSON() {
 }
 
 func (suite *ZoneTestSuite) TestMarshalJSON() {
-	zone, err := newZone(rootZoneID, suite.world, 2, suite.logger)
+	zone, err := newZone(rootZoneID, suite.world, suite.logger)
 	assert.NoError(suite.T(), err)
 
 	user1 := &mocks.User{}
@@ -171,7 +170,7 @@ func (suite *ZoneTestSuite) TestMarshalJSON() {
 	zone.AddUser(user2)
 
 	b, err := json.Marshal(zone.PubSubJSON())
-	assert.Equal(suite.T(), "{\"id\":\":0z\",\"user_ids\":[\"user1\",\"user2\"],\"is_open\":true,\"max_users\":2}", string(b))
+	assert.Equal(suite.T(), "{\"id\":\":0z\",\"user_ids\":[\"user1\",\"user2\"],\"is_open\":true,\"last_split\":\"0001-01-01T00:00:00Z\",\"last_merge\":\"0001-01-01T00:00:00Z\"}", string(b))
 	assert.NoError(suite.T(), err)
 }
 
@@ -182,16 +181,14 @@ func (suite *ZoneTestSuite) TestUpdate() {
 	suite.zones.On("UpdateCache", mock.Anything).Return(nil)
 
 	update := &types.ZonePubSubJSON{
-		ID:       ":0g",
-		UserIDs:  []string{"1", "2", "3"},
-		IsOpen:   false,
-		MaxUsers: 3,
+		ID:      ":0g",
+		UserIDs: []string{"1", "2", "3"},
+		IsOpen:  false,
 	}
 
 	zone.Update(update)
 
 	assert.Equal(suite.T(), ":0g", zone.ID())
-	assert.Equal(suite.T(), 3, zone.MaxUsers())
 	assert.Equal(suite.T(), 3, zone.Count())
 	assert.Equal(suite.T(), []string{"1", "2", "3"}, zone.UserIDs())
 	assert.Equal(suite.T(), false, zone.IsOpen())
@@ -217,116 +214,116 @@ level 5 - 01 23 45 67 89 bc de fg hj km np qr st uv wx yz
 */
 
 func (suite *ZoneTestSuite) TestParentID_Level1() {
-	zone, _ := newZone(":0z", suite.world, 2, suite.logger)
+	zone, _ := newZone(":0z", suite.world, suite.logger)
 	assert.Equal(suite.T(), "", zone.ParentZoneID())
 
-	zone, _ = newZone("0:0z", suite.world, 2, suite.logger)
+	zone, _ = newZone("0:0z", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":01", zone.ParentZoneID())
 
-	zone, _ = newZone("1:0z", suite.world, 2, suite.logger)
+	zone, _ = newZone("1:0z", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":01", zone.ParentZoneID())
 }
 
 func (suite *ZoneTestSuite) TestParentID_Level2() {
-	zone, _ := newZone(":0g", suite.world, 2, suite.logger)
+	zone, _ := newZone(":0g", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":0z", zone.ParentZoneID())
 
-	zone, _ = newZone(":hz", suite.world, 2, suite.logger)
+	zone, _ = newZone(":hz", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":0z", zone.ParentZoneID())
 }
 
 func (suite *ZoneTestSuite) TestParentID_Level3() {
-	zone, _ := newZone(":07", suite.world, 2, suite.logger)
+	zone, _ := newZone(":07", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":0g", zone.ParentZoneID())
 
-	zone, _ = newZone(":8g", suite.world, 2, suite.logger)
+	zone, _ = newZone(":8g", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":0g", zone.ParentZoneID())
 
-	zone, _ = newZone(":hr", suite.world, 2, suite.logger)
+	zone, _ = newZone(":hr", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":hz", zone.ParentZoneID())
 
-	zone, _ = newZone(":sz", suite.world, 2, suite.logger)
+	zone, _ = newZone(":sz", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":hz", zone.ParentZoneID())
 }
 
 func (suite *ZoneTestSuite) TestParentID_Level4() {
-	zone, _ := newZone(":03", suite.world, 2, suite.logger)
+	zone, _ := newZone(":03", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":07", zone.ParentZoneID())
 
-	zone, _ = newZone(":47", suite.world, 2, suite.logger)
+	zone, _ = newZone(":47", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":07", zone.ParentZoneID())
 
-	zone, _ = newZone(":8c", suite.world, 2, suite.logger)
+	zone, _ = newZone(":8c", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":8g", zone.ParentZoneID())
 
-	zone, _ = newZone(":dg", suite.world, 2, suite.logger)
+	zone, _ = newZone(":dg", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":8g", zone.ParentZoneID())
 
-	zone, _ = newZone(":hm", suite.world, 2, suite.logger)
+	zone, _ = newZone(":hm", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":hr", zone.ParentZoneID())
 
-	zone, _ = newZone(":nr", suite.world, 2, suite.logger)
+	zone, _ = newZone(":nr", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":hr", zone.ParentZoneID())
 
-	zone, _ = newZone(":sv", suite.world, 2, suite.logger)
+	zone, _ = newZone(":sv", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":sz", zone.ParentZoneID())
 
-	zone, _ = newZone(":wz", suite.world, 2, suite.logger)
+	zone, _ = newZone(":wz", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":sz", zone.ParentZoneID())
 }
 
 func (suite *ZoneTestSuite) TestParentID_Level5() {
-	zone, _ := newZone(":01", suite.world, 2, suite.logger)
+	zone, _ := newZone(":01", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":03", zone.ParentZoneID())
 
-	zone, _ = newZone(":23", suite.world, 2, suite.logger)
+	zone, _ = newZone(":23", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":03", zone.ParentZoneID())
 
-	zone, _ = newZone(":45", suite.world, 2, suite.logger)
+	zone, _ = newZone(":45", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":47", zone.ParentZoneID())
 
-	zone, _ = newZone(":67", suite.world, 2, suite.logger)
+	zone, _ = newZone(":67", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":47", zone.ParentZoneID())
 
-	zone, _ = newZone(":89", suite.world, 2, suite.logger)
+	zone, _ = newZone(":89", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":8c", zone.ParentZoneID())
 
-	zone, _ = newZone(":bc", suite.world, 2, suite.logger)
+	zone, _ = newZone(":bc", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":8c", zone.ParentZoneID())
 
-	zone, _ = newZone(":de", suite.world, 2, suite.logger)
+	zone, _ = newZone(":de", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":dg", zone.ParentZoneID())
 
-	zone, _ = newZone(":fg", suite.world, 2, suite.logger)
+	zone, _ = newZone(":fg", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":dg", zone.ParentZoneID())
 
-	zone, _ = newZone(":hj", suite.world, 2, suite.logger)
+	zone, _ = newZone(":hj", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":hm", zone.ParentZoneID())
 
-	zone, _ = newZone(":km", suite.world, 2, suite.logger)
+	zone, _ = newZone(":km", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":hm", zone.ParentZoneID())
 
-	zone, _ = newZone(":np", suite.world, 2, suite.logger)
+	zone, _ = newZone(":np", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":nr", zone.ParentZoneID())
 
-	zone, _ = newZone(":qr", suite.world, 2, suite.logger)
+	zone, _ = newZone(":qr", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":nr", zone.ParentZoneID())
 
-	zone, _ = newZone(":st", suite.world, 2, suite.logger)
+	zone, _ = newZone(":st", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":sv", zone.ParentZoneID())
 
-	zone, _ = newZone(":uv", suite.world, 2, suite.logger)
+	zone, _ = newZone(":uv", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":sv", zone.ParentZoneID())
 
-	zone, _ = newZone(":wx", suite.world, 2, suite.logger)
+	zone, _ = newZone(":wx", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":wz", zone.ParentZoneID())
 
-	zone, _ = newZone(":yz", suite.world, 2, suite.logger)
+	zone, _ = newZone(":yz", suite.world, suite.logger)
 	assert.Equal(suite.T(), ":wz", zone.ParentZoneID())
 }
 
 func (suite *ZoneTestSuite) TestJoin_LeaveIsCalledOnPreviousZone() {
-	zone, _ := newZone(":0z", suite.world, 2, suite.logger)
+	zone, _ := newZone(":0z", suite.world, suite.logger)
 	suite.world.On("Publish", mock.Anything).Return(nil)
 	user := &mocks.User{}
 	prvZone := &mocks.Zone{}
@@ -340,7 +337,7 @@ func (suite *ZoneTestSuite) TestJoin_LeaveIsCalledOnPreviousZone() {
 
 func (suite *ZoneTestSuite) TestJoin_LeaveIsCalledOnPreviousZone_Error() {
 	err := errors.New("err")
-	zone, _ := newZone(":0z", suite.world, 2, suite.logger)
+	zone, _ := newZone(":0z", suite.world, suite.logger)
 	user := &mocks.User{}
 	prvZone := &mocks.Zone{}
 	prvZone.On("Leave", user).Return(err)
@@ -350,7 +347,7 @@ func (suite *ZoneTestSuite) TestJoin_LeaveIsCalledOnPreviousZone_Error() {
 }
 
 func (suite *ZoneTestSuite) TestJoin_PubSubJoin_Error() {
-	zone, _ := newZone(":0z", suite.world, 2, suite.logger)
+	zone, _ := newZone(":0z", suite.world, suite.logger)
 	suite.world.On("Publish", mock.Anything).Return(nil)
 	user := &mocks.User{}
 	prvZone := &mocks.Zone{}
@@ -362,7 +359,7 @@ func (suite *ZoneTestSuite) TestJoin_PubSubJoin_Error() {
 }
 
 func (suite *ZoneTestSuite) TestJoin_Publish() {
-	zone, _ := newZone(":0z", suite.world, 2, suite.logger)
+	zone, _ := newZone(":0z", suite.world, suite.logger)
 	suite.world.On("Publish", mock.Anything).Return(nil)
 	user := &mocks.User{}
 	prvZone := &mocks.Zone{}
@@ -376,7 +373,7 @@ func (suite *ZoneTestSuite) TestJoin_Publish() {
 
 func (suite *ZoneTestSuite) TestJoin_Publish_Error() {
 	err := errors.New("err")
-	zone, _ := newZone(":0z", suite.world, 2, suite.logger)
+	zone, _ := newZone(":0z", suite.world, suite.logger)
 	suite.world.On("Publish", mock.Anything).Return(err)
 	user := &mocks.User{}
 	prvZone := &mocks.Zone{}
@@ -389,7 +386,7 @@ func (suite *ZoneTestSuite) TestJoin_Publish_Error() {
 }
 
 func (suite *ZoneTestSuite) TestLeave() {
-	zone, _ := newZone(":0z", suite.world, 2, suite.logger)
+	zone, _ := newZone(":0z", suite.world, suite.logger)
 	suite.world.On("Publish", mock.Anything).Return(nil)
 
 	user := &mocks.User{}
@@ -402,7 +399,7 @@ func (suite *ZoneTestSuite) TestLeave() {
 }
 
 func (suite *ZoneTestSuite) TestMessage() {
-	zone, _ := newZone(":0z", suite.world, 2, suite.logger)
+	zone, _ := newZone(":0z", suite.world, suite.logger)
 	suite.world.On("Publish", mock.Anything).Return(nil)
 
 	user := &mocks.User{}
@@ -414,7 +411,7 @@ func (suite *ZoneTestSuite) TestMessage() {
 }
 
 func (suite *ZoneTestSuite) TestSplit() {
-	zone, _ := newZone(":0z", suite.world, 2, suite.logger)
+	zone, _ := newZone(":0z", suite.world, suite.logger)
 
 	user1 := &mocks.User{}
 	user1.On("ID").Return("user1")

@@ -8,6 +8,7 @@ import (
 	log "gopkg.in/inconshreveable/log15.v2"
 	"strings"
 	"sync"
+	"time"
 )
 
 const rootZoneID = ":0z"
@@ -18,7 +19,7 @@ type Zone struct {
 	sync.RWMutex
 	types.PubSubSerializable
 	types.BroadcastSerializable
-	*types.ZonePubSubJSON
+	types.ZonePubSubJSON
 
 	world        types.World
 	southWest    types.LatLng
@@ -32,7 +33,7 @@ type Zone struct {
 	logger       log.Logger
 }
 
-func newZone(id string, world types.World, maxUsers int, logger log.Logger) (*Zone, error) {
+func newZone(id string, world types.World, logger log.Logger) (*Zone, error) {
 	geohash, from, to, err := validateZoneID(id)
 	if err != nil {
 		return nil, err
@@ -42,10 +43,9 @@ func newZone(id string, world types.World, maxUsers int, logger log.Logger) (*Zo
 	northEast := gh.Decode(geohash + to).NorthEast()
 
 	zone := &Zone{
-		ZonePubSubJSON: &types.ZonePubSubJSON{
-			ID:       id,
-			IsOpen:   true,
-			MaxUsers: maxUsers,
+		ZonePubSubJSON: types.ZonePubSubJSON{
+			ID:     id,
+			IsOpen: true,
 		},
 		world:     world,
 		southWest: newLatLng(southWest.Lat(), southWest.Lng()),
@@ -149,10 +149,6 @@ func (z *Zone) RightZoneID() string {
 	return z.rightZoneID
 }
 
-func (z *Zone) MaxUsers() int {
-	return z.ZonePubSubJSON.MaxUsers
-}
-
 func (z *Zone) Count() int {
 	z.RLock()
 	defer z.RUnlock()
@@ -171,12 +167,14 @@ func (z *Zone) IsOpen() bool {
 
 func (z *Zone) SetIsOpen(isOpen bool) {
 	z.ZonePubSubJSON.IsOpen = isOpen
+	z.ZonePubSubJSON.LastModified = time.Now()
 	z.World().Zones().UpdateCache(z)
 }
 
 func (z *Zone) AddUser(user types.User) {
 	z.Lock()
 	defer z.Unlock()
+	z.ZonePubSubJSON.LastModified = time.Now()
 
 	// If the user is already here, don't add.
 	users := z.ZonePubSubJSON.UserIDs
@@ -193,6 +191,7 @@ func (z *Zone) AddUser(user types.User) {
 func (z *Zone) RemoveUser(id string) {
 	z.Lock()
 	defer z.Unlock()
+	z.ZonePubSubJSON.LastModified = time.Now()
 
 	users := z.ZonePubSubJSON.UserIDs
 	for i := range users {
@@ -235,7 +234,7 @@ func (z *Zone) BroadcastJSON() interface{} {
 }
 
 func (z *Zone) PubSubJSON() types.PubSubJSON {
-	return z.ZonePubSubJSON
+	return &z.ZonePubSubJSON
 }
 
 func (z *Zone) Update(js types.PubSubJSON) error {
@@ -243,26 +242,85 @@ func (z *Zone) Update(js types.PubSubJSON) error {
 	if !ok {
 		return errors.New("Unable to serialize to ZonePubSubJSON.")
 	}
+	z.logger.Info("Update", "IsOpen", json.IsOpen)
+
+	if json.LastModified.Before(z.ZonePubSubJSON.LastModified) {
+		return errors.New("Update failed; JSON data is out of date.")
+	}
 
 	z.Lock()
 	defer z.Unlock()
-	z.ZonePubSubJSON = json
+	z.ZonePubSubJSON = *json
 	z.World().Zones().UpdateCache(z)
 	return nil
 }
 
 func (z *Zone) Join(user types.User) error {
-	if user.Zone() != nil && user.Zone() != z {
-		if err := user.Zone().Leave(user); err != nil {
-			return err
-		}
+	z.logger.Info("Join", "user", user.ID())
+
+	if !z.IsOpen() {
+		z.logger.Error("Zone is not open", "user", user.ID())
+		return errors.New("Zone is not open")
+	}
+
+	if user.ZoneID() != "" {
+		z.logger.Error("User already belongs to a zone.", "user", user.ID(), "inZone", user.ZoneID())
+		return errors.New("User already belongs to a zone.")
+	}
+
+	// Add user
+	z.AddUser(user)
+	user.SetZoneID(z.ID())
+	if err := z.world.Users().Save(user); err != nil {
+		return err
+	}
+	if err := z.world.Zones().Save(z); err != nil {
+		return err
 	}
 
 	data, err := pubsub.Join(z, user)
 	if err != nil {
 		return err
 	}
+
 	return z.world.Publish(data)
+}
+
+func (z *Zone) shouldMerge() (bool, error) {
+	// a zone is eligable for merge if it and it's sibling are under capacity.
+	minCount := z.World().MinUsers()
+	if z.Count() >= minCount {
+		return false, nil
+	}
+
+	parentID := z.ParentZoneID()
+
+	if parentID == "" {
+		return false, nil
+	}
+
+	parent, err := z.World().Zones().Zone(parentID)
+	if err != nil {
+		z.logger.Error("Error retrieving parent zone", "parent", parentID)
+		return false, err
+	}
+
+	siblingID := parent.LeftZoneID()
+	if parent.LeftZoneID() == z.ID() {
+		siblingID = parent.RightZoneID()
+	}
+
+	sibling, err := z.World().Zones().Zone(siblingID)
+	if err != nil {
+		z.logger.Error("Error retrieving sibling zone", "sibling", siblingID)
+		return false, err
+	}
+
+	if sibling.Count() >= minCount {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (z *Zone) Leave(user types.User) error {
@@ -270,7 +328,30 @@ func (z *Zone) Leave(user types.User) error {
 	if err != nil {
 		return err
 	}
-	return z.world.Publish(data)
+
+	if err := z.world.Publish(data); err != nil {
+		return err
+	}
+
+	shouldMerge, err := z.shouldMerge()
+	if err != nil {
+		z.logger.Error("Error while determining if zone should merge.", "error", err)
+		return err
+	}
+
+	if shouldMerge {
+		parent, err := z.World().Zones().Zone(z.ParentZoneID())
+		if err != nil {
+			z.logger.Error("Error retrieving parent zone", "parent", z.ParentZoneID())
+			return err
+		}
+
+		if err := parent.Merge(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (z *Zone) Message(user types.User, message string) error {
@@ -282,9 +363,8 @@ func (z *Zone) Message(user types.User, message string) error {
 }
 
 func (z *Zone) Split() (map[string]types.Zone, error) {
-	// Close the zone and save
+	z.logger.Info("Split")
 	z.SetIsOpen(false)
-	z.World().Zones().Save(z)
 
 	// Update the user and zone objects
 	users := make(map[string]types.User)
@@ -302,7 +382,9 @@ func (z *Zone) Split() (map[string]types.Zone, error) {
 			z.logger.Crit("Unable to find an open zone", "currentZone", z.ID(), "user", user.ID())
 			return nil, err
 		}
-		user.SetZone(newZone)
+
+		z.logger.Info("Moving user to zone", "user", user.ID(), "newZone", newZone.ID())
+		user.SetZoneID(newZone.ID())
 		newZone.AddUser(user)
 
 		users[userID] = user
@@ -329,58 +411,64 @@ func (z *Zone) Split() (map[string]types.Zone, error) {
 		z.logger.Crit("Error saving users and/or zones", "error", err.Error())
 		return nil, err
 	}
+
+	// Publish split
+	split, _ := pubsub.Split(z, zones)
+	if err := z.world.Publish(split); err != nil {
+		z.logger.Error("Error broadcasting zone split", "error", err.Error())
+		return nil, err
+	}
+
 	return zones, nil
 }
 
 func (z *Zone) Merge() error {
-	leftZone, err := z.world.GetOrCreateZone(z.LeftZoneID())
+	z.logger.Info("Merge")
 
+	left, err := z.World().Zones().Zone(z.leftZoneID)
 	if err != nil {
-		z.logger.Error("Error retrieving left zone", "leftZone", z.LeftZoneID(), "error", err.Error())
+		z.logger.Error("Error retrieving left zone", "left", z.leftZoneID)
 		return err
 	}
 
-	if leftZone == nil {
-		err := errors.New("Left zone (" + z.LeftZoneID() + ") is nil")
-		z.logger.Error(err.Error())
-		return err
-	}
-
-	rightZone, err := z.world.GetOrCreateZone(z.RightZoneID())
-
+	right, err := z.World().Zones().Zone(z.rightZoneID)
 	if err != nil {
-		z.logger.Error("Error retrieving right zone", "rightZone", z.RightZoneID(), "error", err.Error())
-	}
-
-	if rightZone == nil {
-		err := errors.New("Right zone (" + z.RightZoneID() + ")")
-		z.logger.Error(err.Error())
+		z.logger.Error("Error retrieving right zone", "right", z.rightZoneID)
 		return err
 	}
 
-	users := make([]*types.UserPubSubJSON, 0, z.Count()+leftZone.Count()+rightZone.Count())
+	if left == nil && right == nil {
+		return nil
+	}
 
-	for _, userID := range leftZone.UserIDs() {
-		user, err := z.world.Users().User(userID)
+	if err := left.Merge(); err != nil {
+		return err
+	}
+
+	if err := right.Merge(); err != nil {
+		return err
+	}
+
+	users := make([]*types.UserPubSubJSON, 0, left.Count()+right.Count())
+
+	for _, id := range append(left.UserIDs(), right.UserIDs()...) {
+
+		user, err := z.World().Users().User(id)
 		if err != nil {
-			z.logger.Error("Error retrieving user", "user", userID, "error", err.Error())
+			z.logger.Error("Error retrieving user", "user", id)
 			return err
 		}
-		leftZone.RemoveUser(userID)
-		z.AddUser(user)
-		user.SetZone(z)
-		users = append(users, user.PubSubJSON().(*types.UserPubSubJSON))
-	}
 
-	for _, userID := range rightZone.UserIDs() {
-		user, err := z.world.Users().User(userID)
+		z.logger.Info("Merging user to zone", "user", id, "zone", user.ZoneID())
+
+		userZone, err := z.world.Zones().Zone(user.ZoneID())
 		if err != nil {
-			z.logger.Error("Error retrieving user", "user", userID, "error", err.Error())
 			return err
 		}
-		rightZone.RemoveUser(userID)
+
+		userZone.RemoveUser(id)
 		z.AddUser(user)
-		user.SetZone(z)
+		user.SetZoneID(z.ID())
 		users = append(users, user.PubSubJSON().(*types.UserPubSubJSON))
 	}
 
@@ -388,8 +476,18 @@ func (z *Zone) Merge() error {
 
 	zones := make([]*types.ZonePubSubJSON, 3)
 	zones[0] = z.PubSubJSON().(*types.ZonePubSubJSON)
-	zones[1] = leftZone.PubSubJSON().(*types.ZonePubSubJSON)
-	zones[2] = rightZone.PubSubJSON().(*types.ZonePubSubJSON)
+	zones[1] = left.PubSubJSON().(*types.ZonePubSubJSON)
+	zones[2] = right.PubSubJSON().(*types.ZonePubSubJSON)
 
-	return z.world.DB().SaveUsersAndZones(users, zones, z.world.ID())
+	if err := z.World().DB().SaveUsersAndZones(users, zones, z.World().ID()); err != nil {
+		z.logger.Error("Error saving users and zones", "error", err.Error())
+		return err
+	}
+
+	merge, _ := pubsub.Merge(z, left, right)
+	if err := z.world.Publish(merge); err != nil {
+		z.logger.Error("Error broadcasting zone merge", "error", err.Error())
+		return err
+	}
+	return nil
 }

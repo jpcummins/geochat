@@ -2,6 +2,7 @@ package mocks
 
 import "github.com/jpcummins/geochat/app/types"
 import "github.com/stretchr/testify/mock"
+import "time"
 
 type Zone struct {
 	mock.Mock
@@ -77,13 +78,6 @@ func (m *Zone) RightZoneID() string {
 
 	return r0
 }
-func (m *Zone) MaxUsers() int {
-	ret := m.Called()
-
-	r0 := ret.Get(0).(int)
-
-	return r0
-}
 func (m *Zone) Count() int {
 	ret := m.Called()
 
@@ -99,6 +93,12 @@ func (m *Zone) IsOpen() bool {
 	return r0
 }
 func (m *Zone) SetIsOpen(_a0 bool) {
+	m.Called(_a0)
+}
+func (m *Zone) SetLastSplit(_a0 time.Time) {
+	m.Called(_a0)
+}
+func (m *Zone) SetLastMerge(_a0 time.Time) {
 	m.Called(_a0)
 }
 func (m *Zone) AddUser(_a0 types.User) {

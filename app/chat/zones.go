@@ -51,7 +51,7 @@ func (z *Zones) FromDB(id string) (types.Zone, error) {
 
 	zone := z.FromCache(id)
 	if zone == nil {
-		if zone, err = newZone(id, z.world, z.world.MaxUsers(), z.logger); err != nil {
+		if zone, err = newZone(id, z.world, z.logger); err != nil {
 			z.logger.Error("Error creating zone", "zone", id, "error", err.Error())
 			return nil, err
 		}
@@ -69,11 +69,9 @@ func (z *Zones) Save(zone types.Zone) error {
 	if !ok {
 		return errors.New("Unable to serialize ZonePubSubJSON")
 	}
-
 	if err := z.db.SaveZone(json, z.world.ID()); err != nil {
 		return err
 	}
-
 	z.UpdateCache(zone)
 	return nil
 }
