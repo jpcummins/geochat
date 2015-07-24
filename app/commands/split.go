@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"github.com/jpcummins/geochat/app/broadcast"
 	"github.com/jpcummins/geochat/app/types"
 )
 
@@ -22,11 +21,6 @@ func (s *split) Execute(args string, user types.User, world types.World) error {
 
 	announcement := fmt.Sprintf("Zone '%s' split. New zones: ", zoneID)
 	for _, newZone := range zones {
-		split := broadcast.Split(zone, newZone)
-		if err := newZone.Broadcast(split); err != nil {
-			return err
-		}
-
 		if newZone.ID() != zone.ID() {
 			announcement = announcement + fmt.Sprintf("'%s' (%d users) ", newZone.ID(), newZone.Count())
 		}

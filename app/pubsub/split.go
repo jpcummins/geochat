@@ -40,7 +40,7 @@ func (m *split) OnReceive(e types.PubSubEvent) error {
 	parent.Update(m.Parent)
 
 	for _, id := range m.Zones {
-		zone, err := e.World().Zones().FromDB(id)
+		zone, err := e.World().Zones().Zone(id)
 		if err != nil {
 			return err
 		}
