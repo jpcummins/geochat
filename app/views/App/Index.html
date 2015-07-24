@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" href="/public/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/public/css/main.css">
     <script src="/public/js/jquery-2.1.3.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/public/js/bootstrap.min.js" type="text/javascript" charset="utf-8"></script>
   </head>
   <body>
 
@@ -21,6 +22,18 @@
           <label for="exampleInputEmail1">Name</label>
           <input type="name" class="form-control" id="name" placeholder="Enter your name" value="{{ if .user }}{{.user.Name}}{{end}}">
         </div>
+        <div class="dropdown pull-left" id="location-dd">
+          <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            Current location
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+            <li><a href="#">Current location</a></li>
+            <li><a href="#">Chicago</a></li>
+            <li><a href="#">Rome</a></li>
+            <li><a href="#">Hong Kong</a></li>
+          </ul>
+        </div>
         <span class="gc-error"></span>
         <span class="gc-info"></span>
         <input type="button" class="btn btn-success pull-right" id="enter" value="Enter ➞">
@@ -31,6 +44,10 @@
   </div>
 
   <script type="text/javascript">
+
+  $("#location-dd li").on("click", function (e) {
+    $("#location-dd button").html($(this).text() + ' <span class="caret"></span>')
+  })
 
   var name = $("#name").val()
 
@@ -84,7 +101,41 @@
   var findLocation = function () {
     $(".gc-info").text("Determining location…")
     $("#enter").addClass("disabled");
-    navigator.geolocation.getCurrentPosition(handlePosition, handlePositionError)
+
+    var location = $("#location-dd button").text().trim()
+
+    switch (location) {
+      case "Current location":
+        navigator.geolocation.getCurrentPosition(handlePosition, handlePositionError)
+        break;
+      case "Chicago":
+        handlePosition({
+          coords: {
+            latitude: 41.8369,
+            longitude: -87.6947
+          }
+        });
+        break;
+      case "Rome":
+        handlePosition({
+          coords: {
+            latitude: 41.9000,
+            longitude: 12.5000
+          }
+        });
+        break;
+      case "Hong Kong":
+        handlePosition({
+          coords: {
+            latitude: 22.2783,
+            longitude: 114.1747
+          }
+        });
+        break;
+    }
+
+    return
+
   }
 
   </script>

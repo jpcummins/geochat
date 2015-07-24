@@ -7,6 +7,7 @@ module:testrunner
 GET     /                                       App.Index
 
 POST    /auth                                   AuthController.Login
+GET     /logout                                 AuthController.Logout
 
 GET     /chat/                                  ZoneController.Zone
 POST    /chat/message                           ZoneController.Message

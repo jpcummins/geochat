@@ -38,6 +38,7 @@ var ChatHeader = React.createClass({
             Location: {zoneCursor.get().id}
             <span className="loc-name"></span>
           </h4>
+          <h5 className="pull-right"><a href="/logout">logout</a></h5>
         </div>
       </div>
     )

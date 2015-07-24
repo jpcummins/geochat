@@ -102,7 +102,8 @@ var ChatHeader = React.createClass({displayName: "ChatHeader",
           React.createElement("h4", null, 
             "Location: ", zoneCursor.get().id, 
             React.createElement("span", {className: "loc-name"})
-          )
+          ), 
+          React.createElement("h5", {className: "pull-right"}, React.createElement("a", {href: "/logout"}, "logout"))
         )
       )
     )

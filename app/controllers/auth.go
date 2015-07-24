@@ -36,3 +36,8 @@ func (ac AuthController) Login(name string, lat float64, long float64) revel.Res
 
 	return ac.RenderJson(user)
 }
+
+func (ac AuthController) Logout() revel.Result {
+	delete(ac.Session, userIDSessionKey)
+	return ac.Redirect("/")
+}
