@@ -208,7 +208,7 @@ var ChatWindow = React.createClass({displayName: "ChatWindow",
     var that = this;
     var newEvents = e.data.data.filter(function(i) {return e.data.previousData.indexOf(i) < 0;});
 
-    newEvents.forEach(function (event) {
+    newEvents.forEach(function (event, index) {
       event.key = event.id
       element = React.createElement(eventClasses[event.type], event)
       that.events = that.events.concat(element);
@@ -250,7 +250,8 @@ var React = require('react');
 var User = React.createClass({displayName: "User",
   render: function () {
     return (
-	    React.createElement("div", {className: "online"}, 
+	    React.createElement("div", {className: "user"}, 
+        React.createElement("img", {src: this.props.user.fb_picture_url}), 
         this.props.user.name
 	    )
     )
@@ -333,8 +334,10 @@ var Join = React.createClass({displayName: "Join",
   render: function () {
     return (
       React.createElement("div", {className: "row gc-message"}, 
-        React.createElement("div", {className: "col-md-offset-1 col-md-10"}, 
-          this.props.data.user.name, " joined"
+        React.createElement("div", {className: "col-md-1 gc-name"}
+        ), 
+        React.createElement("div", {className: "col-md-10"}, 
+          this.props.data.user.first_name, " joined"
         )
       )
     )
@@ -354,8 +357,11 @@ var Leave = React.createClass({displayName: "Leave",
   render: function () {
     return (
       React.createElement("div", {className: "row gc-message"}, 
-        React.createElement("div", {className: "col-md-offset-1 col-md-10"}, 
-          this.props.data.user.name, " left"
+        React.createElement("div", {className: "col-md-1 gc-name"}, 
+          this.props.data.user.first_name
+        ), 
+          React.createElement("div", {className: "col-md-10"}, 
+          this.props.data.user.first_name, " left"
         )
       )
     )
@@ -397,7 +403,7 @@ var Message = React.createClass({displayName: "Message",
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-1 gc-name"}, 
-          this.props.data.user.name
+          this.props.data.user.first_name
         ), 
         React.createElement("div", {className: "col-md-10"}, 
           this.props.data.text

@@ -23,7 +23,7 @@ type World interface {
 	Join(User) (Zone, error)
 
 	Users() Users
-	NewUser(id string, name string, lat float64, lng float64) (User, error)
+	NewUser() (User, error)
 
 	Publish(PubSubEventData) error
 }

@@ -47,7 +47,7 @@ func (u *Users) FromDB(id string) (types.User, error) {
 
 	user := u.FromCache(id)
 	if user == nil {
-		user = newUser(id, json.Name, newLatLng(json.Location.Lat, json.Location.Lng), u.world)
+		user = newUser(id, u.world)
 	}
 	if err := user.Update(json); err != nil {
 		return nil, err

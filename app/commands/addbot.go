@@ -32,7 +32,11 @@ func (b *addBot) Execute(args string, user types.User, world types.World) error 
 		name := botNames[rand.Intn(len(botNames))]
 		lat := zone.SouthWest().Lat() + (rand.Float64() * (zone.NorthEast().Lat() - zone.SouthWest().Lat()))
 		lng := zone.SouthWest().Lng() + (rand.Float64() * (zone.NorthEast().Lng() - zone.SouthWest().Lng()))
-		bot, err := world.NewUser(name+strconv.Itoa(i), name, lat, lng)
+		bot, err := world.NewUser()
+		bot.SetFirstName(name)
+		bot.SetLastName("Bot")
+		bot.SetName(name + " Bot")
+		bot.SetLocation(lat, lng)
 		if err != nil {
 			return err
 		}

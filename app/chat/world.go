@@ -194,8 +194,8 @@ func (w *World) Join(user types.User) (types.Zone, error) {
 	}
 }
 
-func (w *World) NewUser(id string, name string, lat float64, lng float64) (types.User, error) {
-	user := newUser(id, name, newLatLng(lat, lng), w)
+func (w *World) NewUser() (types.User, error) {
+	user := newUser(generateEventID(), w)
 	if err := w.Users().Save(user); err != nil {
 		return nil, err
 	}

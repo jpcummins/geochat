@@ -18,13 +18,11 @@ type User struct {
 	connections []*Connection
 }
 
-func newUser(id string, name string, location types.LatLng, world types.World) *User {
+func newUser(id string, world types.World) *User {
 	u := &User{
 		UserPubSubJSON: &types.UserPubSubJSON{
-			ID:   id,
-			Name: name,
+			ID: id,
 		},
-		location:    location,
 		world:       world,
 		connections: make([]*Connection, 0),
 	}
@@ -39,8 +37,48 @@ func (u *User) Name() string {
 	return u.UserPubSubJSON.Name
 }
 
+func (u *User) SetName(name string) {
+	u.UserPubSubJSON.Name = name
+}
+
+func (u *User) FirstName() string {
+	return u.UserPubSubJSON.FirstName
+}
+
+func (u *User) SetFirstName(firstName string) {
+	u.UserPubSubJSON.FirstName = firstName
+}
+
+func (u *User) LastName() string {
+	return u.UserPubSubJSON.LastName
+}
+
+func (u *User) SetLastName(lastName string) {
+	u.UserPubSubJSON.LastName = lastName
+}
+
+func (u *User) Timezone() float64 {
+	return u.UserPubSubJSON.Timezone
+}
+
+func (u *User) SetTimezone(timezone float64) {
+	u.UserPubSubJSON.Timezone = timezone
+}
+
+func (u *User) Email() string {
+	return u.UserPubSubJSON.Email
+}
+
+func (u *User) SetEmail(email string) {
+	u.UserPubSubJSON.Email = email
+}
+
 func (u *User) Location() types.LatLng {
 	return u.location
+}
+
+func (u *User) SetLocation(lat float64, lng float64) {
+	u.location = newLatLng(lat, lng)
 }
 
 func (u *User) ZoneID() string {
@@ -48,9 +86,31 @@ func (u *User) ZoneID() string {
 }
 
 func (u *User) SetZoneID(id string) {
-	u.Lock()
-	defer u.Unlock()
 	u.UserPubSubJSON.ZoneID = id
+}
+
+func (u *User) FBID() string {
+	return u.UserPubSubJSON.FBID
+}
+
+func (u *User) SetFBID(id string) {
+	u.UserPubSubJSON.FBID = id
+}
+
+func (u *User) FBAccessToken() string {
+	return u.UserPubSubJSON.FBAccessToken
+}
+
+func (u *User) SetFBAccessToken(accessToken string) {
+	u.UserPubSubJSON.FBAccessToken = accessToken
+}
+
+func (u *User) FBPictureURL() string {
+	return u.UserPubSubJSON.FBPictureURL
+}
+
+func (u *User) SetFBPictureURL(url string) {
+	u.UserPubSubJSON.FBPictureURL = url
 }
 
 func (u *User) Broadcast(data types.BroadcastEventData) {
@@ -94,14 +154,21 @@ func (u *User) Disconnect(c types.Connection) {
 
 func (u *User) BroadcastJSON() interface{} {
 	return &types.UserBroadcastJSON{
-		ID:       u.ID(),
-		Name:     u.Name(),
-		Location: u.Location().BroadcastJSON().(*types.LatLngJSON),
+		ID:           u.ID(),
+		Name:         u.Name(),
+		FirstName:    u.FirstName(),
+		LastName:     u.LastName(),
+		Location:     u.Location().BroadcastJSON().(*types.LatLngJSON),
+		FBPictureURL: u.FBPictureURL(),
 	}
 }
 
 func (u *User) PubSubJSON() types.PubSubJSON {
-	u.UserPubSubJSON.Location = u.location.PubSubJSON().(*types.LatLngJSON)
+
+	if u.location != nil {
+		u.UserPubSubJSON.Location = u.location.PubSubJSON().(*types.LatLngJSON)
+	}
+
 	return u.UserPubSubJSON
 }
 

@@ -28,7 +28,7 @@ var ChatWindow = React.createClass({
     var that = this;
     var newEvents = e.data.data.filter(function(i) {return e.data.previousData.indexOf(i) < 0;});
 
-    newEvents.forEach(function (event) {
+    newEvents.forEach(function (event, index) {
       event.key = event.id
       element = React.createElement(eventClasses[event.type], event)
       that.events = that.events.concat(element);
