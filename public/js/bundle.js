@@ -251,7 +251,7 @@ var User = React.createClass({displayName: "User",
   render: function () {
     return (
 	    React.createElement("div", {className: "user"}, 
-        React.createElement("img", {src: this.props.user.fbPictureURL}), 
+        React.createElement("img", {src: this.props.user.fbPictureUrl}), 
         this.props.user.name
 	    )
     )
