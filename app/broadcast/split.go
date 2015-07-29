@@ -7,7 +7,7 @@ import (
 const splitType types.BroadcastEventType = "split"
 
 type split struct {
-	PreviousZone interface{} `json:"previous_zone"`
+	PreviousZone interface{} `json:"previousZone"`
 	Zone         interface{} `json:"zone"`
 }
 

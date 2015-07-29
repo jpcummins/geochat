@@ -151,3 +151,14 @@ h4 .loc-name {
 .announcement {
   background-color: #FFFFE0;
 }
+
+.gc-user-container .user {
+  margin: 2px 0
+}
+
+.gc-user-container .user img {
+    width: 32px;
+    height: 32px;
+    border-radius: 5px;
+    margin-right: 6px;
+}

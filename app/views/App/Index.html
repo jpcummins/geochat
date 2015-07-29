@@ -19,8 +19,13 @@
 
 
         <div class="form-group">
-          <label for="exampleInputEmail1">Name</label>
-          <input type="name" class="form-control" id="name" placeholder="Enter your name" value="{{ if .user }}{{.user.Name}}{{end}}">
+
+          <fb:login-button scope="public_profile,email" onlogin="checkLoginState();">
+          </fb:login-button>
+
+          <div id="status">
+          </div>
+
         </div>
         <div class="dropdown pull-left" id="location-dd">
           <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
@@ -49,56 +54,16 @@
     $("#location-dd button").html($(this).text() + ' <span class="caret"></span>')
   })
 
-  var name = $("#name").val()
-
-  if ($("#name").val() == "") {
-    $("#name").addClass("disabled")
-  }
-
   $('#enter').click(function (e) {
-    e.preventDefault();
-    findLocation();
+    checkLoginState();
   });
-
-  $('#name').keyup(function (e) {
-    name = $("#name").val()
-    if (e.charCode == 13 || e.keyCode == 13) {
-      e.preventDefault();
-      return findLocation();
-    }
-    if (name != "") {
-      $("#enter").removeClass("disabled")
-    }
-  });
-
-  var handlePosition = function (position) {
-    $(".gc-info").text("Logging in…")
-
-    $.ajax({
-      url: '/auth',
-      method: 'POST',
-      data: {
-        name: name,
-        lat: position.coords.latitude,
-        long: position.coords.longitude
-      }
-    })
-    .done(function (response) {
-      $(".gc-info").text("Loading room…")
-      window.location.replace("/chat/");
-    })
-    .fail(function () {
-      $(".gc-info").text("")
-      $(".gc-error").text("Login failed. Try again later.")
-    });
-  }
 
   var handlePositionError = function (error) {
     $("#enter").addClass("disabled");
     $(".gc-error").text("Please enable location detection.")
   }
 
-  var findLocation = function () {
+  var findLocation = function (fbid, authToken) {
     $(".gc-info").text("Determining location…")
     $("#enter").addClass("disabled");
 
@@ -106,6 +71,29 @@
 
     switch (location) {
       case "Current location":
+        var handlePosition = function (position) {
+          $(".gc-info").text("Logging in…")
+
+          $.ajax({
+            url: '/auth',
+            method: 'POST',
+            data: {
+              name: name,
+              lat: position.coords.latitude,
+              long: position.coords.longitude,
+              authToken: authToken,
+              fbID: fbid,
+            }
+          })
+          .done(function (response) {
+            $(".gc-info").text("Loading room…")
+            window.location.replace("/chat/");
+          })
+          .fail(function () {
+            $(".gc-info").text("")
+            $(".gc-error").text("Login failed. Try again later.")
+          });
+        }
         navigator.geolocation.getCurrentPosition(handlePosition, handlePositionError)
         break;
       case "Chicago":
@@ -137,6 +125,64 @@
     return
 
   }
+
+///
+
+// This is called with the results from from FB.getLoginStatus().
+ function statusChangeCallback(response) {
+   console.log('statusChangeCallback');
+   console.log(response);
+   // The response object is returned with a status field that lets the
+   // app know the current login status of the person.
+   // Full docs on the response object can be found in the documentation
+   // for FB.getLoginStatus().
+   if (response.status === 'connected') {
+     findLocation(response.authResponse.userID, response.authResponse.accessToken);
+   } else if (response.status === 'not_authorized') {
+     document.getElementById('status').innerHTML = "Facebook authentication is required."
+     $("#enter").prop('disabled', true);
+   } else {
+
+   }
+ }
+
+ // This function is called when someone finishes with the Login
+ // Button.  See the onlogin handler attached to it in the sample
+ // code below.
+ function checkLoginState() {
+   FB.login(function(response) {
+     statusChangeCallback(response);
+   });
+ }
+
+ window.fbAsyncInit = function() {
+ FB.init({
+   appId      : '344819539044865',
+   cookie     : true,  // enable cookies to allow the server to access
+                       // the session
+   xfbml      : false,  // parse social plugins on this page
+   version    : 'v2.2' // use version 2.2
+ });
+
+ };
+
+ // Load the SDK asynchronously
+ (function(d, s, id) {
+   var js, fjs = d.getElementsByTagName(s)[0];
+   if (d.getElementById(id)) return;
+   js = d.createElement(s); js.id = id;
+   js.src = "//connect.facebook.net/en_US/sdk.js";
+   fjs.parentNode.insertBefore(js, fjs);
+ }(document, 'script', 'facebook-jssdk'));
+
+ // Here we run a very simple test of the Graph API after login is
+ // successful.  See statusChangeCallback() for when this call is made.
+ function testAPI() {
+   console.log('Welcome!  Fetching your information.... ');
+   FB.api('/me', function(response) {
+     document.getElementById('status').innerHTML = 'Logged in as ' + response.name;
+   });
+ }
 
   </script>
 
