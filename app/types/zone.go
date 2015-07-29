@@ -35,9 +35,9 @@ type Zone interface {
 
 type ZonePubSubJSON struct {
 	ID           string    `json:"id"`
-	UserIDs      []string  `json:"user_ids"`
-	IsOpen       bool      `json:"is_open"`
-	LastModified time.Time `json:"last_modified"`
+	UserIDs      []string  `json:"userIDs"`
+	IsOpen       bool      `json:"isOpen"`
+	LastModified time.Time `json:"lastModified"`
 }
 
 func (psZone *ZonePubSubJSON) Type() PubSubDataType {

@@ -46,15 +46,15 @@ type User interface {
 type UserPubSubJSON struct {
 	ID            string      `json:"id"`
 	Name          string      `json:"name"`
-	FirstName     string      `json:"first_name"`
-	LastName      string      `json:"last_name"`
+	FirstName     string      `json:"firstName"`
+	LastName      string      `json:"lastName"`
 	Timezone      float64     `json:"timezone"`
 	Email         string      `json:"email"`
 	Location      *LatLngJSON `json:"location"`
-	ZoneID        string      `json:"zone_id"`
-	FBID          string      `json:"fb_id"`
-	FBAccessToken string      `json:"fb_access_token"`
-	FBPictureURL  string      `json:"fb_picture_url"`
+	ZoneID        string      `json:"zoneId"`
+	FBID          string      `json:"fbID"`
+	FBAccessToken string      `json:"fbAccessToken"`
+	FBPictureURL  string      `json:"fbPictureUrl"`
 }
 
 func (psUser *UserPubSubJSON) Type() PubSubDataType {
@@ -64,8 +64,8 @@ func (psUser *UserPubSubJSON) Type() PubSubDataType {
 type UserBroadcastJSON struct {
 	ID           string      `json:"id"`
 	Name         string      `json:"name"`
-	FirstName    string      `json:"first_name"`
-	LastName     string      `json:"last_name"`
+	FirstName    string      `json:"firstName"`
+	LastName     string      `json:"lastName"`
 	Location     *LatLngJSON `json:"location"`
-	FBPictureURL string      `json:"fb_picture_url"`
+	FBPictureURL string      `json:"fbPictureUrl"`
 }

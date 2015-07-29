@@ -4,7 +4,7 @@ var User = React.createClass({
   render: function () {
     return (
 	    <div className="user" >
-        <img src={this.props.user.fb_picture_url} />
+        <img src={this.props.user.fbPictureURL} />
         {this.props.user.name}
 	    </div>
     )

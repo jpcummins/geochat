@@ -7,7 +7,7 @@ import (
 const messageType types.BroadcastEventType = "message"
 
 type message struct {
-	UserID string `json:"user_id"`
+	UserID string `json:"userID"`
 	Text   string `json:"text"`
 }
 

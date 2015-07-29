@@ -251,7 +251,7 @@ var User = React.createClass({displayName: "User",
   render: function () {
     return (
 	    React.createElement("div", {className: "user"}, 
-        React.createElement("img", {src: this.props.user.fb_picture_url}), 
+        React.createElement("img", {src: this.props.user.fbPictureURL}), 
         this.props.user.name
 	    )
     )
@@ -337,7 +337,7 @@ var Join = React.createClass({displayName: "Join",
         React.createElement("div", {className: "col-md-1 gc-name"}
         ), 
         React.createElement("div", {className: "col-md-10"}, 
-          this.props.data.user.first_name, " joined"
+          this.props.data.user.firstName, " joined"
         )
       )
     )
@@ -357,11 +357,11 @@ var Leave = React.createClass({displayName: "Leave",
   render: function () {
     return (
       React.createElement("div", {className: "row gc-message"}, 
-        React.createElement("div", {className: "col-md-1 gc-name"}, 
-          this.props.data.user.first_name
+        React.createElement("div", {className: "col-md-1 gc-name"}
+
         ), 
           React.createElement("div", {className: "col-md-10"}, 
-          this.props.data.user.first_name, " left"
+          this.props.data.user.firstName, " left"
         )
       )
     )
@@ -403,7 +403,7 @@ var Message = React.createClass({displayName: "Message",
     return (
       React.createElement("div", {className: "row gc-message"}, 
         React.createElement("div", {className: "col-md-1 gc-name"}, 
-          this.props.data.user.first_name
+          this.props.data.user.firstName
         ), 
         React.createElement("div", {className: "col-md-10"}, 
           this.props.data.text
@@ -427,7 +427,7 @@ var Split = React.createClass({displayName: "Split",
     return (
       React.createElement("div", {className: "row gc-message announcement"}, 
         React.createElement("div", {className: "col-md-offset-1 col-md-10"}, 
-          "'", this.props.data.previous_zone.id, "' was split. New zone: '", this.props.data.zone.id, "' (", Object.keys(this.props.data.zone.users).length, " users)"
+          "'", this.props.data.previousZone.id, "' was split. New zone: '", this.props.data.zone.id, "' (", Object.keys(this.props.data.zone.users).length, " users)"
         )
       )
     )
@@ -484,7 +484,7 @@ var ZonePage = React.createClass({displayName: "ZonePage",
   handleChatEvent: function (chatEvent) {
     switch (chatEvent.type) {
       case "message":
-        chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
+        chatEvent.data.user = usersCursor.get(chatEvent.data.userID)
         eventsCursor.push(chatEvent)
         break;
       case "join":
@@ -493,7 +493,7 @@ var ZonePage = React.createClass({displayName: "ZonePage",
         zoneCursor.set(chatEvent.data.zone)
         break;
       case "leave":
-        chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
+        chatEvent.data.user = usersCursor.get(chatEvent.data.userID)
         eventsCursor.push(chatEvent)
         usersCursor.unset(chatEvent.data.user.id)
         break;

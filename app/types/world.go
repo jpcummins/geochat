@@ -30,9 +30,9 @@ type World interface {
 
 type WorldPubSubJSON struct {
 	ID         string        `json:"id"`
-	MaxUsers   int           `json:"max_users"`
-	MinUsers   int           `json:"min_users"`
-	SplitDelay time.Duration `json:"split_delay"`
+	MaxUsers   int           `json:"maxUsers"`
+	MinUsers   int           `json:"minUsers"`
+	SplitDelay time.Duration `json:"splitDelay"`
 }
 
 func (psWorld *WorldPubSubJSON) Type() PubSubDataType {

@@ -7,7 +7,7 @@ import (
 const leaveType types.BroadcastEventType = "leave"
 
 type leave struct {
-	UserID interface{} `json:"user_id"`
+	UserID interface{} `json:"userID"`
 }
 
 func Leave(user types.User) *leave {

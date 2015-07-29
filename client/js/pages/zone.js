@@ -23,7 +23,7 @@ var ZonePage = React.createClass({
   handleChatEvent: function (chatEvent) {
     switch (chatEvent.type) {
       case "message":
-        chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
+        chatEvent.data.user = usersCursor.get(chatEvent.data.userID)
         eventsCursor.push(chatEvent)
         break;
       case "join":
@@ -32,7 +32,7 @@ var ZonePage = React.createClass({
         zoneCursor.set(chatEvent.data.zone)
         break;
       case "leave":
-        chatEvent.data.user = usersCursor.get(chatEvent.data.user_id)
+        chatEvent.data.user = usersCursor.get(chatEvent.data.userID)
         eventsCursor.push(chatEvent)
         usersCursor.unset(chatEvent.data.user.id)
         break;

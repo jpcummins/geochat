@@ -10,7 +10,7 @@ var Join = React.createClass({
         <div className="col-md-1 gc-name">
         </div>
         <div className="col-md-10">
-          {this.props.data.user.first_name} joined
+          {this.props.data.user.firstName} joined
         </div>
       </div>
     )
