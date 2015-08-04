@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/jpcummins/geochat/app/chat"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/revel/revel"
@@ -21,6 +22,8 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 
 	var user types.User
 	var err error
+
+	fmt.Printf("fbID: %s\nlat: %f\nlong: %f\nauthToken: %s\n", fbID, lat, long, authToken)
 
 	if fbID == "" || authToken == "" {
 		return ac.RenderError(errors.New("Invalid Facebook credentials."))
@@ -80,7 +83,7 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 	user.SetFBPictureURL(fbPictureURL)
 	user.SetLocation(lat, long)
 
-	return ac.RenderJson(user)
+	return ac.RenderJson(user.BroadcastJSON())
 }
 
 func (ac AuthController) Logout() revel.Result {

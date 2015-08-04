@@ -181,6 +181,10 @@ func (u *User) Update(js types.PubSubJSON) error {
 	u.Lock()
 	defer u.Unlock()
 	u.UserPubSubJSON = json
-	u.location = newLatLng(json.Location.Lat, json.Location.Lng)
+
+	if json.Location != nil {
+		u.location = newLatLng(json.Location.Lat, json.Location.Lng)
+	}
+
 	return nil
 }

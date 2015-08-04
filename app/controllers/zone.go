@@ -22,9 +22,11 @@ func init() {
 }
 
 func (zc *ZoneController) setSession() revel.Result {
+	println("A")
 	userID, ok := zc.Session[userIDSessionKey]
 
 	if !ok {
+		println("B")
 		zc.Redirect("/")
 	}
 
