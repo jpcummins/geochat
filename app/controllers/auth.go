@@ -131,7 +131,7 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 	user.SetLocation(lat, long)
 	chat.App.Users().Save(user)
 
-	return ac.RenderJson(user.BroadcastJSON())
+	return ac.RenderJson(user.PubSubJSON())
 }
 
 func (ac AuthController) Logout() revel.Result {
