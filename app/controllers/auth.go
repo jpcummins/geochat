@@ -1,14 +1,18 @@
 package controllers
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/jpcummins/geochat/app/chat"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/revel/revel"
+	"io/ioutil"
 	"net/http"
-	"net/url"
+	"strconv"
 )
 
 type AuthController struct {
@@ -23,29 +27,69 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 	var user types.User
 	var err error
 
-	fmt.Printf("fbID: %s\nlat: %f\nlong: %f\nauthToken: %s\n", fbID, lat, long, authToken)
-
 	if fbID == "" || authToken == "" {
-		return ac.RenderError(errors.New("Invalid Facebook credentials."))
+		err := errors.New("Invalid Facebook credentials.")
+		revel.ERROR.Printf("Error: %s\n", err.Error())
+		return ac.RenderError(err)
 	}
 
 	if ok {
 		user, err = chat.App.Users().User(id)
 		if err != nil {
 			delete(ac.Session, userIDSessionKey)
+			revel.ERROR.Printf("Error retrieving user: %s\n", err.Error())
+			return ac.RenderError(err)
 		}
 	}
 
-	fbUser := map[string]interface{}{}
-	fbUserResponse, _ := http.Get("https://graph.facebook.com/me?access_token=" + url.QueryEscape(authToken))
+	appSecret, found := revel.Config.String("app.fbAppSecret")
+	if !found {
+		err := errors.New("Unable to get app secret")
+		revel.ERROR.Printf("Error: %s\n", err.Error())
+		return ac.RenderError(err)
+	}
+
+	key := []byte(appSecret)
+	sig := hmac.New(sha256.New, key)
+	sig.Write([]byte(authToken))
+	appSecretProof := hex.EncodeToString(sig.Sum(nil))
+
+	// Get user's info
+	url := fmt.Sprintf("https://graph.facebook.com/me?access_token=%s&appsecret_proof=%s", authToken, appSecretProof)
+	fbUserResponse, err := http.Get(url)
+	if err != nil {
+		revel.ERROR.Printf("Error: %s\n", err.Error())
+		return ac.RenderError(err)
+	}
+	if fbUserResponse.StatusCode != 200 {
+		err := errors.New("FB returned a non-200 status for /me:" + strconv.Itoa(fbUserResponse.StatusCode))
+		revel.ERROR.Printf("Error: %s\n", err.Error())
+		contents, _ := ioutil.ReadAll(fbUserResponse.Body)
+		revel.ERROR.Printf("Body: " + string(contents))
+		return ac.RenderError(err)
+	}
+
 	defer fbUserResponse.Body.Close()
+	fbUser := map[string]interface{}{}
 	if err := json.NewDecoder(fbUserResponse.Body).Decode(&fbUser); err != nil {
 		revel.ERROR.Println(err)
 		return ac.RenderError(err)
 	}
 
+	// Get user's profile pic
+	url = fmt.Sprintf("https://graph.facebook.com/v2.4/%s/picture?type=large&redirect=false&access_token=%s&appsecret_proof=%s", fbID, authToken, appSecretProof)
+	fbPictureResponse, err := http.Get(url)
+	if err != nil {
+		revel.ERROR.Printf("Error: %s\n", err.Error())
+		return ac.RenderError(err)
+	}
+	if fbPictureResponse.StatusCode != 200 {
+		err := errors.New("FB returned a non-200 status for /v2.4/[id]/picture:" + string(fbPictureResponse.StatusCode))
+		revel.ERROR.Printf("Error: %s\n", err.Error())
+		return ac.RenderError(err)
+	}
+
 	fbPicture := map[string]interface{}{}
-	fbPictureResponse, _ := http.Get("https://graph.facebook.com/v2.4/" + fbID + "/picture?type=large&redirect=false&access_token=" + url.QueryEscape(authToken))
 	defer fbPictureResponse.Body.Close()
 	if err := json.NewDecoder(fbPictureResponse.Body).Decode(&fbPicture); err != nil {
 		revel.ERROR.Println(err)
@@ -61,13 +105,16 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 	email := fbUser["email"].(string)
 
 	if isAnyNil(fbPictureData, fbPictureURL, name, firstName, lastName, timezone, email) {
-		return ac.RenderError(errors.New("Unable to parse FB data"))
+		err := errors.New("Unable to parse FB data")
+		revel.ERROR.Printf("Error: %s\n", err.Error())
+		return ac.RenderError(err)
 	}
 
 	if user == nil {
 		user, err = chat.App.NewUser()
 		if err != nil {
 			delete(ac.Session, userIDSessionKey)
+			revel.ERROR.Printf("Error: %s\n", err.Error())
 			ac.RenderError(err)
 		}
 		ac.Session[userIDSessionKey] = user.ID()
@@ -82,6 +129,7 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 	user.SetFBAccessToken(authToken)
 	user.SetFBPictureURL(fbPictureURL)
 	user.SetLocation(lat, long)
+	chat.App.Users().Save(user)
 
 	return ac.RenderJson(user.BroadcastJSON())
 }
