@@ -69,31 +69,32 @@
 
     var location = $("#location-dd button").text().trim()
 
+    var handlePosition = function (position) {
+      $(".gc-info").text("Logging in…")
+
+      $.ajax({
+        url: '/auth',
+        method: 'POST',
+        data: {
+          name: name,
+          lat: position.coords.latitude,
+          long: position.coords.longitude,
+          authToken: authToken,
+          fbID: fbid,
+        }
+      })
+      .done(function (response) {
+        $(".gc-info").text("Loading room…")
+        window.location.replace("/chat/");
+      })
+      .fail(function () {
+        $(".gc-info").text("")
+        $(".gc-error").text("Login failed. Try again later.")
+      });
+    }
+
     switch (location) {
       case "Current location":
-        var handlePosition = function (position) {
-          $(".gc-info").text("Logging in…")
-
-          $.ajax({
-            url: '/auth',
-            method: 'POST',
-            data: {
-              name: name,
-              lat: position.coords.latitude,
-              long: position.coords.longitude,
-              authToken: authToken,
-              fbID: fbid,
-            }
-          })
-          .done(function (response) {
-            $(".gc-info").text("Loading room…")
-            window.location.replace("/chat/");
-          })
-          .fail(function () {
-            $(".gc-info").text("")
-            $(".gc-error").text("Login failed. Try again later.")
-          });
-        }
         navigator.geolocation.getCurrentPosition(handlePosition, handlePositionError)
         break;
       case "Chicago":

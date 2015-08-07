@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/jpcummins/geochat/app/chat"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/revel/revel"
@@ -25,16 +26,16 @@ func (zc *ZoneController) setSession() revel.Result {
 	userID, ok := zc.Session[userIDSessionKey]
 
 	if !ok {
-		zc.Redirect("/")
+		return zc.RenderError(errors.New("Unauthorized"))
 	}
 
 	user, err := chat.App.Users().User(userID)
 	if err != nil {
-		panic(err)
+		return zc.RenderError(err)
 	}
 
 	if user == nil {
-		return zc.Redirect("/")
+		return zc.RenderError(errors.New("Invalid user."))
 	}
 
 	zc.user = user
