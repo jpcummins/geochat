@@ -194,8 +194,8 @@ func (w *World) Join(user types.User) (types.Zone, error) {
 	}
 }
 
-func (w *World) NewUser() (types.User, error) {
-	user := newUser(generateEventID(), w)
+func (w *World) NewUser(fbID string) (types.User, error) {
+	user := newUser(fbID, w)
 	if err := w.Users().Save(user); err != nil {
 		return nil, err
 	}

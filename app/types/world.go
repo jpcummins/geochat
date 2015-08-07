@@ -23,7 +23,7 @@ type World interface {
 	Join(User) (Zone, error)
 
 	Users() Users
-	NewUser() (User, error)
+	NewUser(string) (User, error)
 
 	Publish(PubSubEventData) error
 }

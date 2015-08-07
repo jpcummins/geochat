@@ -111,7 +111,7 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 	}
 
 	if user == nil {
-		user, err = chat.App.NewUser()
+		user, err = chat.App.NewUser(fbID)
 		if err != nil {
 			delete(ac.Session, userIDSessionKey)
 			revel.ERROR.Printf("Error: %s\n", err.Error())
