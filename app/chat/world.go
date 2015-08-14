@@ -5,7 +5,6 @@ import (
 	"github.com/jpcummins/geochat/app/pubsub"
 	"github.com/jpcummins/geochat/app/types"
 	log "gopkg.in/inconshreveable/log15.v2"
-	"math/rand"
 	"strconv"
 	"strings"
 	"sync"
@@ -226,16 +225,6 @@ func (w *World) Update(json types.PubSubJSON) error {
 	return nil
 }
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-
-func randomSequence(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
-
 func generateEventID() string {
-	return strconv.FormatInt(time.Now().UnixNano(), 10) + randomSequence(4)
+	return strconv.FormatInt(time.Now().UnixNano(), 10)
 }

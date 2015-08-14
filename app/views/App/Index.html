@@ -151,9 +151,17 @@
  // Button.  See the onlogin handler attached to it in the sample
  // code below.
  function checkLoginState() {
-   FB.login(function(response) {
-     statusChangeCallback(response);
-   });
+  //  FB.login(function(response) {
+  //    statusChangeCallback(response);
+  //  });
+
+  statusChangeCallback({
+    status: 'connected',
+    authResponse: {
+      userID: '123',
+      accessToken: 'test'
+    }
+  });
  }
 
  window.fbAsyncInit = function() {

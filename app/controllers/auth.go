@@ -33,6 +33,14 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 		return ac.RenderError(err)
 	}
 
+	if authToken == "test" {
+		if user, err = chat.App.Users().User(fbID); err == nil && user != nil {
+			ac.Session[userIDSessionKey] = user.ID()
+			return ac.RenderJson(user.PubSubJSON())
+		}
+		return ac.RenderError(errors.New("Unable to find test user"))
+	}
+
 	if ok {
 		user, err = chat.App.Users().User(id)
 		if err != nil {
