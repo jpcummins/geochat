@@ -23,7 +23,6 @@ type AuthController struct {
 var userIDSessionKey = "user_id"
 
 func (ac AuthController) Login(fbID string, lat float64, long float64, authToken string) revel.Result {
-	id, ok := ac.Session[userIDSessionKey]
 
 	var user types.User
 	var err error
@@ -64,13 +63,11 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 		return ac.RenderError(err)
 	}
 
-	if ok {
-		user, err = chat.App.Users().User(id)
-		if err != nil {
-			delete(ac.Session, userIDSessionKey)
-			revel.ERROR.Printf("Error retrieving user: %s\n", err.Error())
-			return ac.RenderError(err)
-		}
+	user, err = chat.App.Users().User(fbID)
+	if err != nil {
+		delete(ac.Session, userIDSessionKey)
+		revel.ERROR.Printf("Error retrieving user: %s\n", err.Error())
+		return ac.RenderError(err)
 	}
 
 	appSecret, found := revel.Config.String("app.fbAppSecret")
@@ -148,7 +145,6 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 			revel.ERROR.Printf("Error: %s\n", err.Error())
 			ac.RenderError(err)
 		}
-		ac.Session[userIDSessionKey] = user.ID()
 	}
 
 	user.SetName(name)
@@ -161,7 +157,7 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 	user.SetFBPictureURL(fbPictureURL)
 	user.SetLocation(lat, long)
 	chat.App.Users().Save(user)
-
+	ac.Session[userIDSessionKey] = user.ID()
 	return ac.RenderJson(user.PubSubJSON())
 }
 
