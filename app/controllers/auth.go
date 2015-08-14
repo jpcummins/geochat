@@ -11,6 +11,7 @@ import (
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/revel/revel"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"strconv"
 )
@@ -27,18 +28,40 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 	var user types.User
 	var err error
 
+	if authToken == "test" {
+		user, err := chat.App.NewUser(strconv.Itoa(rand.Intn(10000000)))
+		if err != nil {
+			return ac.RenderError(err)
+		}
+
+		user.SetFirstName("Test")
+		user.SetLastName("User")
+		user.SetName("Test User")
+		user.SetLocation(lat, long)
+
+		url := fmt.Sprintf("http://uifaces.com/api/v1/random")
+		avatarResponse, err := http.Get(url)
+		if err != nil {
+			revel.ERROR.Printf("Error: %s\n", err.Error())
+			return ac.RenderError(err)
+		}
+
+		avatarJs := map[string]interface{}{}
+		if err := json.NewDecoder(avatarResponse.Body).Decode(&avatarJs); err != nil {
+			revel.ERROR.Println(err)
+			return ac.RenderError(err)
+		}
+		avatarSizes := avatarJs["image_urls"].(map[string]interface{})
+		user.SetFBPictureURL(avatarSizes["normal"].(string))
+
+		ac.Session[userIDSessionKey] = user.ID()
+		return ac.RenderJson(user.PubSubJSON())
+	}
+
 	if fbID == "" || authToken == "" {
 		err := errors.New("Invalid Facebook credentials.")
 		revel.ERROR.Printf("Error: %s\n", err.Error())
 		return ac.RenderError(err)
-	}
-
-	if authToken == "test" {
-		if user, err = chat.App.Users().User(fbID); err == nil && user != nil {
-			ac.Session[userIDSessionKey] = user.ID()
-			return ac.RenderJson(user.PubSubJSON())
-		}
-		return ac.RenderError(errors.New("Unable to find test user"))
 	}
 
 	if ok {

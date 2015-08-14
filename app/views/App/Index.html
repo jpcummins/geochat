@@ -23,9 +23,18 @@
           <fb:login-button scope="public_profile,email" onlogin="checkLoginState();">
           </fb:login-button>
 
-          <div id="status">
-          </div>
 
+
+        </div>
+        <div class="dropdown pull-left" id="user-dd" style="margin-right:10px">
+          <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            Facebook Login
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+            <li><a href="#">Facebook Login</a></li>
+            <li><a href="#">Test User</a></li>
+          </ul>
         </div>
         <div class="dropdown pull-left" id="location-dd">
           <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
@@ -39,10 +48,13 @@
             <li><a href="#">Hong Kong</a></li>
           </ul>
         </div>
-        <span class="gc-error"></span>
-        <span class="gc-info"></span>
         <input type="button" class="btn btn-success pull-right" id="enter" value="Enter ➞">
 
+        <div>
+          <div id="status"></div>
+          <span class="gc-error"></span>
+          <span class="gc-info"></span>
+        </div>
       </div>
       <div class="col-md-4"></div>
     </div>
@@ -52,6 +64,10 @@
 
   $("#location-dd li").on("click", function (e) {
     $("#location-dd button").html($(this).text() + ' <span class="caret"></span>')
+  })
+
+  $("#user-dd li").on("click", function (e) {
+    $("#user-dd button").html($(this).text() + ' <span class="caret"></span>')
   })
 
   $('#enter').click(function (e) {
@@ -151,18 +167,27 @@
  // Button.  See the onlogin handler attached to it in the sample
  // code below.
  function checkLoginState() {
-  //  FB.login(function(response) {
-  //    statusChangeCallback(response);
-  //  });
 
-  statusChangeCallback({
-    status: 'connected',
-    authResponse: {
-      userID: '123',
-      accessToken: 'test'
-    }
-  });
- }
+  var loginMethod = $("#user-dd button").text().trim()
+
+  switch (loginMethod) {
+    case "Facebook Login":
+      FB.login(function(response) {
+        statusChangeCallback(response);
+      });
+      break;
+    case "Test User":
+      statusChangeCallback({
+        status: 'connected',
+        authResponse: {
+          accessToken: 'test'
+        }
+      });
+      break;
+    default:
+      break;
+  }
+}
 
  window.fbAsyncInit = function() {
  FB.init({

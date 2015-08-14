@@ -25,8 +25,6 @@ func init() {
 func (zc *ZoneController) setSession() revel.Result {
 	userID, ok := zc.Session[userIDSessionKey]
 
-	println(userID)
-
 	if !ok {
 		return zc.RenderError(errors.New("Unauthorized"))
 	}
