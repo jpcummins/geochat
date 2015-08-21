@@ -2,7 +2,6 @@ package chat
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/jpcummins/geochat/app/mocks"
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/stretchr/testify/assert"
@@ -141,19 +140,19 @@ func (suite *ZoneTestSuite) TestBroadcastJSON() {
 
 	user1 := &mocks.User{}
 	user1.On("ID").Return("user1")
-	user1.On("BroadcastJSON").Return(&types.UserBroadcastJSON{"user1", "User1", nil})
+	user1.On("BroadcastJSON").Return(&types.UserBroadcastJSON{"user1", "User1", "User", "1", nil, "pic1"})
 	zone.AddUser(user1)
 
 	user2 := &mocks.User{}
 	user2.On("ID").Return("user2")
-	user2.On("BroadcastJSON").Return(&types.UserBroadcastJSON{"user2", "User2", nil})
+	user2.On("BroadcastJSON").Return(&types.UserBroadcastJSON{"user2", "User2", "User", "2", nil, "pic2"})
 	zone.AddUser(user2)
 
 	suite.users.On("User", "user1").Return(user1, nil)
 	suite.users.On("User", "user2").Return(user2, nil)
 
 	b, err := json.Marshal(zone.BroadcastJSON())
-	assert.Equal(suite.T(), "{\"id\":\":0z\",\"users\":{\"user1\":{\"id\":\"user1\",\"name\":\"User1\",\"location\":null},\"user2\":{\"id\":\"user2\",\"name\":\"User2\",\"location\":null}},\"sw\":{\"lat\":-90,\"lng\":-180},\"ne\":{\"lat\":90,\"lng\":180}}", string(b))
+	assert.Equal(suite.T(), "{\"id\":\":0z\",\"users\":{\"user1\":{\"id\":\"user1\",\"name\":\"User1\",\"firstName\":\"User\",\"lastName\":\"1\",\"location\":null,\"fbPictureUrl\":\"pic1\"},\"user2\":{\"id\":\"user2\",\"name\":\"User2\",\"firstName\":\"User\",\"lastName\":\"2\",\"location\":null,\"fbPictureUrl\":\"pic2\"}},\"sw\":{\"lat\":-90,\"lng\":-180},\"ne\":{\"lat\":90,\"lng\":180}}", string(b))
 	assert.NoError(suite.T(), err)
 }
 
@@ -170,7 +169,7 @@ func (suite *ZoneTestSuite) TestMarshalJSON() {
 	zone.AddUser(user2)
 
 	b, err := json.Marshal(zone.PubSubJSON())
-	assert.Equal(suite.T(), "{\"id\":\":0z\",\"user_ids\":[\"user1\",\"user2\"],\"is_open\":true,\"last_split\":\"0001-01-01T00:00:00Z\",\"last_merge\":\"0001-01-01T00:00:00Z\"}", string(b))
+	assert.Equal(suite.T(), "{\"id\":\":0z\",\"userIDs\":[\"user1\",\"user2\"],\"isOpen\":true}", string(b))
 	assert.NoError(suite.T(), err)
 }
 
@@ -322,82 +321,6 @@ func (suite *ZoneTestSuite) TestParentID_Level5() {
 	assert.Equal(suite.T(), ":wz", zone.ParentZoneID())
 }
 
-func (suite *ZoneTestSuite) TestJoin_LeaveIsCalledOnPreviousZone() {
-	zone, _ := newZone(":0z", suite.world, suite.logger)
-	suite.world.On("Publish", mock.Anything).Return(nil)
-	user := &mocks.User{}
-	prvZone := &mocks.Zone{}
-	prvZone.On("Leave", user).Return(nil, nil)
-	user.On("Zone").Return(prvZone)
-	user.On("PubSubJSON").Return(&types.UserPubSubJSON{})
-	err := zone.Join(user)
-	assert.NoError(suite.T(), err)
-	prvZone.AssertCalled(suite.T(), "Leave", user)
-}
-
-func (suite *ZoneTestSuite) TestJoin_LeaveIsCalledOnPreviousZone_Error() {
-	err := errors.New("err")
-	zone, _ := newZone(":0z", suite.world, suite.logger)
-	user := &mocks.User{}
-	prvZone := &mocks.Zone{}
-	prvZone.On("Leave", user).Return(err)
-	user.On("Zone").Return(prvZone)
-	actualErr := zone.Join(user)
-	assert.Equal(suite.T(), err, actualErr)
-}
-
-func (suite *ZoneTestSuite) TestJoin_PubSubJoin_Error() {
-	zone, _ := newZone(":0z", suite.world, suite.logger)
-	suite.world.On("Publish", mock.Anything).Return(nil)
-	user := &mocks.User{}
-	prvZone := &mocks.Zone{}
-	prvZone.On("Leave", user).Return(nil)
-	user.On("Zone").Return(prvZone)
-	user.On("PubSubJSON").Return(&mocks.PubSubJSON{}) // typecast error
-	err := zone.Join(user)
-	assert.Error(suite.T(), err)
-}
-
-func (suite *ZoneTestSuite) TestJoin_Publish() {
-	zone, _ := newZone(":0z", suite.world, suite.logger)
-	suite.world.On("Publish", mock.Anything).Return(nil)
-	user := &mocks.User{}
-	prvZone := &mocks.Zone{}
-	prvZone.On("Leave", user).Return(nil)
-	user.On("Zone").Return(prvZone)
-	user.On("PubSubJSON").Return(&types.UserPubSubJSON{})
-	err := zone.Join(user)
-	assert.NoError(suite.T(), err)
-	suite.world.AssertCalled(suite.T(), "Publish", mock.Anything)
-}
-
-func (suite *ZoneTestSuite) TestJoin_Publish_Error() {
-	err := errors.New("err")
-	zone, _ := newZone(":0z", suite.world, suite.logger)
-	suite.world.On("Publish", mock.Anything).Return(err)
-	user := &mocks.User{}
-	prvZone := &mocks.Zone{}
-	prvZone.On("Leave", user).Return(nil)
-	user.On("Zone").Return(prvZone)
-	user.On("PubSubJSON").Return(&types.UserPubSubJSON{})
-	actualErr := zone.Join(user)
-	assert.Equal(suite.T(), err, actualErr)
-	suite.world.AssertCalled(suite.T(), "Publish", mock.Anything)
-}
-
-func (suite *ZoneTestSuite) TestLeave() {
-	zone, _ := newZone(":0z", suite.world, suite.logger)
-	suite.world.On("Publish", mock.Anything).Return(nil)
-
-	user := &mocks.User{}
-	user.On("ID").Return("user1")
-	user.On("Zone").Return(zone)
-
-	err := zone.Leave(user)
-	assert.NoError(suite.T(), err)
-	suite.world.AssertCalled(suite.T(), "Publish", mock.Anything)
-}
-
 func (suite *ZoneTestSuite) TestMessage() {
 	zone, _ := newZone(":0z", suite.world, suite.logger)
 	suite.world.On("Publish", mock.Anything).Return(nil)
@@ -408,53 +331,6 @@ func (suite *ZoneTestSuite) TestMessage() {
 	err := zone.Message(user, "test")
 	assert.NoError(suite.T(), err)
 	suite.world.AssertCalled(suite.T(), "Publish", mock.Anything)
-}
-
-func (suite *ZoneTestSuite) TestSplit() {
-	zone, _ := newZone(":0z", suite.world, suite.logger)
-
-	user1 := &mocks.User{}
-	user1.On("ID").Return("user1")
-	user2 := &mocks.User{}
-	user2.On("ID").Return("user2")
-
-	suite.world.On("Zones").Return(suite.zones)
-	suite.world.On("Users").Return(suite.users)
-	suite.zones.On("Save", mock.Anything).Return(nil)
-	suite.users.On("User", "user1").Return(user1, nil)
-	suite.users.On("User", "user2").Return(user2, nil)
-
-	// omg
-
-	leftZone := &mocks.Zone{}
-	rightZone := &mocks.Zone{}
-	suite.world.On("FindOpenZone", zone, user1).Return(leftZone, nil)
-	suite.world.On("FindOpenZone", zone, user2).Return(rightZone, nil)
-	user1.On("SetZone", leftZone).Return(nil)
-	user1.On("PubSubJSON").Return(&types.UserPubSubJSON{})
-	user2.On("SetZone", rightZone).Return(nil)
-	user2.On("PubSubJSON").Return(&types.UserPubSubJSON{})
-
-	leftZone.On("ID").Return(":0g")
-	leftZone.On("AddUser", user1).Return(nil)
-	leftZone.On("PubSubJSON").Return(&types.ZonePubSubJSON{})
-	rightZone.On("ID").Return("hz")
-	rightZone.On("AddUser", user2).Return(nil)
-	rightZone.On("PubSubJSON").Return(&types.ZonePubSubJSON{})
-	suite.db.On("SaveUsersAndZones", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
-	zone.AddUser(user1)
-	zone.AddUser(user2)
-
-	zone.Split()
-
-	assert.False(suite.T(), zone.IsOpen())
-	assert.Equal(suite.T(), 0, zone.Count())
-	leftZone.AssertCalled(suite.T(), "AddUser", user1)
-	user1.AssertCalled(suite.T(), "SetZone", leftZone)
-	rightZone.AssertCalled(suite.T(), "AddUser", user2)
-	user2.AssertCalled(suite.T(), "SetZone", rightZone)
-	suite.db.AssertCalled(suite.T(), "SaveUsersAndZones", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestZoneTestSuit(t *testing.T) {

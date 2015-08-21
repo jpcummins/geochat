@@ -8,7 +8,6 @@ import (
 	log "gopkg.in/inconshreveable/log15.v2"
 	"strings"
 	"sync"
-	"time"
 )
 
 const rootZoneID = ":0z"
@@ -167,14 +166,12 @@ func (z *Zone) IsOpen() bool {
 
 func (z *Zone) SetIsOpen(isOpen bool) {
 	z.ZonePubSubJSON.IsOpen = isOpen
-	z.ZonePubSubJSON.LastModified = time.Now()
 	z.World().Zones().UpdateCache(z)
 }
 
 func (z *Zone) AddUser(user types.User) {
 	z.Lock()
 	defer z.Unlock()
-	z.ZonePubSubJSON.LastModified = time.Now()
 
 	// If the user is already here, don't add.
 	users := z.ZonePubSubJSON.UserIDs
@@ -191,7 +188,6 @@ func (z *Zone) AddUser(user types.User) {
 func (z *Zone) RemoveUser(id string) {
 	z.Lock()
 	defer z.Unlock()
-	z.ZonePubSubJSON.LastModified = time.Now()
 
 	users := z.ZonePubSubJSON.UserIDs
 	for i := range users {
@@ -242,11 +238,6 @@ func (z *Zone) Update(js types.PubSubJSON) error {
 	if !ok {
 		return errors.New("Unable to serialize to ZonePubSubJSON.")
 	}
-	z.logger.Info("Update", "IsOpen", json.IsOpen)
-
-	if json.LastModified.Before(z.ZonePubSubJSON.LastModified) {
-		return errors.New("Update failed; JSON data is out of date.")
-	}
 
 	z.Lock()
 	defer z.Unlock()
@@ -256,15 +247,11 @@ func (z *Zone) Update(js types.PubSubJSON) error {
 }
 
 func (z *Zone) Join(user types.User) error {
-	z.logger.Info("Join", "user", user.ID())
-
 	if !z.IsOpen() {
-		z.logger.Error("Zone is not open", "user", user.ID())
 		return errors.New("Zone is not open")
 	}
 
 	if user.ZoneID() != "" {
-		z.logger.Error("User already belongs to a zone.", "user", user.ID(), "inZone", user.ZoneID())
 		return errors.New("User already belongs to a zone.")
 	}
 
@@ -363,7 +350,6 @@ func (z *Zone) Message(user types.User, message string) error {
 }
 
 func (z *Zone) Split() (map[string]types.Zone, error) {
-	z.logger.Info("Split")
 	z.SetIsOpen(false)
 
 	// Update the user and zone objects
@@ -373,17 +359,14 @@ func (z *Zone) Split() (map[string]types.Zone, error) {
 	for _, userID := range z.ZonePubSubJSON.UserIDs {
 		user, err := z.World().Users().User(userID)
 		if err != nil {
-			z.logger.Crit("User cache lookup error", "error", err.Error(), "user", userID)
 			return nil, err
 		}
 
 		newZone, err := z.world.FindOpenZone(z, user)
 		if err != nil {
-			z.logger.Crit("Unable to find an open zone", "currentZone", z.ID(), "user", user.ID())
 			return nil, err
 		}
 
-		z.logger.Info("Moving user to zone", "user", user.ID(), "newZone", newZone.ID())
 		user.SetZoneID(newZone.ID())
 		newZone.AddUser(user)
 

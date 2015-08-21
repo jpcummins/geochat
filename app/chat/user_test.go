@@ -16,11 +16,10 @@ type UserTestSuite struct {
 func (suite *UserTestSuite) SetupTest() {
 	suite.world = &mocks.World{}
 	suite.world.On("ID").Return("worldid")
-	suite.user = newUser("testid", "test", seattle, suite.world)
+	suite.user = newUser("testid", suite.world)
 }
 
 func (suite *UserTestSuite) TestNewUser() {
-	assert.Equal(suite.T(), "test", suite.user.Name())
 	assert.Equal(suite.T(), "testid", suite.user.ID())
 }
 

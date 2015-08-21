@@ -72,7 +72,6 @@ func (r *RedisDB) Zone(id string, worldID string) (*types.ZonePubSubJSON, error)
 }
 
 func (r *RedisDB) SaveZone(json *types.ZonePubSubJSON, worldID string) error {
-	json.LastModified = time.Now()
 	return r.setObject(getZoneKey(json.ID, worldID), json)
 }
 
