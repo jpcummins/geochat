@@ -46,7 +46,6 @@ func (suite *ZoneTestSuite) TestNewZone() {
 	assert.Equal(suite.T(), "", zone.Geohash())
 	assert.Equal(suite.T(), "0", zone.From())
 	assert.Equal(suite.T(), "z", zone.To())
-	// assert.Nil(suite.T(), zone.ParentZoneID())
 	assert.Equal(suite.T(), ":0g", zone.LeftZoneID())
 	assert.Equal(suite.T(), ":hz", zone.RightZoneID())
 	assert.Equal(suite.T(), 0, zone.Count())

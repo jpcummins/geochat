@@ -2,7 +2,6 @@ package commands
 
 import (
 	"errors"
-	"github.com/jpcummins/geochat/app/broadcast"
 	"github.com/jpcummins/geochat/app/pubsub"
 	"github.com/jpcummins/geochat/app/types"
 	"strconv"
@@ -15,8 +14,11 @@ func (m *maxusers) Execute(args string, user types.User, world types.World) erro
 	splitArgs := strings.Split(strings.TrimSpace(args), " ")
 
 	if len(splitArgs) == 1 && splitArgs[0] == "" {
-		user.Broadcast(broadcast.Announcement("Max users: " + strconv.Itoa(world.MaxUsers())))
-		return nil
+		announcement, err := pubsub.Announcement("Max users: "+strconv.Itoa(world.MaxUsers()), user.ID())
+		if err != nil {
+			return err
+		}
+		return world.Publish(announcement)
 	}
 
 	if len(splitArgs) != 1 {
@@ -42,7 +44,11 @@ func (m *maxusers) Execute(args string, user types.User, world types.World) erro
 
 	println("4")
 	world.Publish(pubSubEvent)
+
 	println("5")
-	user.Broadcast(broadcast.Announcement("Max users: " + strconv.Itoa(num)))
-	return err
+	announcement, err := pubsub.Announcement("Max users: "+strconv.Itoa(world.MaxUsers()), user.ID())
+	if err != nil {
+		return err
+	}
+	return world.Publish(announcement)
 }
