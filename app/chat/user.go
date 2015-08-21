@@ -153,14 +153,19 @@ func (u *User) Disconnect(c types.Connection) {
 }
 
 func (u *User) BroadcastJSON() interface{} {
-	return &types.UserBroadcastJSON{
+	user := &types.UserBroadcastJSON{
 		ID:           u.ID(),
 		Name:         u.Name(),
 		FirstName:    u.FirstName(),
 		LastName:     u.LastName(),
-		Location:     u.Location().BroadcastJSON().(*types.LatLngJSON),
 		FBPictureURL: u.FBPictureURL(),
 	}
+
+	if latlng := u.Location(); latlng != nil {
+		user.Location = latlng.BroadcastJSON().(*types.LatLngJSON)
+	}
+
+	return user
 }
 
 func (u *User) PubSubJSON() types.PubSubJSON {

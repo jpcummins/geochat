@@ -83,7 +83,7 @@ func (zc *ZoneController) Zone() revel.Result {
 }
 
 // ZoneSocket action handles WebSocket communication
-func (zc *ZoneController) ZoneSocket(ws *websocket.Conn) revel.Result {
+func (zc *ZoneController) ZoneSocket(lat float64, long float64, ws *websocket.Conn) revel.Result {
 	connection := zc.user.Connect()
 	closeConnection := make(chan bool)
 

@@ -11,10 +11,6 @@ func Execute(command string, args string, user types.User, world types.World) er
 		return errors.New("Can't find zone")
 	}
 
-	if user.ID() != "10101665329423624" {
-		return nil
-	}
-
 	user.Broadcast(broadcast.Message(user.ID(), "/"+command+" "+args))
 
 	switch command {
@@ -27,6 +23,7 @@ func Execute(command string, args string, user types.User, world types.World) er
 	case "minusers":
 		return (&minusers{}).Execute(args, user, world)
 	case "maxusers":
+		println("a")
 		return (&maxusers{}).Execute(args, user, world)
 	}
 	return nil

@@ -68,6 +68,8 @@ func (e *Event) UnmarshalJSON(b []byte) error {
 		e.EventData = &split{}
 	case mergeType:
 		e.EventData = &merge{}
+	case worldType:
+		e.EventData = &world{}
 	default:
 		return errors.New("Unable to unmarshal command: " + string(ae.Type))
 	}

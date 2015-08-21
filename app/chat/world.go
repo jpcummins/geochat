@@ -65,6 +65,7 @@ func (w *World) manage() {
 		select {
 		case event := <-subscription:
 			event.SetWorld(w)
+			w.logger.Info("Received event", "event", event.ID(), "type", event.Type())
 			event.Data().OnReceive(event)
 		}
 	}
@@ -204,8 +205,10 @@ func (w *World) NewUser(fbID string) (types.User, error) {
 func (w *World) Publish(data types.PubSubEventData) error {
 	event := pubsub.NewEvent(generateEventID(), w, data)
 	if err := event.Data().BeforePublish(event); err != nil {
+		w.logger.Error("Error publishing event", "event", event.ID(), "type", event.Type())
 		return err
 	}
+	w.logger.Info("Publishing event", "event", event.ID(), "type", event.Type())
 	return w.pubsub.Publish(event)
 }
 

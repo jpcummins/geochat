@@ -27,5 +27,6 @@ func (w *world) BeforePublish(e types.PubSubEvent) error {
 
 func (w *world) OnReceive(e types.PubSubEvent) error {
 	e.World().Update(w.World)
+	println("World updated")
 	return nil
 }

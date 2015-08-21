@@ -24,6 +24,8 @@ var userIDSessionKey = "user_id"
 
 func (ac AuthController) Login(fbID string, lat float64, long float64, authToken string) revel.Result {
 
+	revel.INFO.Printf("Login from %s. Lat: %f Lng: %f, auth: %s", fbID, lat, long, authToken)
+
 	var user types.User
 	var err error
 
@@ -53,6 +55,7 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 		avatarSizes := avatarJs["image_urls"].(map[string]interface{})
 		user.SetFBPictureURL(avatarSizes["normal"].(string))
 
+		chat.App.Users().Save(user)
 		ac.Session[userIDSessionKey] = user.ID()
 		return ac.RenderJson(user.PubSubJSON())
 	}
