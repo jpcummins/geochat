@@ -406,6 +406,8 @@ func (z *Zone) Split() (map[string]types.Zone, error) {
 }
 
 func (z *Zone) Merge() error {
+	z.logger.Info("Merge")
+
 	left, err := z.World().Zones().Zone(z.leftZoneID)
 	if err != nil {
 		z.logger.Error("Error retrieving left zone", "left", z.leftZoneID)
