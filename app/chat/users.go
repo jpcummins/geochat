@@ -60,7 +60,7 @@ func (u *Users) FromDB(id string) (types.User, error) {
 func (u *Users) Save(user types.User) error {
 	json, ok := user.PubSubJSON().(*types.UserPubSubJSON)
 	if !ok {
-		return errors.New("Unable to serialize UserPubSubJSON")
+		return errors.New("Unable to serialize UserPubSubJSON.")
 	}
 	if err := u.db.SaveUser(json, u.world.ID()); err != nil {
 		return err
