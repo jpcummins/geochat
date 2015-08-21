@@ -31,21 +31,15 @@ func (m *maxusers) Execute(args string, user types.User, world types.World) erro
 	}
 	world.SetMaxUsers(num)
 
-	println("1")
 	json := world.PubSubJSON().(*types.WorldPubSubJSON)
-	println("2")
 	world.DB().SaveWorld(json)
-	println("3")
 
 	pubSubEvent, err := pubsub.World(json)
 	if err != nil {
 		return err
 	}
-
-	println("4")
 	world.Publish(pubSubEvent)
 
-	println("5")
 	announcement, err := pubsub.Announcement("Max users: "+strconv.Itoa(world.MaxUsers()), user.ID())
 	if err != nil {
 		return err

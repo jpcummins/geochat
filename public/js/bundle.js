@@ -382,7 +382,7 @@ var Merge = React.createClass({displayName: "Merge",
     return (
       React.createElement("div", {className: "row gc-message announcement"}, 
         React.createElement("div", {className: "col-md-offset-1 col-md-10"}, 
-          this.props.data.left.id, " and ", this.props.data.right.id, " merged to ", this.props.data.zone.id, " (", Object.keys(this.props.data.zone.users).length, " users)"
+          this.props.data.leftID, " and ", this.props.data.rightID, " merged to ", this.props.data.zone.id, " (", Object.keys(this.props.data.zone.users).length, " users)"
         )
       )
     )
@@ -504,7 +504,7 @@ var ZonePage = React.createClass({displayName: "ZonePage",
         break;
       case "merge":
         currentZone = zoneCursor.get().id ? zoneCursor.get().id : '';
-        if (currentZone == chatEvent.data.left.id || currentZone == chatEvent.data.right.id) {
+        if (currentZone == chatEvent.data.leftID || currentZone == chatEvent.data.rightID) {
           eventsCursor.push(chatEvent)
           zoneCursor.set(chatEvent.data.zone)
         }

@@ -48,6 +48,6 @@ func (m *merge) OnReceive(e types.PubSubEvent) error {
 		right.Update(m.Right)
 	}
 
-	parent.Broadcast(broadcast.Merge(parent, left, right))
+	parent.Broadcast(broadcast.Merge(parent, m.Left.ID, m.Right.ID))
 	return nil
 }

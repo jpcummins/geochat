@@ -43,7 +43,7 @@ var ZonePage = React.createClass({
         break;
       case "merge":
         currentZone = zoneCursor.get().id ? zoneCursor.get().id : '';
-        if (currentZone == chatEvent.data.left.id || currentZone == chatEvent.data.right.id) {
+        if (currentZone == chatEvent.data.leftID || currentZone == chatEvent.data.rightID) {
           eventsCursor.push(chatEvent)
           zoneCursor.set(chatEvent.data.zone)
         }

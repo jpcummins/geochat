@@ -1,7 +1,6 @@
 package pubsub
 
 import (
-	"errors"
 	"github.com/jpcummins/geochat/app/broadcast"
 	"github.com/jpcummins/geochat/app/types"
 )
@@ -34,14 +33,9 @@ func (m *message) BeforePublish(e types.PubSubEvent) error {
 }
 
 func (m *message) OnReceive(e types.PubSubEvent) error {
-	zone := e.World().Zones().FromCache(m.ZoneID)
-	if zone == nil {
-		return nil
-	}
-
-	var user types.User
-	if user = e.World().Users().FromCache(m.UserID); user == nil {
-		return errors.New("Unknown user")
+	zone, err := e.World().Zones().Zone(m.ZoneID)
+	if err != nil {
+		return err
 	}
 
 	zone.Broadcast(broadcast.Message(m.UserID, m.Message))
