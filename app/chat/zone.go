@@ -449,7 +449,10 @@ func (z *Zone) Merge() error {
 			return err
 		}
 
-		userZone.RemoveUser(id)
+		if userZone != nil {
+			userZone.RemoveUser(id)
+		}
+
 		z.AddUser(user)
 		user.SetZoneID(z.ID())
 		users = append(users, user.PubSubJSON().(*types.UserPubSubJSON))

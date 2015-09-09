@@ -22,8 +22,30 @@ type AuthController struct {
 
 var userIDSessionKey = "user_id"
 
-func (ac AuthController) Login(fbID string, lat float64, long float64, authToken string) revel.Result {
+func (ac AuthController) LoginJson() revel.Result {
 
+	type authData struct {
+		FBID      string  `json:"fbID"`
+		Lat       float64 `json:"lat"`
+		Long      float64 `json:"long"`
+		AuthToken string  `json:"authToken"`
+	}
+
+	body, err := ioutil.ReadAll(ac.Request.Body)
+
+	if err != nil {
+		return ac.RenderError(err)
+	}
+
+	var data authData
+	if err := json.Unmarshal([]byte(body), &data); err != nil {
+		return ac.RenderError(err)
+	}
+
+	return ac.Login(data.FBID, data.Lat, data.Long, data.AuthToken)
+}
+
+func (ac AuthController) Login(fbID string, lat float64, long float64, authToken string) revel.Result {
 	revel.INFO.Printf("Login from %s. Lat: %f Lng: %f, auth: %s", fbID, lat, long, authToken)
 
 	var user types.User
