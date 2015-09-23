@@ -7,7 +7,8 @@ import (
 	"github.com/jpcummins/geochat/app/types"
 	"github.com/revel/revel"
 	"golang.org/x/net/websocket"
-	"time"
+	"io/ioutil"
+	// "time"
 )
 
 // ZoneController is created for all requests handled by the Zone controller. It
@@ -45,7 +46,23 @@ func (zc *ZoneController) setSession() revel.Result {
 }
 
 // Message action sends a message to those in the subscriber's zone.
-func (zc *ZoneController) Message(text string) revel.Result {
+func (zc *ZoneController) Message() revel.Result {
+
+	type messageData struct {
+		Text string `json:"text"`
+	}
+
+	body, err := ioutil.ReadAll(zc.Request.Body)
+
+	if err != nil {
+		return zc.RenderError(err)
+	}
+
+	var data messageData
+	if err := json.Unmarshal([]byte(body), &data); err != nil {
+		return zc.RenderError(err)
+	}
+
 	if zc.user.ZoneID() == "" {
 		zc.Redirect("/")
 	}
@@ -55,7 +72,7 @@ func (zc *ZoneController) Message(text string) revel.Result {
 		panic(err)
 	}
 
-	if err := zone.Message(zc.user, text); err != nil {
+	if err := zone.Message(zc.user, data.Text); err != nil {
 		panic(err)
 	}
 
@@ -107,13 +124,13 @@ func (zc *ZoneController) ZoneSocket(lat float64, long float64, ws *websocket.Co
 	}()
 
 	// Send events to the WebSocket
-	ping := time.NewTicker(30 * time.Second)
+	// ping := time.NewTicker(30 * time.Second)
 	events := connection.Events()
 
 	for {
 		select {
-		case <-ping.C:
-			connection.Ping()
+		// case <-ping.C:
+		// 	connection.Ping()
 		case event := <-events:
 			if err := websocket.JSON.Send(ws, &event); err != nil {
 				closeConnection <- true
