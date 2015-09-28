@@ -22,6 +22,47 @@ type AuthController struct {
 
 var userIDSessionKey = "user_id"
 
+type GoogleRevGeo struct {
+	Results []struct {
+		AddressComponents []struct {
+			LongName  string   `json:"long_name"`
+			ShortName string   `json:"short_name"`
+			Types     []string `json:"types"`
+		} `json:"address_components"`
+		FormattedAddress string `json:"formatted_address"`
+		Geometry         struct {
+			Bounds struct {
+				Northeast struct {
+					Lat float64 `json:"lat"`
+					Lng float64 `json:"lng"`
+				} `json:"northeast"`
+				Southwest struct {
+					Lat float64 `json:"lat"`
+					Lng float64 `json:"lng"`
+				} `json:"southwest"`
+			} `json:"bounds"`
+			Location struct {
+				Lat float64 `json:"lat"`
+				Lng float64 `json:"lng"`
+			} `json:"location"`
+			LocationType string `json:"location_type"`
+			Viewport     struct {
+				Northeast struct {
+					Lat float64 `json:"lat"`
+					Lng float64 `json:"lng"`
+				} `json:"northeast"`
+				Southwest struct {
+					Lat float64 `json:"lat"`
+					Lng float64 `json:"lng"`
+				} `json:"southwest"`
+			} `json:"viewport"`
+		} `json:"geometry"`
+		PlaceID string   `json:"place_id"`
+		Types   []string `json:"types"`
+	} `json:"results"`
+	Status string `json:"status"`
+}
+
 func (ac AuthController) LoginJson() revel.Result {
 
 	type authData struct {
@@ -149,6 +190,38 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 		return ac.RenderError(err)
 	}
 
+	googleAppSecret, found := revel.Config.String("app.googleAppSecret")
+	if !found {
+		err := errors.New("Unable to get google's app secret")
+		revel.ERROR.Printf("Error: %s\n", err.Error())
+		return ac.RenderError(err)
+	}
+
+	// Get the city name
+	url = fmt.Sprintf("https://maps.googleapis.com/maps/api/geocode/json?latlng=%f,%f&key=%s&language=en&result_type=locality", lat, long, googleAppSecret)
+	revGeoResponse, err := http.Get(url)
+	if err != nil {
+		revel.ERROR.Printf("Error: %s\n", err.Error())
+		return ac.RenderError(err)
+	}
+	if revGeoResponse.StatusCode != 200 {
+		err := errors.New("Google returned a non-200 status for /maps/api/geocode/json:" + string(revGeoResponse.StatusCode))
+		revel.ERROR.Printf("Error: %s\n", err.Error())
+		return ac.RenderError(err)
+	}
+
+	var revGeo GoogleRevGeo
+	defer revGeoResponse.Body.Close()
+	if err := json.NewDecoder(revGeoResponse.Body).Decode(&revGeo); err != nil {
+		revel.ERROR.Println(err)
+		return ac.RenderError(err)
+	}
+
+	locality := ""
+	if len(revGeo.Results) > 0 {
+		locality = revGeo.Results[0].FormattedAddress
+	}
+
 	fbPictureData := fbPicture["data"].(map[string]interface{})
 	fbPictureURL := fbPictureData["url"].(string)
 	name := fbUser["name"].(string)
@@ -181,6 +254,7 @@ func (ac AuthController) Login(fbID string, lat float64, long float64, authToken
 	user.SetFBAccessToken(authToken)
 	user.SetFBPictureURL(fbPictureURL)
 	user.SetLocation(lat, long)
+	user.SetLocality(locality)
 	chat.App.Users().Save(user)
 	ac.Session[userIDSessionKey] = user.ID()
 	return ac.RenderJson(user.PubSubJSON())

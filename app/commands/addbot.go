@@ -37,8 +37,9 @@ func (b *addBot) Execute(args string, user types.User, world types.World) error 
 		bot, err := world.NewUser(strconv.Itoa(i) + strconv.Itoa(rand.Intn(1000)))
 		bot.SetFirstName(name)
 		bot.SetLastName("Bot")
-		bot.SetName(name + " Bot")
+		bot.SetName(name)
 		bot.SetLocation(lat, lng)
+		bot.SetLocality("Bot")
 		if err != nil {
 			return err
 		}

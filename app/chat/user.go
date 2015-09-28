@@ -81,6 +81,14 @@ func (u *User) SetLocation(lat float64, lng float64) {
 	u.location = newLatLng(lat, lng)
 }
 
+func (u *User) Locality() string {
+	return u.UserPubSubJSON.Locality
+}
+
+func (u *User) SetLocality(locality string) {
+	u.UserPubSubJSON.Locality = locality
+}
+
 func (u *User) ZoneID() string {
 	return u.UserPubSubJSON.ZoneID
 }
@@ -155,14 +163,9 @@ func (u *User) Disconnect(c types.Connection) {
 func (u *User) BroadcastJSON() interface{} {
 	user := &types.UserBroadcastJSON{
 		ID:           u.ID(),
-		Name:         u.Name(),
 		FirstName:    u.FirstName(),
-		LastName:     u.LastName(),
 		FBPictureURL: u.FBPictureURL(),
-	}
-
-	if latlng := u.Location(); latlng != nil {
-		user.Location = latlng.BroadcastJSON().(*types.LatLngJSON)
+		Locality:     u.Locality(),
 	}
 
 	return user

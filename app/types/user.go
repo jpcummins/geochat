@@ -24,6 +24,9 @@ type User interface {
 	Location() LatLng
 	SetLocation(float64, float64)
 
+	Locality() string
+	SetLocality(string)
+
 	ZoneID() string
 	SetZoneID(string)
 
@@ -51,6 +54,7 @@ type UserPubSubJSON struct {
 	Timezone      float64     `json:"timezone"`
 	Email         string      `json:"email"`
 	Location      *LatLngJSON `json:"location"`
+	Locality      string      `json:"locality"`
 	ZoneID        string      `json:"zoneId"`
 	FBID          string      `json:"fbID"`
 	FBAccessToken string      `json:"fbAccessToken"`
@@ -62,10 +66,8 @@ func (psUser *UserPubSubJSON) Type() PubSubDataType {
 }
 
 type UserBroadcastJSON struct {
-	ID           string      `json:"id"`
-	Name         string      `json:"name"`
-	FirstName    string      `json:"firstName"`
-	LastName     string      `json:"lastName"`
-	Location     *LatLngJSON `json:"location"`
-	FBPictureURL string      `json:"fbPictureUrl"`
+	ID           string `json:"id"`
+	FirstName    string `json:"firstName"`
+	Locality     string `json:"locality"`
+	FBPictureURL string `json:"fbPictureUrl"`
 }
