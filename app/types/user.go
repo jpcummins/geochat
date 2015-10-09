@@ -66,8 +66,9 @@ func (psUser *UserPubSubJSON) Type() PubSubDataType {
 }
 
 type UserBroadcastJSON struct {
-	ID           string `json:"id"`
-	FirstName    string `json:"firstName"`
-	Locality     string `json:"locality"`
-	FBPictureURL string `json:"fbPictureUrl"`
+	ID           string      `json:"id"`
+	FirstName    string      `json:"firstName"`
+	Locality     string      `json:"locality"`
+	Location     *LatLngJSON `json:"location"`
+	FBPictureURL string      `json:"fbPictureUrl"`
 }

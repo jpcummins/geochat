@@ -252,7 +252,7 @@ var User = React.createClass({displayName: "User",
     return (
 	    React.createElement("div", {className: "user"}, 
         React.createElement("img", {src: this.props.user.fbPictureUrl}), 
-        this.props.user.name
+        this.props.user.firstName
 	    )
     )
   }
@@ -634,7 +634,7 @@ var Baobab = require('./src/baobab.js'),
 
 // Non-writable version
 Object.defineProperty(Baobab, 'version', {
-  value: '1.1.0'
+  value: '1.1.2'
 });
 
 // Exposing Cursor and Facet classes
@@ -695,6 +695,30 @@ module.exports = Baobab;
            !Array.isArray(v) &&
            !(v instanceof Function) &&
            !(v instanceof RegExp);
+  }
+
+  /**
+   * Iterate over an object that may have ES6 Symbols.
+   *
+   * @param  {object}   object  Object on which to iterate.
+   * @param  {function} fn      Iterator function.
+   * @param  {object}   [scope] Optional scope.
+   */
+  function forIn(object, fn, scope) {
+    var symbols,
+        k,
+        i,
+        l;
+
+    for (k in object)
+      fn.call(scope || null, k, object[k]);
+
+    if (Object.getOwnPropertySymbols) {
+      symbols = Object.getOwnPropertySymbols(object);
+
+      for (i = 0, l = symbols.length; i < l; i++)
+        fn.call(scope || null, symbols[i], object[symbols[i]]);
+    }
   }
 
   /**
@@ -816,8 +840,10 @@ module.exports = Baobab;
 
     // Variant 3
     if (isPlainObject(a)) {
-      for (event in a)
-        this.on(event, a[event], b);
+      forIn(a, function(name, fn) {
+        this.on(name, fn, b);
+      }, this);
+
       return this;
     }
 
@@ -839,10 +865,11 @@ module.exports = Baobab;
       };
 
       // Defining the list in which the handler should be inserted
-      if (typeof event === 'string') {
+      if (typeof event === 'string' || typeof event === 'symbol') {
         if (!this._handlers[event])
           this._handlers[event] = [];
         handlersList = this._handlers[event];
+        bindingObject.type = event;
       }
       else if (event instanceof RegExp) {
         handlersList = this._handlersComplex;
@@ -859,9 +886,6 @@ module.exports = Baobab;
       for (k in c || {})
         if (__allowedOptions[k])
           bindingObject[k] = c[k];
-
-      if (bindingObject.once)
-        bindingObject.parent = handlersList;
 
       handlersList.push(bindingObject);
     }
@@ -952,10 +976,7 @@ module.exports = Baobab;
   Emitter.prototype.off = function(events, fn) {
     var i,
         n,
-        j,
-        m,
         k,
-        a,
         event;
 
     // Variant 4:
@@ -978,7 +999,8 @@ module.exports = Baobab;
     }
 
     // Variant 5
-    else if (arguments.length === 1 && typeof events === 'string') {
+    else if (arguments.length === 1 &&
+             (typeof events === 'string' || typeof events === 'symbol')) {
       delete this._handlers[events];
     }
 
@@ -998,8 +1020,7 @@ module.exports = Baobab;
 
     // Variant 3
     else if (isPlainObject(events)) {
-      for (k in events)
-        this.off(k, events[k]);
+      forIn(events, this.off, this);
     }
 
     return this;
@@ -1065,16 +1086,14 @@ module.exports = Baobab;
 
     // Object variant
     if (isPlainObject(events)) {
-
-      for (var k in events)
-        this.emit(k, events[k]);
-
+      forIn(events, this.emit, this);
       return this;
     }
 
     var eArray = [].concat(events),
         onces = [],
         event,
+        parent,
         handlers,
         handler,
         i,
@@ -1102,8 +1121,15 @@ module.exports = Baobab;
       }
 
       // Cleaning onces
-      for (j = onces.length - 1; j >= 0; j--)
-        onces[j].parent.splice(onces[j].parent.indexOf(onces[j]), 1);
+      for (j = onces.length - 1; j >= 0; j--) {
+        parent = onces[j].type ?
+          this._handlers[onces[j].type] :
+          onces[j].pattern ?
+            this._handlersComplex :
+            this._handlersAll;
+
+        parent.splice(parent.indexOf(onces[j]), 1);
+      }
     }
 
     return this;
@@ -1121,6 +1147,14 @@ module.exports = Baobab;
     this._handlersAll = null;
     this._handlersComplex = null;
     this._enabled = false;
+
+    // Nooping methods
+    this.unbindAll =
+    this.on =
+    this.once =
+    this.off =
+    this.emit =
+    this.listeners = Function.prototype;
   };
 
 
@@ -1152,7 +1186,7 @@ module.exports = Baobab;
   /**
    * Version:
    */
-  Emitter.version = '3.0.0';
+  Emitter.version = '3.1.1';
 
 
   // Export:
@@ -1236,7 +1270,18 @@ function Baobab(initialData, opts) {
     };
   }
 
-  ['get', 'set', 'unset', 'update'].forEach(bootstrap.bind(this));
+  [
+    'apply',
+    'chain',
+    'get',
+    'merge',
+    'push',
+    'set',
+    'splice',
+    'unset',
+    'unshift',
+    'update'
+  ].forEach(bootstrap.bind(this));
 
   // Facets
   if (!type.Object(this.options.facets))
@@ -1491,7 +1536,7 @@ function Cursor(tree, path, hash) {
         c, p, l, m, i, j;
 
     // Solving path if needed
-    if (self.complexPath)
+    if (self.complex)
       self.solvedPath = helpers.solvePath(self.tree.data, self.path, self.tree);
 
     // If selector listens at tree, we fire
@@ -1540,7 +1585,7 @@ function Cursor(tree, path, hash) {
   this.on = helpers.before(this._lazyBind, this.on.bind(this));
   this.once = helpers.before(this._lazyBind, this.once.bind(this));
 
-  if (this.complexPath)
+  if (this.complex)
     this._lazyBind();
 }
 
@@ -1565,7 +1610,7 @@ Cursor.prototype.isBranch = function() {
  * Traversal
  */
 Cursor.prototype.root = function() {
-  return this.tree.root();
+  return this.tree.root;
 };
 
 Cursor.prototype.select = function(path) {
@@ -1656,6 +1701,10 @@ Cursor.prototype.map = function(fn, scope) {
  * Access
  */
 Cursor.prototype.get = function(path) {
+
+  if (!this.solvedPath)
+    return;
+
   var skipEvent = false;
 
   if (path === false) {
@@ -1758,6 +1807,9 @@ Cursor.prototype.update = function(spec, skipMerge) {
   if (!type.Object(spec))
     throw Error('baobab.Cursor.update: invalid specifications.');
 
+  if (!this.solvedPath)
+    throw Error('baobab.Cursor.update: could not solve the cursor\'s dynamic path.');
+
   this.tree.stack(helpers.pathObject(this.solvedPath, spec), skipMerge);
   return this;
 };
@@ -1799,7 +1851,7 @@ Cursor.prototype.undo = function(steps) {
   var record = this.archive.back(steps);
 
   if (!record)
-    throw Error('boabab.Cursor.undo: cannot find a relevant record (' + steps + ' back).');
+    throw Error('baobab.Cursor.undo: cannot find a relevant record (' + steps + ' back).');
 
   this.undoing = true;
   return this.set(record);
@@ -1998,7 +2050,7 @@ function Facet(tree, definition, args) {
 
   function facetsPaths(facets) {
     var paths =  Object.keys(facets).map(function(k) {
-      return cursorsPaths(facets[k].cursors);
+      return cursorsPaths(facets[k].cursors).concat(facetsPaths(facets[k].facets));
     });
 
     return [].concat.apply([], paths);
@@ -2854,7 +2906,9 @@ function drainQueue() {
         currentQueue = queue;
         queue = [];
         while (++queueIndex < len) {
-            currentQueue[queueIndex].run();
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
         }
         queueIndex = -1;
         len = queue.length;
@@ -2872,7 +2926,7 @@ process.nextTick = function (fun) {
         }
     }
     queue.push(new Item(fun, args));
-    if (!draining) {
+    if (queue.length === 1 && !draining) {
         setTimeout(drainQueue, 0);
     }
 };
@@ -2906,7 +2960,6 @@ process.binding = function (name) {
     throw new Error('process.binding is not supported');
 };
 
-// TODO(shtylman)
 process.cwd = function () { return '/' };
 process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');

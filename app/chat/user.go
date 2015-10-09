@@ -168,6 +168,10 @@ func (u *User) BroadcastJSON() interface{} {
 		Locality:     u.Locality(),
 	}
 
+	if latlng := u.Location(); latlng != nil {
+		user.Location = latlng.BroadcastJSON().(*types.LatLngJSON)
+	}
+
 	return user
 }
 

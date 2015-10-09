@@ -1,10 +1,8 @@
 package commands
 
 import (
-	"encoding/json"
 	"github.com/jpcummins/geochat/app/types"
 	"math/rand"
-	"net/http"
 	"strconv"
 	"strings"
 )
@@ -44,17 +42,7 @@ func (b *addBot) Execute(args string, user types.User, world types.World) error 
 			return err
 		}
 
-		avatarResponse, err := http.Get("http://uifaces.com/api/v1/random")
-		if err != nil {
-			return err
-		}
-
-		avatarJs := map[string]interface{}{}
-		if err := json.NewDecoder(avatarResponse.Body).Decode(&avatarJs); err != nil {
-			return err
-		}
-		avatarSizes := avatarJs["image_urls"].(map[string]interface{})
-		bot.SetFBPictureURL(avatarSizes["normal"].(string))
+		bot.SetFBPictureURL("https://robohash.org/" + name + ".png?size=50x50")
 
 		if _, err := world.Join(bot); err != nil {
 			return err
