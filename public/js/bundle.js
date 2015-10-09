@@ -37,9 +37,10 @@ var ChatCompose = React.createClass({displayName: "ChatCompose",
     		$.ajax({
     			url: '/chat/message',
     			method: "POST",
-    			data: {
+          contentType: 'application/javascript',
+    			data: JSON.stringify({
     				text: message
-    			}
+    			})
     		});
       }
 
